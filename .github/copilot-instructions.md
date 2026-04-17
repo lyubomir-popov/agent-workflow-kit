@@ -87,11 +87,10 @@ Do not rewrite higher-priority docs to match lower-priority implementation drift
 
 ## Validation
 
-Before committing, run the repo's validation commands to confirm nothing is broken. Replace the placeholder below with the real commands for this repo.
+Before committing, run the repo's validation commands to confirm nothing is broken.
 
 ```bash
-# Example: npm test
-# Example: npm run lint
+pwsh -NoLogo -NoProfile -File ./agent-loop.ps1 -DryRun -RepoRoot .
 ```
 
 If there are no automated checks, at minimum verify that the files you changed are syntactically valid and consistent with the rest of the repo.

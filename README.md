@@ -101,40 +101,49 @@ Most repos decay because the project state gets spread across chat history, rand
 ### How it works
 
 ```
-agent-loop.ps1 reads TODO.md
-  → extracts first unchecked "- [ ]" item under "## Active TODO"
+agent-loop checks that the target repo working tree is clean
+  → reads TODO.md and finds the next unchecked item under the target heading
   → builds a prompt for Copilot CLI
   → runs: copilot -p <prompt> --autopilot --allow-all --no-ask-user -s
-  → verifies a new commit appeared
+  → verifies the worker produced exactly one new commit and left the repo clean
   → marks the item [x] in TODO.md
+  → creates a separate bookkeeping commit for the TODO.md change
   → repeats until no items remain or a failure occurs
 ```
 
 ### Usage
 
 ```powershell
-# From any repo directory (after profile is loaded):
-agent-loop -DryRun          # preview tasks without running
-agent-loop                   # run (default: up to 10 tasks)
-agent-loop -MaxTasks 3       # limit to 3 tasks
-agent-loop -TaskSection "### Batch tasks"  # target a different heading
+# If repo-workflow-boilerplate/bin is on PATH:
+agent-loop -DryRun                     # preview tasks without running
+agent-loop                             # run (default: up to 10 tasks)
+agent-loop -MaxTasks 3                 # limit to 3 tasks
+agent-loop -TaskSection "### Batch tasks"  # target a subsection heading
+
+# Direct invocation also works from any OS with pwsh installed:
+pwsh -NoLogo -NoProfile -File /path/to/repo-workflow-boilerplate/agent-loop.ps1 -RepoRoot $PWD -DryRun
 ```
 
 ### Installation
 
-The canonical script lives in this repo at `agent-loop.ps1`. A wrapper function in the PowerShell profile (`$PROFILE`) makes it callable from any directory:
+The canonical script lives in this repo at `agent-loop.ps1`. Cross-platform launchers live in `bin/` and resolve the canonical script relative to their own location, so they do not depend on a hardcoded checkout path.
+
+Included launchers:
+
+- `bin/agent-loop` — bash/zsh launcher for macOS and Ubuntu
+- `bin/agent-loop.cmd` — Windows launcher for PowerShell, cmd, and VS Code terminals
+
+Recommended setup on each machine: add `repo-workflow-boilerplate/bin` to `PATH`.
 
 ```powershell
-# In $PROFILE:
-function agent-loop {
-    param(
-        [int]$MaxTasks = 10,
-        [switch]$DryRun,
-        [string]$TaskSection = '## Active TODO'
-    )
-    $script = 'H:\WSL_dev_projects\repo-workflow-boilerplate\agent-loop.ps1'
-    & $script -MaxTasks $MaxTasks -DryRun:$DryRun -TaskSection $TaskSection -RepoRoot $PWD
-}
+# PowerShell profile example
+$agentLoopBin = '<path-to-repo-workflow-boilerplate>/bin'
+$env:PATH = "$agentLoopBin$([System.IO.Path]::PathSeparator)$env:PATH"
+```
+
+```bash
+# bash / zsh profile example
+export PATH="/path/to/repo-workflow-boilerplate/bin:$PATH"
 ```
 
 To update the loop, edit `agent-loop.ps1` in this repo. All repos pick up the change immediately.
@@ -143,11 +152,15 @@ To update the loop, edit `agent-loop.ps1` in this repo. All repos pick up the ch
 
 - `TODO.md` with a `## Active TODO` section containing `- [ ]` checkbox items
 - `.github/copilot-instructions.md` for the agent to read as context
-- A clean git working tree (the loop checks for new commits as success signals)
+- `git`, `copilot`, and PowerShell 7+ (`pwsh`) available on PATH
+- A clean git working tree (enforced by the scheduler before each run)
 
 ### Safety
 
-- The loop stops on any Copilot CLI non-zero exit or if no new commit is detected
+- The loop refuses to start if the target repo is dirty
+- The loop stops on any Copilot CLI non-zero exit or if no new worker commit is detected
+- The loop requires the worker to leave a clean working tree before scheduler bookkeeping runs
+- Every completed task produces a separate bookkeeping commit for the TODO.md change
 - `--max-autopilot-continues 5` caps each task's thinking rounds
 - `--no-ask-user` prevents the agent from blocking on questions
 - `-DryRun` lets you preview what would execute

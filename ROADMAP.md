@@ -18,41 +18,42 @@ This repo is the centralised process blueprint for AI-agent workflow conventions
 
 ## Improvement backlog
 
-### 1. HISTORY.md rotation
+### 1. HISTORY.md rotation ✅
 
-HISTORY.md will grow unbounded. After 6 months of active work it becomes too long for agents to usefully scan.
+**Implemented.** Rule added to `copilot-instructions.md`: archive when HISTORY.md exceeds ~200 lines. Ceiling chosen because that's roughly the amount an agent can scan in one read without it becoming noise.
 
-**Proposal:** Add a rotation rule — archive entries older than N months to `docs/archive/YYYY.md`, or keep only the last 20 entries in HISTORY.md.
+### 2. docs/specs.md template ✅
 
-### 2. docs/specs.md template
+**Implemented.** Added wording: "If a spec or specs exist, they are the source of truth, linked here. If not, ROADMAP.md assumes the role of the source of truth."
 
-The boilerplate version is a placeholder header. Repos with real spec linkage (like baseline-foundry) need a table format. New repos won't know what to put here.
+### 3. Validation gate ✅
 
-**Proposal:** Add a two-line template showing the expected table format: spec name, path, upstream source, version.
+**Implemented.** Added `## Validation` section to `copilot-instructions.md` with placeholder commands and a rule to validate before committing.
 
-### 3. Validation gate
+### 4. Session-start resilience ✅
 
-The instructions say "run `npm test`" but there's no explicit checkpoint in the session workflow. The autonomous-continuation rule says "make validated checkpoint commits" without defining what validated means per repo.
+**Implemented.** Session-start step 1 now says: "If STATUS looks stale or references work that is clearly finished, update it before proceeding — do not assume the previous session cleaned up."
 
-**Proposal:** Add a `## Validation` section to `copilot-instructions.md` with the exact commands to run before committing, scoped per repo.
+### 5. Quick-start prominence ✅
 
-### 4. Session-end resilience
+**Implemented.** README restructured so the `.github` file convention is the first section under the title, before the workflow map.
 
-Agents forget or run out of context before reaching session-end steps. The rules say update STATUS, ensure INBOX is empty — but in practice the agent's last turn often gets cut short.
+### 6. Cross-repo coordination ✅
 
-**Proposal:** Make session-start do double duty. Step 1 should also verify that STATUS isn't stale from a previous session, rather than relying on the prior session's cleanup.
+**Implemented.** Added `## Cross-repo coordination` section to `copilot-instructions.md` with the pattern: drop a note in the target repo's INBOX.md. Documented the one-agent-per-repo-for-features / one-agent-across-repos-for-mirroring split.
 
-### 5. Quick-start prominence
+## Research backlog
 
-The `AGENTS.md` → `.github/copilot-instructions.md` migration was expensive across 4 repos. This suggests the naming convention should be more prominent in the README — first thing under "Quick start" rather than buried in a list.
+### Autonomous overnight runs
 
-**Proposal:** Restructure the README so the `.github` file convention is the first thing a new-repo creator sees.
+Current LLM agents lose coherence after ~30–60 minutes of autonomous work because context fills up. The user wants genuine overnight autonomous operation. No established best practice exists yet. Current best mitigations documented in `copilot-instructions.md` under "Maximising autonomous run length":
 
-### 6. Cross-repo coordination
+- Narrow scope per burst
+- Checkpoint-and-resume via shell loop or CI
+- Keep TODO items small and decomposed
+- Prefer sequential single-repo sessions
 
-Multiple repos reference each other but there's no explicit cross-repo handoff pattern. The boundary rules say "work in this repo only" but don't cover the case where one repo's work creates a dependency on another.
-
-**Proposal:** Add a convention like "drop a note in the target repo's INBOX.md" to formalize what currently happens ad hoc.
+**Open question:** Can a shell loop or CI pipeline reliably restart fresh agent sessions that pick up from STATUS.md? This needs experimentation.
 
 ## Maturity stages
 

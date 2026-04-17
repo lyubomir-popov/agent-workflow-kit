@@ -2,19 +2,30 @@
 
 This repo uses a standardized workflow boilerplate for human plus agent collaboration.
 
+## Quick start: file convention
+
+Agent instructions live under `.github`, not the repo root:
+
+- **`.github/copilot-instructions.md`** — the single repo-wide instruction file (rules, precedence, workflow)
+- **`.github/agents/agent.md`** — optional repo-specific resume prompt
+
+Everything else lives at the repo root as operational workflow files:
+
+```
+README.md        — human-readable overview
+ROADMAP.md       — long-term direction
+TODO.md          — active execution queue
+INBOX.md         — async user notes (agent drains these)
+STATUS.md        — cold-start orientation
+HISTORY.md       — completed work archive
+docs/specs.md    — upstream specs and sibling-repo references
+```
+
+The rule: every important piece of project state lives in exactly one place.
+
 ## What this is
 
-Use this repo as a starter or reference whenever you create a new project and want the same lightweight operating model:
-
-- one rules file
-- one active plan
-- one roadmap
-- one inbox
-- one cold-start status file
-- one history log
-- one source-doc index
-
-The goal is simple: every important piece of project state lives in exactly one place.
+Use this repo as a starter or reference whenever you create a new project and want the same lightweight operating model.
 
 ## Workflow map
 

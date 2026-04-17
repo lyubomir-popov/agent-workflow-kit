@@ -2,33 +2,22 @@
 
 ## Purpose
 
-This file is the active execution queue for `<repo-name>`.
-
-Keep it short enough that the next work session can start here without hunting through old notes.
-
-## Principles
-
-- Put only active or near-term tasks here.
-- Move completed items to `HISTORY.md`.
-- Move distant or speculative work to `ROADMAP.md`.
-- Record architectural decisions here only if they directly affect current execution.
-
-## Architecture notes
-
-- Replace this section with the repo's critical working assumptions.
-- Keep only notes that materially affect active implementation work.
+This is the active execution queue for the workflow boilerplate repo.
 
 ## Active TODO
 
-- [ ] Replace boilerplate placeholders with real repo details.
-- [ ] Add the current near-term work queue.
-- [ ] Add any important architectural constraints for active work.
+- [ ] Mirror Stage 2 refinements to active repos (baseline-foundry, brand-layout-ops, canonical-spacing-spec). The boilerplate now contains: history rotation, validation gate, session-start resilience, autonomous-continuation tips, cross-repo coordination, and updated specs.md/README templates. Each active repo's `.github/copilot-instructions.md` should be updated to match.
+
+## Completed (move to HISTORY.md)
+
+- [x] Implement HISTORY.md rotation rule (~200 line ceiling → `docs/archive/YYYY.md`).
+- [x] Update `docs/specs.md` template with optional-spec wording.
+- [x] Add `## Validation` section to `copilot-instructions.md`.
+- [x] Make session-start audit stale STATUS from prior sessions.
+- [x] Restructure README to put `.github` convention in quick-start.
+- [x] Add `## Cross-repo coordination` section.
+- [x] Add `### Maximising autonomous run length` guidance.
 
 ## Open questions
 
-- Record only questions that block or shape current execution.
-
-## Inbox triage
-
-- Move notes here from `INBOX.md` if they become active work.
-- Move longer-horizon items to `ROADMAP.md` instead.
+- Research: is there a reliable way to chain autonomous agent sessions overnight? Current best approach is checkpoint-and-resume via shell loop or CI. No established best practice yet — see ROADMAP.

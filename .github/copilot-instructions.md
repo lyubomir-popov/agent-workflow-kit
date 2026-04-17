@@ -42,6 +42,7 @@ Do not rewrite higher-priority docs to match lower-priority implementation drift
 - Record completed long-term items under a long-term section.
 - Move items to history only when actually complete.
 - Do not use history as a backlog or scratchpad.
+- When `HISTORY.md` exceeds ~200 lines, move older entries to `docs/archive/YYYY.md` and keep only recent entries in the root file.
 
 ### The inbox pattern
 
@@ -67,7 +68,7 @@ Do not rewrite higher-priority docs to match lower-priority implementation drift
 
 ### Session start
 
-1. Read `STATUS.md` for orientation.
+1. Read `STATUS.md` for orientation. If it looks stale or references work that is clearly finished, update it before proceeding — do not assume the previous session cleaned up.
 2. Check `INBOX.md`, triage items into plan or roadmap, then empty it.
 3. Read `TODO.md` for current tasks.
 4. Read `docs/specs.md` before changing spec-governed behavior.
@@ -83,6 +84,17 @@ Do not rewrite higher-priority docs to match lower-priority implementation drift
 2. Update `TODO.md` with any new tasks that emerged.
 3. Ensure `INBOX.md` is empty.
 4. Do not create new markdown files to document status unless explicitly requested.
+
+## Validation
+
+Before committing, run the repo's validation commands to confirm nothing is broken. Replace the placeholder below with the real commands for this repo.
+
+```bash
+# Example: npm test
+# Example: npm run lint
+```
+
+If there are no automated checks, at minimum verify that the files you changed are syntactically valid and consistent with the rest of the repo.
 
 ## Repo boundary
 
@@ -104,6 +116,24 @@ In that mode:
 3. Re-read `TODO.md` after major chunks and periodically re-audit alignment.
 4. Update the canonical docs as work lands so the next chat can continue cold.
 5. Do not stop just to ask whether to continue unless the next best move is genuinely unclear or risky.
+
+### Maximising autonomous run length
+
+Current LLM agents lose coherence after extended autonomous runs because context fills up. To get the longest useful runs:
+
+- **Narrow the scope per burst.** "Complete all items in TODO.md section X" works better than open-ended "work through the roadmap."
+- **Checkpoint and resume.** After each substantive chunk, commit + update STATUS + update TODO so a fresh session can continue cold. A shell loop or CI job can restart the agent automatically.
+- **Keep TODO items small.** Each item should be completable in one focused burst. If an item needs decomposition, break it down before starting the autonomous run.
+- **Prefer sequential single-repo sessions** over multi-repo autonomous runs. Cross-repo context bloats fast and causes mistakes.
+
+## Cross-repo coordination
+
+When work in one repo creates a dependency or follow-up in another:
+
+1. Drop a note in the **target repo's** `INBOX.md` describing what changed and what the target repo needs to do.
+2. Do not attempt the cross-repo change in the same session unless the user explicitly redirects there.
+3. Use one agent per repo for feature work. Use one agent across repos only for mirroring convention changes or small coordinated edits.
+4. For larger features, prefer sequential single-repo sessions with INBOX handoffs over one agent trying to hold multi-repo context.
 
 ## How to use this boilerplate in a new repo
 

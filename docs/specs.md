@@ -4,6 +4,8 @@
 
 List the external sources that govern this repo.
 
+If a spec or specs exist, they are the source of truth and should be linked here. If no formal spec exists, `ROADMAP.md` assumes the role of the source of truth for product direction, and this file can be kept minimal or used to list sibling-repo references only.
+
 Use this file to answer two questions quickly:
 
 1. What upstream docs or specs control behavior here?

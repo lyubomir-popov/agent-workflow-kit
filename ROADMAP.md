@@ -53,7 +53,59 @@ Current LLM agents lose coherence after ~30–60 minutes of autonomous work beca
 - Keep TODO items small and decomposed
 - Prefer sequential single-repo sessions
 
-**Open question:** Can a shell loop or CI pipeline reliably restart fresh agent sessions that pick up from STATUS.md? This needs experimentation.
+#### Chosen tool: Claude Code
+
+[Claude Code](https://docs.anthropic.com/en/docs/claude-code) is Anthropic's CLI agent. Key advantages:
+
+- Headless mode via `claude --print` or `claude -p` for non-interactive use
+- Reads `CLAUDE.md` at repo root for project context (maps to our `copilot-instructions.md` content)
+- Fresh context on every invocation — no accumulated drift
+- Git-aware — can commit, read diffs, etc.
+
+#### Overnight loop architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│  PowerShell loop script (agent-loop.ps1)        │
+│                                                 │
+│  while (uncompleted items in TODO.md) {         │
+│    1. Read TODO.md, extract next task            │
+│    2. Invoke: claude -p "task description"       │
+│    3. Wait for completion                        │
+│    4. Verify: git log shows new commit           │
+│    5. Check: TODO.md item marked done            │
+│    6. Log result to loop-log.txt                 │
+│    7. Sleep 10s, then next iteration             │
+│  }                                              │
+└─────────────────────────────────────────────────┘
+```
+
+#### Setup needed
+
+1. Install Claude Code: `npm install -g @anthropic-ai/claude-code`
+2. Authenticate: `claude auth`
+3. Create `CLAUDE.md` in each repo (can symlink or generate from `copilot-instructions.md`)
+4. Write `agent-loop.ps1` — the loop script
+5. Test with a dry run on one repo before overnight use
+
+#### Open questions
+
+- Should `CLAUDE.md` be a copy of `copilot-instructions.md` or a tailored subset?
+- Should the loop script parse TODO.md itself, or ask Claude to pick the next task?
+- How to handle failures: retry once, skip, or stop the loop?
+- Should the loop commit the workflow-file updates, or trust Claude to do it?
+
+#### VS Code prompt files (implemented)
+
+For the "don't type the same thing" problem, user-level prompt files are installed at `%APPDATA%\Code\User\prompts\`:
+
+| Command | File | Purpose |
+|---------|------|---------|
+| `/whats-next` | `whats-next.prompt.md` | Session start: audit, triage inbox, recommend next task |
+| `/proceed-autonomously` | `proceed-autonomously.prompt.md` | Work through TODO with checkpoint commits |
+| `/audit-workflow` | `audit-workflow.prompt.md` | Check all workflow files for staleness and drift |
+
+These work inside VS Code Copilot Chat immediately. The overnight loop via Claude Code is a separate track that needs setup.
 
 ## Maturity stages
 

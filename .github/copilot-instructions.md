@@ -126,6 +126,8 @@ Current LLM agents lose coherence after extended autonomous runs because context
 - **Keep TODO items small.** Each item should be completable in one focused burst. If an item needs decomposition, break it down before starting the autonomous run.
 - **Prefer sequential single-repo sessions** over multi-repo autonomous runs. Cross-repo context bloats fast and causes mistakes.
 
+User-level VS Code prompt files provide shortcuts for common workflows: `/whats-next` (session start + triage), `/proceed-autonomously` (autonomous execution with checkpoints), and `/audit-workflow` (check all workflow files for drift). These are installed at `%APPDATA%\Code\User\prompts\`.
+
 ## Cross-repo coordination
 
 When work in one repo creates a dependency or follow-up in another:

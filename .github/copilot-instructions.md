@@ -9,7 +9,7 @@
 | `README.md` | Overview. Repo summary and workflow map. | User + agent maintain |
 | `ROADMAP.md` | Long-term. Product direction, stages, future ideas. | Agent updates rarely |
 | `TODO.md` | Active plan. Current execution queue, principles, architecture notes. | Agent updates every session |
-| `INBOX.md` | Inbox. User drops notes without interrupting the workflow. | User writes, agent drains |
+| `INBOX.md` | Inbox. User or other agents drop notes without interrupting the workflow. | Anyone writes, agent drains |
 | `STATUS.md` | Cold start. Repo orientation, current state, key files, invariants. | Agent updates when state changes |
 | `HISTORY.md` | Archive. Completed work log. | Agent appends when tasks complete |
 | `docs/specs.md` | Specs. Linked source docs, upstream references, and path summary. | Agent updates when source paths change |
@@ -46,7 +46,7 @@ Do not rewrite higher-priority docs to match lower-priority implementation drift
 
 ### The inbox pattern
 
-`INBOX.md` is the user's write-only channel. At session start, the agent must:
+`INBOX.md` is the write-only channel for the user, other agents, or automation. At session start, the agent must:
 
 1. Read the inbox.
 2. Triage each item into `TODO.md` (near-term) or `ROADMAP.md` (longer-term).

@@ -35,6 +35,15 @@ function Get-NextTask {
     return $null
 }
 
+function Mark-TaskDone {
+    param([string]$TaskText)
+    <# Checks off a task in TODO.md by replacing "- [ ] <text>" with "- [x] <text>". #>
+    $escaped = [regex]::Escape($TaskText)
+    $content = Get-Content TODO.md -Raw
+    $content = $content -replace "- \[ \] $escaped", "- [x] $TaskText"
+    Set-Content TODO.md $content -NoNewline
+}
+
 function Get-HeadCommit {
     return (git rev-parse HEAD 2>$null)
 }
@@ -102,10 +111,14 @@ After completing the task:
         break
     }
 
+    # Mark the task done in TODO.md (scheduler owns state, not the agent)
+    Mark-TaskDone $task
     Write-Host "  ✓ New commit: $commitAfter" -ForegroundColor Green
+    Write-Host "  ✓ Task marked done in TODO.md" -ForegroundColor Green
 }
 
 Write-Host "`n── Summary ──────────────────────────────────────────────" -ForegroundColor Cyan
 Write-Host "  Tasks attempted: $taskCount"
 Write-Host "  HEAD is now: $(Get-HeadCommit)"
-git log --oneline -($taskCount + 2) | ForEach-Object { Write-Host "  $_" }
+$logCount = $taskCount + 2
+git log --oneline -$logCount | ForEach-Object { Write-Host "  $_" }

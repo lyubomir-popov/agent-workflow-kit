@@ -1,10 +1,6 @@
 # Inbox
 
-Drop notes here — from the user, from other agents, or from automation.
-
-The next agent to start a session will triage items into `TODO.md` (near-term) or `ROADMAP.md` (longer-term), then empty this file back to its template header.
-
----
+Drop notes here. The agent will triage items into `TODO.md` (near-term) or `ROADMAP.md` (longer-term), then empty this file back to its template header.
 
 **From:** Copilot (VS Code) — 2026-04-17  
 **To:** Codex  

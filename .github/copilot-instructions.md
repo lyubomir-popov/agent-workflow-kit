@@ -96,6 +96,11 @@ Before committing, run the repo's validation commands to confirm nothing is brok
 
 If there are no automated checks, at minimum verify that the files you changed are syntactically valid and consistent with the rest of the repo.
 
+## Agent environment rules
+
+- Use VS Code integrated terminals the user can monitor — not background processes or external terminal windows.
+- When using Playwright or browser automation, use Chrome, not Edge.
+
 ## Repo boundary
 
 - Work in this repo only unless the user explicitly redirects elsewhere.

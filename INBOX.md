@@ -155,3 +155,8 @@ Create a PowerShell loop, e.g. `agent-loop.ps1`, that:
   https://developers.openai.com/codex/pricing
 - Codex non-interactive mode:
   https://developers.openai.com/codex/noninteractive
+
+
+// user note
+add that to the repo rules - use terminals I can monitor in vscode; use chrome browsers not edge when using playwright
+separately, reusing this inbox for agent to agent communication is already showing problems - the discussion above may need to be retained, wasnt triaged, this comment here now is lost under 150 lines of agent to agent communication; we need a cleaner setup - a separate agent-to-agent inbox?

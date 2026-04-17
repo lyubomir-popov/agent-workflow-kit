@@ -44,56 +44,49 @@ This repo is the centralised process blueprint for AI-agent workflow conventions
 
 ## Research backlog
 
-### Autonomous overnight runs
+### Autonomous overnight runs ✅
 
-Current LLM agents lose coherence after ~30–60 minutes of autonomous work because context fills up. The user wants genuine overnight autonomous operation. No established best practice exists yet. Current best mitigations documented in `copilot-instructions.md` under "Maximising autonomous run length":
+Proven architecture using Copilot CLI as the worker and a PowerShell script as the scheduler. Tested successfully with 2 trivial tasks — both completed, committed, and checked off automatically.
 
-- Narrow scope per burst
-- Checkpoint-and-resume via shell loop or CI
-- Keep TODO items small and decomposed
-- Prefer sequential single-repo sessions
-
-#### Chosen tool: Claude Code
-
-[Claude Code](https://docs.anthropic.com/en/docs/claude-code) is Anthropic's CLI agent. Key advantages:
-
-- Headless mode via `claude --print` or `claude -p` for non-interactive use
-- Reads `CLAUDE.md` at repo root for project context (maps to our `copilot-instructions.md` content)
-- Fresh context on every invocation — no accumulated drift
-- Git-aware — can commit, read diffs, etc.
-
-#### Overnight loop architecture
+#### Architecture
 
 ```
-┌─────────────────────────────────────────────────┐
-│  PowerShell loop script (agent-loop.ps1)        │
-│                                                 │
-│  while (uncompleted items in TODO.md) {         │
-│    1. Read TODO.md, extract next task            │
-│    2. Invoke: claude -p "task description"       │
-│    3. Wait for completion                        │
-│    4. Verify: git log shows new commit           │
-│    5. Check: TODO.md item marked done            │
-│    6. Log result to loop-log.txt                 │
-│    7. Sleep 10s, then next iteration             │
-│  }                                              │
-└─────────────────────────────────────────────────┘
+agent-loop.ps1 (PowerShell scheduler)
+  └── copilot -p "<task>" --autopilot --allow-all --no-ask-user -s
+        └── reads workflow files, implements one TODO item, commits
+        └── scheduler verifies commit, marks task done, loops
 ```
 
-#### Setup needed
+#### Why Copilot CLI, not Claude Code or Codex
 
-1. Install Claude Code: `npm install -g @anthropic-ai/claude-code`
-2. Authenticate: `claude auth`
-3. Create `CLAUDE.md` in each repo (can symlink or generate from `copilot-instructions.md`)
-4. Write `agent-loop.ps1` — the loop script
-5. Test with a dry run on one repo before overnight use
+| Option | Verdict |
+|--------|---------|
+| **Copilot CLI** ✅ | Company-paid, CLI-scriptable, `--autopilot` mode, git-aware, fresh context per invocation |
+| Claude Code | Requires separate API key / subscription |
+| Codex (ChatGPT Plus) | Plus limits too tight for overnight loops (~20–100 msgs/5h); API is separate pay-as-you-go |
+| Aider + Ollama | Free but lower code quality for complex tasks |
+
+#### Prerequisites
+
+1. Copilot CLI: `npm install -g @anthropic-ai/copilot-cli` (or accept VS Code prompt)
+2. GitHub CLI auth: `gh auth login --web -h github.com` (one-time; Copilot reads this token)
+3. PowerShell 7+
+
+#### Key flags
+
+- `--autopilot` — no human in the loop
+- `--allow-all` — no file/tool permission prompts
+- `--no-ask-user` — don't block on questions
+- `--max-autopilot-continues 5` — safety cap per task
+- `-p` — non-interactive prompt mode
+- `-s` — silent output (agent response only)
 
 #### Open questions
 
-- Should `CLAUDE.md` be a copy of `copilot-instructions.md` or a tailored subset?
-- Should the loop script parse TODO.md itself, or ask Claude to pick the next task?
-- How to handle failures: retry once, skip, or stop the loop?
-- Should the loop commit the workflow-file updates, or trust Claude to do it?
+- Should the loop run on a branch and PR, or commit directly to master?
+- How to handle failures: retry once, skip, or stop?
+- Should the scheduler also update HISTORY.md, or leave that to the agent?
+- Optimal `--max-autopilot-continues` for real tasks (5 may be low for complex work)
 
 #### VS Code prompt files (implemented)
 

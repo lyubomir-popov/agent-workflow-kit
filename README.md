@@ -87,3 +87,57 @@ Use this repo as a starter or reference whenever you create a new project and wa
 ## Why this exists
 
 Most repos decay because the project state gets spread across chat history, random markdown files, and people remembering things. This boilerplate keeps the workflow explicit and lightweight so a repo can be resumed cold without reconstructing context from scratch.
+
+## Autonomous agent loop
+
+`agent-loop.ps1` is a PowerShell scheduler that feeds Copilot CLI one TODO item at a time. It enables unattended overnight runs.
+
+### Prerequisites
+
+1. **Copilot CLI** installed (`npm install -g @anthropic-ai/copilot-cli` or via VS Code prompt)
+2. **GitHub CLI** authenticated (`gh auth login --web -h github.com`) — Copilot CLI reads this token
+3. **PowerShell 7+** (works on Windows, WSL, or macOS)
+
+### How it works
+
+```
+agent-loop.ps1 reads TODO.md
+  → extracts first unchecked "- [ ]" item under "## Active TODO"
+  → builds a prompt for Copilot CLI
+  → runs: copilot -p <prompt> --autopilot --allow-all --no-ask-user -s
+  → verifies a new commit appeared
+  → marks the item [x] in TODO.md
+  → repeats until no items remain or a failure occurs
+```
+
+### Usage
+
+```powershell
+# Dry run — parse tasks without invoking Copilot:
+.\agent-loop.ps1 -DryRun
+
+# Run for real (default: up to 10 tasks):
+.\agent-loop.ps1
+
+# Limit to 3 tasks:
+.\agent-loop.ps1 -MaxTasks 3
+
+# Target a different section heading:
+.\agent-loop.ps1 -TaskSection "### Batch tasks"
+```
+
+### Mirroring to another repo
+
+Copy `agent-loop.ps1` to the target repo root. It expects:
+
+- `TODO.md` with a `## Active TODO` section containing `- [ ]` checkbox items
+- `.github/copilot-instructions.md` for the agent to read as context
+- A clean git working tree (the loop checks for new commits as success signals)
+
+### Safety
+
+- The loop stops on any Copilot CLI non-zero exit or if no new commit is detected
+- `--max-autopilot-continues 5` caps each task's thinking rounds
+- `--no-ask-user` prevents the agent from blocking on questions
+- `-DryRun` lets you preview what would execute
+- `--allow-all` grants file/tool permissions — run on a branch if concerned

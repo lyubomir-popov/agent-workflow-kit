@@ -1,19 +1,33 @@
 <#
 .SYNOPSIS
-  Minimal agent-loop scheduler that feeds Copilot CLI one TODO item at a time.
+  Agent-loop scheduler: feeds Copilot CLI one TODO item at a time.
 
 .DESCRIPTION
-  Reads TODO.md, finds the first unchecked task under "### Loop test tasks",
-  builds a prompt, invokes Copilot CLI in autopilot mode, and checks whether
-  a new commit appeared. Repeats until no unchecked tasks remain.
+  Reads TODO.md, finds the first unchecked "- [ ]" item under "## Active TODO",
+  builds a prompt, invokes Copilot CLI in non-interactive autopilot mode, and
+  checks whether a new commit appeared. Repeats until no unchecked tasks remain
+  or a failure is detected.
+
+.PARAMETER MaxTasks
+  Safety cap on how many tasks to process in one run. Default: 10.
+
+.PARAMETER DryRun
+  Parse and display tasks without invoking Copilot CLI.
+
+.PARAMETER TaskSection
+  The heading that marks the task section in TODO.md. Default: "## Active TODO".
 
 .NOTES
-  This is a proof-of-concept. Run from the repo root.
+  Prerequisites:
+    - Copilot CLI installed: npm install -g @anthropic-ai/copilot-cli (or via VS Code)
+    - GitHub auth: gh auth login --web -h github.com
+    - Run from the repo root (or the script will cd to $PSScriptRoot)
 #>
 
 param(
     [int]$MaxTasks = 10,
-    [switch]$DryRun
+    [switch]$DryRun,
+    [string]$TaskSection = '## Active TODO'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,9 +39,10 @@ Set-Location $repoRoot
 function Get-NextTask {
     <# Returns the raw task line text (after "- [ ] "), or $null if none left. #>
     $inSection = $false
+    $sectionPattern = [regex]::Escape($TaskSection)
     foreach ($line in (Get-Content TODO.md)) {
-        if ($line -match '^### Loop test tasks') { $inSection = $true; continue }
-        if ($inSection -and $line -match '^###?\s') { break }  # left section
+        if ($line -match "^$sectionPattern") { $inSection = $true; continue }
+        if ($inSection -and $line -match '^## ') { break }  # hit next H2, stop
         if ($inSection -and $line -match '^\s*-\s\[ \]\s+(.+)$') {
             return $Matches[1]
         }

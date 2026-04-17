@@ -50,6 +50,21 @@ function Get-NextTask {
     return $null
 }
 
+function Get-AllTasks {
+    <# Returns all unchecked task texts under the target section. #>
+    $tasks = @()
+    $inSection = $false
+    $sectionPattern = [regex]::Escape($TaskSection)
+    foreach ($line in (Get-Content TODO.md)) {
+        if ($line -match "^$sectionPattern") { $inSection = $true; continue }
+        if ($inSection -and $line -match '^## ') { break }
+        if ($inSection -and $line -match '^\s*-\s\[ \]\s+(.+)$') {
+            $tasks += $Matches[1]
+        }
+    }
+    return $tasks
+}
+
 function Mark-TaskDone {
     param([string]$TaskText)
     <# Checks off a task in TODO.md by replacing "- [ ] <text>" with "- [x] <text>". #>
@@ -66,6 +81,24 @@ function Get-HeadCommit {
 # ── Main loop ────────────────────────────────────────────────────────────────
 
 $taskCount = 0
+
+# Dry-run: list all tasks at once and exit
+if ($DryRun) {
+    $allTasks = Get-AllTasks
+    if ($allTasks.Count -eq 0) {
+        Write-Host "`n✓ No unchecked tasks found." -ForegroundColor Green
+    } else {
+        $cap = [Math]::Min($allTasks.Count, $MaxTasks)
+        Write-Host "`n── Dry run: $($allTasks.Count) unchecked task(s) found (cap: $MaxTasks) ──" -ForegroundColor Cyan
+        for ($i = 0; $i -lt $cap; $i++) {
+            Write-Host "  $($i + 1). $($allTasks[$i])" -ForegroundColor Yellow
+        }
+        if ($allTasks.Count -gt $MaxTasks) {
+            Write-Host "  … and $($allTasks.Count - $MaxTasks) more beyond the cap" -ForegroundColor DarkGray
+        }
+    }
+    return
+}
 
 while ($taskCount -lt $MaxTasks) {
     $task = Get-NextTask
@@ -96,9 +129,7 @@ After completing the task:
 "@
 
     if ($DryRun) {
-        Write-Host "  [DRY RUN] Would invoke copilot with:" -ForegroundColor DarkGray
-        Write-Host "  $prompt" -ForegroundColor DarkGray
-        # Simulate success for dry-run
+        # Should not reach here — dry-run exits early above
         continue
     }
 

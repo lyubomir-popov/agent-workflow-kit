@@ -27,12 +27,12 @@
 param(
     [int]$MaxTasks = 10,
     [switch]$DryRun,
-    [string]$TaskSection = '## Active TODO'
+    [string]$TaskSection = '## Active TODO',
+    [string]$RepoRoot = $PWD
 )
 
 $ErrorActionPreference = 'Stop'
-$repoRoot = $PSScriptRoot
-Set-Location $repoRoot
+Set-Location $RepoRoot
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 

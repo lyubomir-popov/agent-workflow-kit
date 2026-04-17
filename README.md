@@ -113,22 +113,33 @@ agent-loop.ps1 reads TODO.md
 ### Usage
 
 ```powershell
-# Dry run — parse tasks without invoking Copilot:
-.\agent-loop.ps1 -DryRun
-
-# Run for real (default: up to 10 tasks):
-.\agent-loop.ps1
-
-# Limit to 3 tasks:
-.\agent-loop.ps1 -MaxTasks 3
-
-# Target a different section heading:
-.\agent-loop.ps1 -TaskSection "### Batch tasks"
+# From any repo directory (after profile is loaded):
+agent-loop -DryRun          # preview tasks without running
+agent-loop                   # run (default: up to 10 tasks)
+agent-loop -MaxTasks 3       # limit to 3 tasks
+agent-loop -TaskSection "### Batch tasks"  # target a different heading
 ```
 
-### Mirroring to another repo
+### Installation
 
-Copy `agent-loop.ps1` to the target repo root. It expects:
+The canonical script lives in this repo at `agent-loop.ps1`. A wrapper function in the PowerShell profile (`$PROFILE`) makes it callable from any directory:
+
+```powershell
+# In $PROFILE:
+function agent-loop {
+    param(
+        [int]$MaxTasks = 10,
+        [switch]$DryRun,
+        [string]$TaskSection = '## Active TODO'
+    )
+    $script = 'H:\WSL_dev_projects\repo-workflow-boilerplate\agent-loop.ps1'
+    & $script -MaxTasks $MaxTasks -DryRun:$DryRun -TaskSection $TaskSection -RepoRoot $PWD
+}
+```
+
+To update the loop, edit `agent-loop.ps1` in this repo. All repos pick up the change immediately.
+
+### Target repo requirements
 
 - `TODO.md` with a `## Active TODO` section containing `- [ ]` checkbox items
 - `.github/copilot-instructions.md` for the agent to read as context

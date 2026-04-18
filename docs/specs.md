@@ -15,16 +15,22 @@ Use this file to answer two questions quickly:
 
 | Source | Path or URL | Role |
 |--------|-------------|------|
-| `<upstream-spec>` | `<path-or-url>` | Primary source of truth |
+| Workflow rules | `.github/copilot-instructions.md` | Canonical workflow and precedence rules for the boilerplate |
+| Product direction | `ROADMAP.md` | Source of truth for long-term direction when no external product spec exists |
+| Scheduler contract | `README.md` | Canonical usage and behavioral description for `agent-loop.ps1` and the launcher layout |
 
 ## Related repos
 
 | Repo | Relationship | Notes |
 |------|--------------|-------|
-| `<sibling-repo>` | Reference or downstream consumer | Replace with real notes |
+| `baseline-foundry` | Downstream consumer | Active repo that mirrors workflow-file refinements from this boilerplate and has already been used for real loop-driven tasks |
+| `brand-layout-ops` | Downstream consumer | Active repo that mirrors workflow-file refinements from this boilerplate and surfaced the stale temp-worktree cleanup case |
+| `canonical-spacing-spec` | Downstream consumer | Active repo that mirrors workflow-file refinements from this boilerplate and has already been used for real loop-driven tasks |
 
 ## Notes
 
 - Prefer stable paths where possible.
 - If a draft path is the canonical latest path, note that explicitly.
 - If old snapshots exist, identify them as legacy or archive rather than active source.
+- This repo has no separate external spec at the moment; the boilerplate's governing documents live in-repo.
+- The related repos above are references and rollout targets, not sources of truth for this repo's workflow rules.

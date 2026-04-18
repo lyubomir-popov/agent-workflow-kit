@@ -103,6 +103,8 @@ If there are no automated checks, at minimum verify that the files you changed a
 ## Agent environment rules
 
 - Use VS Code integrated terminals the user can monitor — not background processes or external terminal windows.
+- Prefer reusing a small number of foreground integrated terminals the user can actually inspect. Do not spawn dozens of throwaway shells for small checks.
+- Keep track of the terminals you start. If one hangs, times out, or is no longer needed, close it before finishing the task.
 - When using Playwright or browser automation, use Chrome, not Edge.
 
 ## Repo boundary

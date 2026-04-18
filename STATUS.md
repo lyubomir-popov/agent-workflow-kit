@@ -10,12 +10,11 @@
 - **Agent-loop now runs tasks in disposable git worktrees.** The scheduler auto-detects checkbox queues or active-lane status tables, uses explicit Copilot model / reasoning settings, cherry-picks exactly one worker commit back when safe, and preserves the worker worktree when the primary repo is dirty or the run fails.
 - **Windows temp-worktree cleanup is hardened.** The loop now prunes stale worktree registrations before creation and falls back to force-deleting managed temp dirs plus pruning if `git worktree remove --force` leaves residue.
 - **The self-hosted proof is now recorded in git.** Worker commit `aa7a133` replaced the placeholder `docs/specs.md` entries, and scheduler bookkeeping commit `4fbda32` marked the task done.
-- **The remaining workflow gap is rollout and tuning, not basic viability.** The next work is mirroring the `AGENT-INBOX.md` split and scheduler refinements into the active repos, while canonical still provides the real TODO-vs-history drift case for future tuning.
+- **The remaining workflow gap is tuning, not rollout.** The `AGENT-INBOX.md` split and stronger terminal guidance are now mirrored into `baseline-foundry`, `brand-layout-ops`, and `canonical-spacing-spec`, while canonical still provides the real TODO-vs-history drift case for future tuning.
 - **Inbox roles are now split.** `INBOX.md` is the user-facing note channel, while `AGENT-INBOX.md` is the machine-generated handoff channel for long agent notes, cross-repo follow-ups, and diagnostics awaiting triage.
 
 ## Current execution plan
 
-- Mirror the `AGENT-INBOX.md` split and scheduler refinements to the active repos.
 - Watch the new stale-TODO warning in real use and tighten or relax the token matching if it proves noisy.
 - Decide later whether scheduler-owned bookkeeping should stop at `TODO.md` or also promote completions into `STATUS.md` and `HISTORY.md` automatically.
 

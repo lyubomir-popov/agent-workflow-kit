@@ -17,6 +17,8 @@ Completed work belongs here so `TODO.md` stays lean.
 - Added stale-TODO warnings against recent commit subjects so already-landed work is easier to spot before the loop reruns it.
 - Replaced the placeholder entries in `docs/specs.md` with real in-repo source docs and downstream repo references.
 - Proved one real self-hosted loop run in `repo-workflow-boilerplate` via worker commit `aa7a133` (`docs: fill in specs references`) followed by scheduler bookkeeping commit `4fbda32`.
+- Tightened the terminal-hygiene rule: prefer foreground integrated terminals, reuse a small number of shells, and close any hung terminals you created.
+- Mirrored the `AGENT-INBOX.md` workflow split and stronger foreground-terminal guidance into `baseline-foundry`, `brand-layout-ops`, and `canonical-spacing-spec`.
 
 ### 2026-04-17 — Session: workflow normalisation + agent loop
 

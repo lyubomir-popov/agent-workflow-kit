@@ -6,7 +6,7 @@ This is the active execution queue for the workflow boilerplate repo.
 
 ## Active TODO
 
-- [ ] Mirror Stage 2 refinements to active repos (baseline-foundry, brand-layout-ops, canonical-spacing-spec). Each repo's `.github/copilot-instructions.md` and workflow docs should be updated to match the boilerplate, including `AGENT-INBOX.md` handling.
+- [ ] Observe the stale-TODO warning across a few more real loop runs and tighten or relax the token matching if it proves noisy.
 
 ## Open questions
 

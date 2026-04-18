@@ -9,12 +9,13 @@
 | `README.md` | Overview. Repo summary and workflow map. | User + agent maintain |
 | `ROADMAP.md` | Long-term. Product direction, stages, future ideas. | Agent updates rarely |
 | `TODO.md` | Active plan. Current execution queue, principles, architecture notes. | Agent updates every session |
-| `INBOX.md` | Inbox. User or other agents drop notes without interrupting the workflow. | Anyone writes, agent drains |
+| `INBOX.md` | User inbox. Async user notes that should stay easy to scan. | User writes, agent drains |
+| `AGENT-INBOX.md` | Agent inbox. Long machine-generated handoffs, cross-repo notes, and diagnostics awaiting triage. | Agents / automation write, agent drains |
 | `STATUS.md` | Cold start. Repo orientation, current state, key files, invariants. | Agent updates when state changes |
 | `HISTORY.md` | Archive. Completed work log. | Agent appends when tasks complete |
 | `docs/specs.md` | Specs. Linked source docs, upstream references, and path summary. | Agent updates when source paths change |
 
-No other files should carry duplicate TODO lists, handoff notes, or parallel status tracking. Session scratch in Copilot memory is fine, but the repo itself should keep status in one place only.
+No other files should carry duplicate TODO lists, handoff notes, or parallel status tracking. `AGENT-INBOX.md` is the only allowed repo-level overflow channel for machine-to-machine notes, and it must not become a second `TODO.md` or `STATUS.md`. Session scratch in Copilot memory is fine, but the repo itself should keep status in one place only.
 
 ## Source-of-truth precedence
 
@@ -26,7 +27,8 @@ When sources disagree, use this order unless a higher-priority source explicitly
 4. `STATUS.md` and `HISTORY.md`
 5. `README.md` and `docs/specs.md`
 6. `INBOX.md`
-7. Local implementation details that are not clearly intentional or documented
+7. `AGENT-INBOX.md`
+8. Local implementation details that are not clearly intentional or documented
 
 Do not rewrite higher-priority docs to match lower-priority implementation drift.
 
@@ -46,11 +48,11 @@ Do not rewrite higher-priority docs to match lower-priority implementation drift
 
 ### The inbox pattern
 
-`INBOX.md` is the write-only channel for the user, other agents, or automation. At session start, the agent must:
+`INBOX.md` is the user write-only channel. `AGENT-INBOX.md` is the machine-generated handoff channel for long agent notes, automation diagnostics that need triage, and cross-repo follow-ups. At session start, the agent must:
 
-1. Read the inbox.
-2. Triage each item into `TODO.md` (near-term) or `ROADMAP.md` (longer-term).
-3. Empty the file back to its header template.
+1. Read `INBOX.md` and triage each item into `TODO.md` (near-term) or `ROADMAP.md` (longer-term).
+2. Read `AGENT-INBOX.md` and triage durable facts into `TODO.md`, `ROADMAP.md`, `STATUS.md`, `HISTORY.md`, or `docs/specs.md`.
+3. Empty both files back to their header templates.
 
 ### What goes where
 
@@ -63,15 +65,17 @@ Do not rewrite higher-priority docs to match lower-priority implementation drift
 | What has been completed? | `HISTORY.md` |
 | Cold-start orientation and resume notes | `STATUS.md` |
 | Async user notes | `INBOX.md` |
+| Agent-generated handoffs or long machine notes | `AGENT-INBOX.md` |
 
 ## Agent workflow
 
 ### Session start
 
 1. Read `STATUS.md` for orientation. If it looks stale or references work that is clearly finished, update it before proceeding — do not assume the previous session cleaned up.
-2. Check `INBOX.md`, triage items into plan or roadmap, then empty it.
-3. Read `TODO.md` for current tasks.
-4. Read `docs/specs.md` before changing spec-governed behavior.
+2. Check `INBOX.md`, triage user items into plan or roadmap, then empty it.
+3. Check `AGENT-INBOX.md`, triage machine notes into canonical files, then empty it.
+4. Read `TODO.md` for current tasks.
+5. Read `docs/specs.md` before changing spec-governed behavior.
 
 ### During work
 
@@ -83,7 +87,8 @@ Do not rewrite higher-priority docs to match lower-priority implementation drift
 1. Update `STATUS.md` if the current-state section is stale.
 2. Update `TODO.md` with any new tasks that emerged.
 3. Ensure `INBOX.md` is empty.
-4. Do not create new markdown files to document status unless explicitly requested.
+4. Ensure `AGENT-INBOX.md` is empty.
+5. Do not create new markdown files to document status unless explicitly requested.
 
 ## Validation
 
@@ -136,7 +141,7 @@ User-level VS Code prompt files provide shortcuts for common workflows: `/whats-
 
 When work in one repo creates a dependency or follow-up in another:
 
-1. Drop a note in the **target repo's** `INBOX.md` describing what changed and what the target repo needs to do.
+1. Drop a machine-generated note in the **target repo's** `AGENT-INBOX.md` describing what changed and what the target repo needs to do. Reserve `INBOX.md` for user-authored notes.
 2. Do not attempt the cross-repo change in the same session unless the user explicitly redirects there.
 3. Use one agent per repo for feature work. Use one agent across repos only for mirroring convention changes or small coordinated edits.
 4. For larger features, prefer sequential single-repo sessions with INBOX handoffs over one agent trying to hold multi-repo context.

@@ -4,6 +4,18 @@ Completed work belongs here so `TODO.md` stays lean.
 
 ## Short-term
 
+### 2026-04-18 — Session: cross-repo proof + worktree isolation
+
+- Reworked `agent-loop.ps1` to run each task in a disposable git worktree instead of in-place.
+- Added task timeouts, explicit Copilot model / reasoning controls, and support for both checkbox queues and active-lane status tables.
+- Tightened the worker prompt so broad tasks get narrowed to one safe slice instead of spending the whole run planning.
+- Proved real loop-driven task execution in `baseline-foundry`, `canonical-spacing-spec`, and `brand-layout-ops`.
+- Added dirty-primary preservation mode so worker results are kept for manual inspection instead of being applied unsafely.
+- Hardened temp-worktree cleanup on Windows by pruning stale registrations before creation and force-deleting managed temp dirs if `git worktree remove --force` leaves residue.
+- Cleaned stale temp-worktree registrations left behind in `brand-layout-ops` by the earlier cleanup failure.
+- Split the user-facing inbox from a new `AGENT-INBOX.md` channel so machine handoffs stop burying user notes.
+- Added stale-TODO warnings against recent commit subjects so already-landed work is easier to spot before the loop reruns it.
+
 ### 2026-04-17 — Session: workflow normalisation + agent loop
 
 - Implemented all 6 improvement-backlog items (HISTORY rotation, specs.md, validation gate, session resilience, README quick-start, cross-repo coordination).

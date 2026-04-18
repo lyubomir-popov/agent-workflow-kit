@@ -16,6 +16,7 @@ README.md        — human-readable overview
 ROADMAP.md       — long-term direction
 TODO.md          — active execution queue
 INBOX.md         — async user notes (agent drains these)
+AGENT-INBOX.md   — agent-only handoffs and diagnostics
 STATUS.md        — cold-start orientation
 HISTORY.md       — completed work archive
 docs/specs.md    — upstream specs and sibling-repo references
@@ -37,27 +38,32 @@ Use this repo as a starter or reference whenever you create a new project and wa
 | `ROADMAP.md` | Long-term direction and future stages |
 | `TODO.md` | Active queue, principles, architecture notes |
 | `INBOX.md` | Quick user notes to be triaged later |
+| `AGENT-INBOX.md` | Machine-generated handoffs and long diagnostics awaiting triage |
 | `STATUS.md` | Cold-start orientation for the next session |
 | `HISTORY.md` | Archive of completed work |
 | `docs/specs.md` | Upstream specs, source docs, sibling references |
+
+`INBOX.md` and `AGENT-INBOX.md` have different jobs. User notes stay in `INBOX.md` so they remain easy to scan. Long agent-to-agent handoffs, cross-repo follow-ups, and automation diagnostics go in `AGENT-INBOX.md` instead.
 
 ## How to work in this repo
 
 ### If you are the user
 
 1. Put interrupting ideas, reminders, and loose notes in `INBOX.md`.
-2. Do not maintain separate handoff or backlog files elsewhere.
-3. Read `README.md` and `STATUS.md` when returning after time away.
-4. Use `ROADMAP.md` for long-term direction, not the active task queue.
-5. Use `TODO.md` for the next real work items only.
+2. Do not put agent-to-agent handoff text in `INBOX.md`; that belongs in `AGENT-INBOX.md` and is maintained by the agent.
+3. Do not maintain separate handoff or backlog files elsewhere.
+4. Read `README.md` and `STATUS.md` when returning after time away.
+5. Use `ROADMAP.md` for long-term direction, not the active task queue.
+6. Use `TODO.md` for the next real work items only.
 
 ### If you are the agent
 
 1. Start with `STATUS.md`.
 2. Drain `INBOX.md` into `TODO.md` or `ROADMAP.md`.
-3. Read `TODO.md`.
-4. Read `docs/specs.md` before changing spec-governed behavior.
-5. Update `STATUS.md`, `TODO.md`, and `HISTORY.md` as work lands.
+3. Drain `AGENT-INBOX.md` into canonical files.
+4. Read `TODO.md`.
+5. Read `docs/specs.md` before changing spec-governed behavior.
+6. Update `STATUS.md`, `TODO.md`, and `HISTORY.md` as work lands.
 
 ## Rules of thumb
 
@@ -101,13 +107,14 @@ Most repos decay because the project state gets spread across chat history, rand
 ### How it works
 
 ```
-agent-loop checks that the target repo working tree is clean
-  → reads TODO.md and finds the next unchecked item under the target heading
+agent-loop reads TODO.md and finds the next actionable item under the target heading
   → builds a prompt for Copilot CLI
-  → runs: copilot -p <prompt> --autopilot --allow-all --no-ask-user -s
-  → verifies the worker produced exactly one new commit and left the repo clean
-  → marks the item [x] in TODO.md
-  → creates a separate bookkeeping commit for the TODO.md change
+  → creates a disposable git worktree at the target repo's current HEAD
+  → runs: copilot -p <prompt> --autopilot --allow-all --no-ask-user -s inside that worktree
+  → verifies the worker produced exactly one new commit
+  → cherry-picks that commit back when the primary repo is clean
+  → updates TODO.md and creates a separate bookkeeping commit when scheduler-owned bookkeeping is still safe
+  → preserves the worker worktree for manual inspection if the task times out, the worker does not produce a usable commit, or the primary repo is dirty
   → repeats until no items remain or a failure occurs
 ```
 
@@ -118,6 +125,9 @@ agent-loop checks that the target repo working tree is clean
 agent-loop -DryRun                     # preview tasks without running
 agent-loop                             # run (default: up to 10 tasks)
 agent-loop -MaxTasks 3                 # limit to 3 tasks
+agent-loop -Model gpt-5.4              # choose the Copilot model explicitly
+agent-loop -ReasoningEffort low        # bias the worker toward faster, narrower action
+agent-loop -TaskTimeoutSeconds 600     # stop a hung task after 10 minutes
 agent-loop -TaskSection "### Batch tasks"  # target a subsection heading
 
 # Direct invocation also works from any OS with pwsh installed:
@@ -150,16 +160,23 @@ To update the loop, edit `agent-loop.ps1` in this repo. All repos pick up the ch
 
 ### Target repo requirements
 
-- `TODO.md` with a `## Active TODO` section containing `- [ ]` checkbox items
+- `TODO.md` using one of the supported active-task formats:
+  - `## Active TODO` or `## Active tasks` with `- [ ]` checkbox items
+  - `## Active Execution Queue` with an active-lane status table
 - `.github/copilot-instructions.md` for the agent to read as context
 - `git`, `copilot`, and PowerShell 7+ (`pwsh`) available on PATH
-- A clean git working tree (enforced by the scheduler before each run)
+- A primary git worktree where completed commits can be cherry-picked back cleanly
 
 ### Safety
 
-- The loop refuses to start if the target repo is dirty
+- Each task runs in a disposable git worktree rooted at the target repo's current `HEAD`
+- If the primary repo is dirty, the loop still runs the worker task in isolation but preserves the completed worker worktree for manual inspection instead of cherry-picking it back automatically
 - The loop stops on any Copilot CLI non-zero exit or if no new worker commit is detected
-- The loop requires the worker to leave a clean working tree before scheduler bookkeeping runs
+- The loop warns when recent commit subjects overlap strongly with the current TODO item so stale queue entries are easier to spot before rerunning work
+- The loop kills a task that exceeds the per-task timeout (`-TaskTimeoutSeconds`, default `900`)
+- The loop passes an explicit Copilot model (`-Model`, default `gpt-5.4`) instead of relying on the CLI default
+- The loop passes an explicit reasoning effort (`-ReasoningEffort`, default `low`) so automation favors a quick narrow slice over long speculative planning
+- Automatic cherry-pick and scheduler TODO bookkeeping only happen when the primary repo is clean
 - Every completed task produces a separate bookkeeping commit for the TODO.md change
 - `--max-autopilot-continues 5` caps each task's thinking rounds
 - `--no-ask-user` prevents the agent from blocking on questions

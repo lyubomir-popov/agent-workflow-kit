@@ -6,8 +6,9 @@ This is the active execution queue for the workflow boilerplate repo.
 
 ## Active TODO
 
-- [ ] Mirror Stage 2 refinements to active repos (baseline-foundry, brand-layout-ops, canonical-spacing-spec). Each repo's `.github/copilot-instructions.md` should be updated to match the boilerplate.
-- [ ] Design a cleaner agent-to-agent communication channel — current INBOX.md mixing user notes with long agent exchanges buries user content. Consider a separate `AGENT-INBOX.md` or a `tmp/agent-exchanges/` folder.
+- [ ] Replace the placeholder entries in `docs/specs.md` with real source docs and sibling-repo references for this boilerplate repo.
+- [ ] Mirror Stage 2 refinements to active repos (baseline-foundry, brand-layout-ops, canonical-spacing-spec). Each repo's `.github/copilot-instructions.md` and workflow docs should be updated to match the boilerplate, including `AGENT-INBOX.md` handling.
+- [ ] Run one real self-hosted task in `repo-workflow-boilerplate` after the scheduler/docs changes are committed or the repo is otherwise clean.
 
 ## Open questions
 

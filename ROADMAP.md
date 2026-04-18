@@ -8,7 +8,7 @@ This repo is the centralised process blueprint for AI-agent workflow conventions
 
 1. **Single-file ownership.** Every fact lives in exactly one place. This prevents the most common AI-agent failure mode: status leaking into multiple files until the agent contradicts itself.
 
-2. **The inbox pattern.** `INBOX.md` lets the user drop async notes without derailing the agent. Simple, effective buffer between human thinking and agent execution.
+2. **The inbox pattern.** `INBOX.md` stays user-facing while `AGENT-INBOX.md` absorbs long machine handoffs and diagnostics. That keeps human notes easy to scan without giving up asynchronous agent coordination.
 
 3. **Cold-start resume.** `STATUS.md` + `.github/agents/agent.md` means any agent in any session can pick up the thread without reading full history. This is the right shape for stateless LLM conversations.
 
@@ -40,7 +40,7 @@ This repo is the centralised process blueprint for AI-agent workflow conventions
 
 ### 6. Cross-repo coordination ✅
 
-**Implemented.** Added `## Cross-repo coordination` section to `copilot-instructions.md` with the pattern: drop a note in the target repo's INBOX.md. Documented the one-agent-per-repo-for-features / one-agent-across-repos-for-mirroring split.
+**Implemented.** Added `## Cross-repo coordination` section to `copilot-instructions.md` with the pattern: drop a machine-generated note in the target repo's `AGENT-INBOX.md` while reserving `INBOX.md` for user-authored notes. Documented the one-agent-per-repo-for-features / one-agent-across-repos-for-mirroring split.
 
 ## Research backlog
 

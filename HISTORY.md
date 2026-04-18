@@ -15,6 +15,8 @@ Completed work belongs here so `TODO.md` stays lean.
 - Cleaned stale temp-worktree registrations left behind in `brand-layout-ops` by the earlier cleanup failure.
 - Split the user-facing inbox from a new `AGENT-INBOX.md` channel so machine handoffs stop burying user notes.
 - Added stale-TODO warnings against recent commit subjects so already-landed work is easier to spot before the loop reruns it.
+- Replaced the placeholder entries in `docs/specs.md` with real in-repo source docs and downstream repo references.
+- Proved one real self-hosted loop run in `repo-workflow-boilerplate` via worker commit `aa7a133` (`docs: fill in specs references`) followed by scheduler bookkeeping commit `4fbda32`.
 
 ### 2026-04-17 — Session: workflow normalisation + agent loop
 

@@ -53,7 +53,8 @@ $DefaultTaskSectionCandidates = @(
     '## Active TODO',
     '## Active tasks',
     '## Active Tasks',
-    '## Active Execution Queue'
+    '## Active Execution Queue',
+    '## Short-term'
 )
 
 $TaskHistoryStopWords = @(

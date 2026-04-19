@@ -1,10 +1,10 @@
 ---
-description: "Use when continuing work in <repo-name>. Read the repo workflow files first, then resume active implementation without creating duplicate status tracking."
+description: "Use when continuing work in agent-workflow-kit. Read the workflow files first, then resume scheduler, prompt, or template work without creating duplicate status tracking."
 ---
 
-# <repo-name> Resume Agent
+# agent-workflow-kit Resume Agent
 
-Use this agent when continuing work in `<repo-name>`.
+Use this agent when continuing work in `agent-workflow-kit`.
 
 ## First read
 
@@ -34,4 +34,5 @@ Use this agent when continuing work in `<repo-name>`.
 
 ## Resume focus
 
-- Replace this section with the repo's current continuation guidance once the boilerplate becomes a real project.
+- Prefer work that keeps `agent-loop.ps1`, `prompts/`, and the workflow-file conventions aligned.
+- When prompt behavior changes, update `prompts/` first and then reinstall user prompts with `install-vscode-prompts.ps1`.

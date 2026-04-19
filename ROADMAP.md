@@ -90,17 +90,17 @@ agent-loop.ps1 (PowerShell scheduler)
 
 #### VS Code prompt files (implemented)
 
-For the "don't type the same thing" problem, user-level prompt files are installed at `%APPDATA%\Code\User\prompts\`:
+For the "don't type the same thing" problem, canonical prompt files now live in `prompts/` in this repo and can be installed into VS Code user prompt folders with `install-vscode-prompts.ps1`:
 
 | Command | File | Purpose |
 |---------|------|---------|
-| `/whats-next` | `whats-next.prompt.md` | Session start: audit, triage inbox, recommend next task |
-| `/overnight` | `overnight.prompt.md` | Launch the overnight `agent-loop.ps1` scheduler against the current repo |
-| `/audit-workflow` | `audit-workflow.prompt.md` | Check all workflow files for staleness and drift |
+| `/whats-next` | `prompts/whats-next.prompt.md` | Session start: audit, triage inbox, recommend next task |
+| `/overnight` | `prompts/overnight.prompt.md` | Launch the overnight `agent-loop.ps1` scheduler against the current repo |
+| `/audit-workflow` | `prompts/audit-workflow.prompt.md` | Check all workflow files for staleness and drift |
 
-`/proceed-autonomously` remains available as a legacy alias, but `/overnight` is now the preferred shorter command.
+`/proceed-autonomously` remains available as a legacy alias via `prompts/proceed-autonomously.prompt.md`, but `/overnight` is now the preferred shorter command.
 
-These work inside VS Code Copilot Chat immediately. The overnight loop via Claude Code is a separate track that needs setup.
+After installation, these work inside VS Code Copilot Chat on any machine where this repo is cloned. The overnight scheduler itself is still driven by Copilot CLI via `agent-loop.ps1`.
 
 ## Maturity stages
 

@@ -137,7 +137,7 @@ Current LLM agents lose coherence after extended autonomous runs because context
 - **Keep TODO items small.** Each item should be completable in one focused burst. If an item needs decomposition, break it down before starting the autonomous run.
 - **Prefer sequential single-repo sessions** over multi-repo autonomous runs. Cross-repo context bloats fast and causes mistakes.
 
-User-level VS Code prompt files provide shortcuts for common workflows: `/whats-next` (session start + triage), `/overnight` (preferred shortcut for launching the autonomous `agent-loop.ps1` scheduler), and `/audit-workflow` (check all workflow files for drift). `/proceed-autonomously` may remain installed as a legacy alias. These are installed at `%APPDATA%\Code\User\prompts\`.
+User-level VS Code prompt files provide shortcuts for common workflows: `/whats-next` (session start + triage), `/overnight` (preferred shortcut for launching the autonomous `agent-loop.ps1` scheduler), and `/audit-workflow` (check all workflow files for drift). `/proceed-autonomously` may remain installed as a legacy alias. Canonical prompt definitions should live in this repo under `prompts/` and be installed into the VS Code user prompt directory via `install-vscode-prompts.ps1`.
 
 ## Cross-repo coordination
 
@@ -152,7 +152,7 @@ When work in one repo creates a dependency or follow-up in another:
 
 1. Copy these files into the new repo root.
 2. Keep the file names unchanged.
-3. Replace placeholder text such as `<repo-name>` and `<upstream-spec>`.
+3. Replace repo-specific text such as `agent-workflow-kit` and any remaining placeholders such as `<upstream-spec>`.
 4. Delete any old handoff, todo, or inbox files that would duplicate this structure.
 5. Update `README.md`, `STATUS.md`, and `docs/specs.md` first so the repo can be resumed cleanly.
 

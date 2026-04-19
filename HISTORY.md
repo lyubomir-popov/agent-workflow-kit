@@ -4,6 +4,12 @@ Completed work belongs here so `TODO.md` stays lean.
 
 ## Short-term
 
+### 2026-04-19 — Session: prompt syncability
+
+- Moved the canonical VS Code user prompt definitions into `prompts/` so they can live in git and sync through GitHub.
+- Added `install-vscode-prompts.ps1` plus `bin/` wrappers so a cloned boilerplate repo can install or refresh global slash commands on any machine.
+- Promoted `/overnight` as the preferred short alias while keeping `/proceed-autonomously` as a legacy compatibility prompt.
+
 ### 2026-04-18 — Session: cross-repo proof + worktree isolation
 
 - Reworked `agent-loop.ps1` to run each task in a disposable git worktree instead of in-place.
@@ -16,7 +22,7 @@ Completed work belongs here so `TODO.md` stays lean.
 - Split the user-facing inbox from a new `AGENT-INBOX.md` channel so machine handoffs stop burying user notes.
 - Added stale-TODO warnings against recent commit subjects so already-landed work is easier to spot before the loop reruns it.
 - Replaced the placeholder entries in `docs/specs.md` with real in-repo source docs and downstream repo references.
-- Proved one real self-hosted loop run in `repo-workflow-boilerplate` via worker commit `aa7a133` (`docs: fill in specs references`) followed by scheduler bookkeeping commit `4fbda32`.
+- Proved one real self-hosted loop run in this repo via worker commit `aa7a133` (`docs: fill in specs references`) followed by scheduler bookkeeping commit `4fbda32`.
 - Tightened the terminal-hygiene rule: prefer foreground integrated terminals, reuse a small number of shells, and close any hung terminals you created.
 - Mirrored the `AGENT-INBOX.md` workflow split and stronger foreground-terminal guidance into `baseline-foundry`, `brand-layout-ops`, and `canonical-spacing-spec`.
 

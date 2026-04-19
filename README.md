@@ -1,6 +1,6 @@
-# <repo-name>
+# agent-workflow-kit
 
-This repo uses a standardized workflow boilerplate for human plus agent collaboration.
+This repo packages a standardized agent workflow kit for human plus agent collaboration.
 
 ## Quick start: file convention
 
@@ -73,9 +73,9 @@ Use this repo as a starter or reference whenever you create a new project and wa
 - `STATUS.md` should tell a new chat what matters right now.
 - `docs/specs.md` should answer: what external sources govern this repo?
 
-## How to turn this boilerplate into a real repo
+## How to use this kit in a new repo
 
-1. Rename the title in this file from `<repo-name>` to the actual repo name.
+1. Rename the title in this file from `agent-workflow-kit` to the actual repo name.
 2. Fill out `STATUS.md` with real orientation and key files.
 3. Fill out `docs/specs.md` with the actual upstream docs, specs, or sibling repos.
 4. Replace placeholder roadmap stages and TODO items with real ones.
@@ -93,6 +93,31 @@ Use this repo as a starter or reference whenever you create a new project and wa
 ## Why this exists
 
 Most repos decay because the project state gets spread across chat history, random markdown files, and people remembering things. This boilerplate keeps the workflow explicit and lightweight so a repo can be resumed cold without reconstructing context from scratch.
+
+## Reusable VS Code slash commands
+
+This repo can act as the GitHub-synced source of truth for your global VS Code Copilot slash commands. The canonical prompt definitions live in `prompts/`, and `install-vscode-prompts.ps1` copies them into VS Code's user prompt directory on the current machine.
+
+Canonical commands:
+
+- `/whats-next` — session-start audit and next-task recommendation
+- `/overnight` — preferred short command for launching the overnight `agent-loop.ps1` scheduler
+- `/audit-workflow` — workflow file drift audit
+- `/proceed-autonomously` — legacy alias for `/overnight`
+
+Install or refresh them on any machine after pulling this repo:
+
+```powershell
+pwsh -NoLogo -NoProfile -File ./install-vscode-prompts.ps1
+```
+
+If `agent-workflow-kit/bin` is already on `PATH`, the wrapper also works:
+
+```powershell
+install-vscode-prompts
+```
+
+By default the installer targets the stable VS Code prompt directory and also updates Insiders if that profile already exists. You can pass one or more explicit paths with `-TargetPath`.
 
 ## Autonomous agent loop
 
@@ -121,7 +146,7 @@ agent-loop reads TODO.md and finds the next actionable item under the target hea
 ### Usage
 
 ```powershell
-# If repo-workflow-boilerplate/bin is on PATH:
+# If agent-workflow-kit/bin is on PATH:
 agent-loop -DryRun                     # preview tasks without running
 agent-loop                             # run (default: up to 10 tasks)
 agent-loop -MaxTasks 3                 # limit to 3 tasks
@@ -131,7 +156,7 @@ agent-loop -TaskTimeoutSeconds 600     # stop a hung task after 10 minutes
 agent-loop -TaskSection "### Batch tasks"  # target a subsection heading
 
 # Direct invocation also works from any OS with pwsh installed:
-pwsh -NoLogo -NoProfile -File /path/to/repo-workflow-boilerplate/agent-loop.ps1 -RepoRoot $PWD -DryRun
+pwsh -NoLogo -NoProfile -File /path/to/agent-workflow-kit/agent-loop.ps1 -RepoRoot $PWD -DryRun
 ```
 
 ### Installation
@@ -142,18 +167,20 @@ Included launchers:
 
 - `bin/agent-loop` — bash/zsh launcher for macOS and Ubuntu
 - `bin/agent-loop.cmd` — Windows launcher for PowerShell, cmd, and VS Code terminals
+- `bin/install-vscode-prompts` — bash/zsh wrapper for the prompt installer
+- `bin/install-vscode-prompts.cmd` — Windows wrapper for the prompt installer
 
-Recommended setup on each machine: add `repo-workflow-boilerplate/bin` to `PATH`.
+Recommended setup on each machine: add `agent-workflow-kit/bin` to `PATH`.
 
 ```powershell
 # PowerShell profile example
-$agentLoopBin = '<path-to-repo-workflow-boilerplate>/bin'
+$agentLoopBin = '<path-to-agent-workflow-kit>/bin'
 $env:PATH = "$agentLoopBin$([System.IO.Path]::PathSeparator)$env:PATH"
 ```
 
 ```bash
 # bash / zsh profile example
-export PATH="/path/to/repo-workflow-boilerplate/bin:$PATH"
+export PATH="/path/to/agent-workflow-kit/bin:$PATH"
 ```
 
 To update the loop, edit `agent-loop.ps1` in this repo. All repos pick up the change immediately.

@@ -24,7 +24,7 @@ Completed work belongs here so `TODO.md` stays lean.
 
 - Implemented all 6 improvement-backlog items (HISTORY rotation, specs.md, validation gate, session resilience, README quick-start, cross-repo coordination).
 - Added `### Maximising autonomous run length` guidance to copilot-instructions.md.
-- Created 3 user-level VS Code prompt files (`/whats-next`, `/proceed-autonomously`, `/audit-workflow`).
+- Created 3 user-level VS Code prompt files (`/whats-next`, `/proceed-autonomously`, `/audit-workflow`), then later promoted `/overnight` as the preferred short alias for the autonomous scheduler.
 - Documented Claude Code overnight-loop architecture in ROADMAP, then replaced it with proven Copilot CLI architecture.
 - Built `agent-loop.ps1` scheduler — tested with 2 trivial tasks, both completed and committed automatically.
 - Made agent-loop global via PowerShell profile function (no per-repo copies).

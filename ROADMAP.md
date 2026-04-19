@@ -95,8 +95,10 @@ For the "don't type the same thing" problem, user-level prompt files are install
 | Command | File | Purpose |
 |---------|------|---------|
 | `/whats-next` | `whats-next.prompt.md` | Session start: audit, triage inbox, recommend next task |
-| `/proceed-autonomously` | `proceed-autonomously.prompt.md` | Work through TODO with checkpoint commits |
+| `/overnight` | `overnight.prompt.md` | Launch the overnight `agent-loop.ps1` scheduler against the current repo |
 | `/audit-workflow` | `audit-workflow.prompt.md` | Check all workflow files for staleness and drift |
+
+`/proceed-autonomously` remains available as a legacy alias, but `/overnight` is now the preferred shorter command.
 
 These work inside VS Code Copilot Chat immediately. The overnight loop via Claude Code is a separate track that needs setup.
 

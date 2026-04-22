@@ -56,6 +56,25 @@ Use this repo as a starter or reference whenever you create a new project and wa
 5. Use `ROADMAP.md` for long-term direction, not the active task queue.
 6. Use `TODO.md` for the next real work items only.
 
+## LLM efficiency notes
+
+These habits are more valuable than prompt cleverness when you are using a coding LLM on a real project.
+
+- Pick one model per task. Model switches often invalidate caches and force the tool to reprocess the same context again.
+- Keep permanent instructions short. Long standing instructions cost tokens repeatedly, so reserve them for durable rules and move one-off task detail into the current prompt, `TODO.md`, or `STATUS.md`.
+- Store project memory in files, not only in chat. `STATUS.md`, `TODO.md`, `HISTORY.md`, and `docs/specs.md` exist so the agent can reload state cheaply and accurately after a restart.
+- Prefer markdown, plain text, and lists over complex pages and tables. Retrieval and HTML-to-markdown pipelines often flatten layout, drop metadata, and distort tables.
+- Search in small deliberate passes. Several narrow searches with verification are usually better than one broad query that misses the right slice.
+- Checkpoint and restart freely. Short resumable sessions are usually more reliable than trying to preserve one huge conversation forever.
+- Treat workflow as part of the product. Memory, verification, tools, and repo structure usually matter more than squeezing slightly better wording out of a prompt.
+
+Educational notes:
+
+- Good repo state beats long chat history. If a new session can recover by reading a few markdown files, your workflow scales.
+- Durable rules should stay stable. Temporary context should be disposable. Mixing those two is a common source of token waste.
+- Verification is part of efficient prompting. A fast wrong answer that is never checked is more expensive than a slower answer with a narrow validation step.
+- If the model seems inconsistent, reduce moving parts first: same model, same task boundary, same source files, smaller context.
+
 ### If you are the agent
 
 1. Start with `STATUS.md`.

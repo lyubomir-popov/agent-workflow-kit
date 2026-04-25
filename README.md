@@ -92,6 +92,17 @@ Educational notes:
 - `STATUS.md` should tell a new chat what matters right now.
 - `docs/specs.md` should answer: what external sources govern this repo?
 
+## Scaling roadmap and vision docs
+
+Most repos should start with one root `ROADMAP.md`. When a repo grows past that, keep the root roadmap as a navigation page and current direction summary.
+
+Recommended extensions:
+
+- `docs/roadmap/NN-topic.md` for thematic deep documents that are too long to inline in `ROADMAP.md`
+- `docs/vision/` for stable long-horizon product vision that changes less often than the roadmap
+
+Do not create extra status, handoff, or TODO files. Deep roadmap and vision docs are for durable direction only.
+
 ## How to use this kit in a new repo
 
 1. Rename the title in this file from `agent-workflow-kit` to the actual repo name.
@@ -100,6 +111,7 @@ Educational notes:
 4. Replace placeholder roadmap stages and TODO items with real ones.
 5. Keep `.github/copilot-instructions.md` as the single repo-wide instruction file.
 6. Use `.github/agents/agent.md` only for repo-specific resume guidance, not duplicate workflow rules.
+7. Run `workflow-kit lint` and fix any findings before treating the repo as initialized.
 
 ## Recommended first edits
 
@@ -122,6 +134,8 @@ Canonical commands:
 - `/whats-next` — session-start audit and next-task recommendation
 - `/overnight` — preferred short command for launching the overnight `agent-loop.ps1` scheduler
 - `/audit-workflow` — workflow file drift audit
+- `/run-validation` — run the repo's declared validation command and report pass/fail
+- `/freshen-status` — refresh `STATUS.md` from actual repo state
 - `/proceed-autonomously` — legacy alias for `/overnight`
 
 Install or refresh them on any machine after pulling this repo:
@@ -137,6 +151,34 @@ install-vscode-prompts
 ```
 
 By default the installer targets the stable VS Code prompt directory and also updates Insiders if that profile already exists. You can pass one or more explicit paths with `-TargetPath`.
+
+## Workflow validation and drift checks
+
+`workflow-kit.ps1` validates that a repo still follows the kit contract. It is intentionally small and local: no network calls, no dependency install, and JSON output when another tool needs to consume findings.
+
+```powershell
+# If agent-workflow-kit/bin is on PATH:
+workflow-kit lint               # validate the current repo
+workflow-kit lint -Strict       # fail on warnings as well as errors
+workflow-kit diff               # validate and compare copied canonical assets
+workflow-kit lint -Json         # machine-readable findings
+
+# Direct invocation:
+pwsh -NoLogo -NoProfile -File /path/to/agent-workflow-kit/workflow-kit.ps1 -Command lint -RepoRoot $PWD
+pwsh -NoLogo -NoProfile -File /path/to/agent-workflow-kit/workflow-kit.ps1 -Command diff -RepoRoot $PWD -KitRoot /path/to/agent-workflow-kit
+```
+
+Checks currently cover:
+
+- required workflow files
+- prompt and agent frontmatter
+- empty `INBOX.md` / `AGENT-INBOX.md` templates
+- concise `.github/agents/agent.md`
+- `TODO.md` priority sections
+- tiered validation and token-discipline sections in `.github/copilot-instructions.md`
+- `HISTORY.md` rotation threshold
+- placeholder references in `docs/specs.md`
+- copied scheduler, launcher, installer, and prompt drift against the canonical kit
 
 ## Autonomous agent loop
 
@@ -186,6 +228,8 @@ Included launchers:
 
 - `bin/agent-loop` — bash/zsh launcher for macOS and Ubuntu
 - `bin/agent-loop.cmd` — Windows launcher for PowerShell, cmd, and VS Code terminals
+- `bin/workflow-kit` — bash/zsh launcher for workflow validation and drift checks
+- `bin/workflow-kit.cmd` — Windows launcher for workflow validation and drift checks
 - `bin/install-vscode-prompts` — bash/zsh wrapper for the prompt installer
 - `bin/install-vscode-prompts.cmd` — Windows wrapper for the prompt installer
 
@@ -208,6 +252,7 @@ To update the loop, edit `agent-loop.ps1` in this repo. All repos pick up the ch
 
 - `TODO.md` using one of the supported active-task formats:
   - `## Active TODO` or `## Active tasks` with `- [ ]` checkbox items
+  - `## Short-term` / `## Medium-term` / `## Long-term` with `- [ ]` checkbox items
   - `## Active Execution Queue` with an active-lane status table
 - `.github/copilot-instructions.md` for the agent to read as context
 - `git`, `copilot`, and PowerShell 7+ (`pwsh`) available on PATH

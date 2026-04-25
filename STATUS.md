@@ -13,11 +13,14 @@
 - **The remaining workflow gap is tuning, not rollout.** The `AGENT-INBOX.md` split and stronger terminal guidance are now mirrored into `baseline-foundry`, `brand-layout-ops`, and `canonical-spacing-spec`, while canonical still provides the real TODO-vs-history drift case for future tuning.
 - **Inbox roles are now split.** `INBOX.md` is the user-facing note channel, while `AGENT-INBOX.md` is the machine-generated handoff channel for long agent notes, cross-repo follow-ups, and diagnostics awaiting triage.
 - **VS Code slash commands are now repo-owned and syncable.** Canonical prompt files live in `prompts/`, and `install-vscode-prompts.ps1` installs them into the global VS Code user prompt folder on each machine so the same commands can be reused anywhere after cloning or pulling this repo.
+- **Workflow validation is now executable.** `workflow-kit.ps1` provides `lint` and `diff` commands for checking workflow-file contract drift, prompt frontmatter, inbox drainage, TODO structure, validation sections, and copied canonical assets.
+- **The code/data repo extension backlog is implemented in the canonical kit.** Repo-type-aware precedence, token discipline, tiered validation, priority TODO sections, concise resume agent shape, roadmap scaling docs, and `/run-validation` / `/freshen-status` prompt files are now in place.
 
 ## Current execution plan
 
 - Watch the new stale-TODO warning in real use and tighten or relax the token matching if it proves noisy.
 - Decide later whether scheduler-owned bookkeeping should stop at `TODO.md` or also promote completions into `STATUS.md` and `HISTORY.md` automatically.
+- Roll out the new canonical workflow-kit refinements to downstream repos when requested.
 
 ## Where to look
 
@@ -36,8 +39,11 @@
 |------|---------|
 | `agent-loop.ps1` | Canonical scheduler — reads TODO, invokes Copilot CLI in a disposable worktree, verifies one worker commit, and applies safe bookkeeping |
 | `install-vscode-prompts.ps1` | Copies the canonical prompt files from `prompts/` into the global VS Code user prompt directory |
+| `workflow-kit.ps1` | Validates workflow files and reports drift between downstream repos and the canonical kit |
 | `bin/agent-loop` | POSIX launcher that resolves the canonical script relative to `bin/` |
 | `bin/agent-loop.cmd` | Windows launcher that resolves the canonical script relative to `bin/` |
+| `bin/workflow-kit` | POSIX launcher for `workflow-kit.ps1` |
+| `bin/workflow-kit.cmd` | Windows launcher for `workflow-kit.ps1` |
 | `prompts/` | Canonical slash-command prompt definitions that can be synced through git and installed globally |
 | `.github/copilot-instructions.md` | Agent workflow rules (boilerplate master copy) |
 | `README.md` | Overview, agent-loop usage, mirroring instructions |
@@ -50,6 +56,7 @@
 - `agent-loop.ps1` is the single canonical copy — no per-repo copies.
 - Canonical slash-command prompt definitions live in this repo under `prompts/`, not only in machine-local user-data folders.
 - Launchers must resolve the canonical script relative to the repo, not via hardcoded machine-local paths.
+- `workflow-kit.ps1` is the executable contract check for downstream workflow-file drift.
 - Real tasks run in disposable temp worktrees; the primary repo should only receive cherry-picked worker commits and explicit bookkeeping commits.
 - `INBOX.md` is user-facing only; machine-generated handoffs belong in `AGENT-INBOX.md`.
 - Every status fact lives in exactly one file.

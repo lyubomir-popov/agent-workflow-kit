@@ -1,5 +1,15 @@
 # Workspace Instructions
 
+## What this repo is
+
+`agent-workflow-kit` is the central workflow blueprint for human plus agent coding sessions. It owns the canonical workflow file templates, reusable VS Code prompt files, and the `agent-loop.ps1` / `workflow-kit.ps1` automation scripts.
+
+Key surfaces:
+
+- Workflow files: `STATUS.md`, `TODO.md`, `ROADMAP.md`, `HISTORY.md`, `INBOX.md`, `AGENT-INBOX.md`, `docs/specs.md`
+- Automation: `agent-loop.ps1`, `workflow-kit.ps1`, `install-vscode-prompts.ps1`, `bin/`
+- Prompt source: `prompts/*.prompt.md`
+
 ## Documentation structure
 
 | File | Role | Who writes |
@@ -38,7 +48,9 @@ When deciding where extra detail belongs, use this map:
 
 ## Source-of-truth precedence
 
-When sources disagree, use this order unless a higher-priority source explicitly narrows it further:
+When sources disagree, adapt precedence to the repo type. The rule is repo-type-aware: durable canonical artifacts beat interpretive planning docs.
+
+Default docs/spec repo order:
 
 1. Linked specs, upstream docs, or explicitly referenced source material
 2. `ROADMAP.md`
@@ -49,7 +61,25 @@ When sources disagree, use this order unless a higher-priority source explicitly
 7. `AGENT-INBOX.md`
 8. Local implementation details that are not clearly intentional or documented
 
+Code/data repo order:
+
+1. Canonical repo data, schemas, source code, committed assets, and tests that define current behavior
+2. Linked specs, upstream docs, or explicitly referenced source material
+3. `ROADMAP.md`
+4. `.github/copilot-instructions.md`
+5. `STATUS.md` and `HISTORY.md`
+6. `README.md` and `docs/specs.md`
+7. `INBOX.md`
+8. `AGENT-INBOX.md`
+
 Do not rewrite higher-priority docs to match lower-priority implementation drift.
+
+## Token discipline
+
+- Use `rg` and targeted file reads before opening large files.
+- Avoid broad reads of generated output, build artifacts, dependency folders, caches, and large data directories unless the task specifically requires them.
+- In downstream repos, replace this placeholder with exact heavy paths such as `dist/`, `build/`, `coverage/`, `.next/`, `outputs/`, `tmp/`, or large fixture/data folders.
+- Keep permanent instructions short. Put one-off task detail in the current prompt, `TODO.md`, or `STATUS.md`.
 
 ## Planning threshold
 
@@ -111,10 +141,23 @@ Do not rewrite higher-priority docs to match lower-priority implementation drift
 
 ## Validation
 
-Before committing, run the repo's validation commands to confirm nothing is broken.
+Before committing, run validation to confirm nothing is broken.
+
+### Full validation
+
+Use before merging substantial changes or after broad workflow edits:
 
 ```bash
+pwsh -NoLogo -NoProfile -File ./workflow-kit.ps1 -Command lint -RepoRoot . -Strict
 pwsh -NoLogo -NoProfile -File ./agent-loop.ps1 -DryRun -RepoRoot .
+```
+
+### Targeted validation
+
+Use during incremental work:
+
+```bash
+pwsh -NoLogo -NoProfile -File ./workflow-kit.ps1 -Command lint -RepoRoot .
 ```
 
 If there are no automated checks, at minimum verify that the files you changed are syntactically valid and consistent with the rest of the repo.
@@ -156,7 +199,7 @@ Current LLM agents lose coherence after extended autonomous runs because context
 - **Keep TODO items small.** Each item should be completable in one focused burst. If an item needs decomposition, break it down before starting the autonomous run.
 - **Prefer sequential single-repo sessions** over multi-repo autonomous runs. Cross-repo context bloats fast and causes mistakes.
 
-User-level VS Code prompt files provide shortcuts for common workflows: `/whats-next` (session start + triage), `/overnight` (preferred shortcut for launching the autonomous `agent-loop.ps1` scheduler), and `/audit-workflow` (check all workflow files for drift). `/proceed-autonomously` may remain installed as a legacy alias. Canonical prompt definitions should live in this repo under `prompts/` and be installed into the VS Code user prompt directory via `install-vscode-prompts.ps1`.
+User-level VS Code prompt files provide shortcuts for common workflows: `/whats-next` (session start + triage), `/overnight` (preferred shortcut for launching the autonomous `agent-loop.ps1` scheduler), `/audit-workflow` (check all workflow files for drift), `/run-validation` (run declared validation commands), and `/freshen-status` (refresh `STATUS.md` from actual repo state). `/proceed-autonomously` may remain installed as a legacy alias. Canonical prompt definitions should live in this repo under `prompts/` and be installed into the VS Code user prompt directory via `install-vscode-prompts.ps1`.
 
 ## Cross-repo coordination
 
@@ -174,6 +217,7 @@ When work in one repo creates a dependency or follow-up in another:
 3. Replace repo-specific text such as `agent-workflow-kit` and any remaining placeholders such as `<upstream-spec>`.
 4. Delete any old handoff, todo, or inbox files that would duplicate this structure.
 5. Update `README.md`, `STATUS.md`, and `docs/specs.md` first so the repo can be resumed cleanly.
+6. Run `workflow-kit lint` or `pwsh -NoLogo -NoProfile -File <path-to-agent-workflow-kit>/workflow-kit.ps1 -Command lint -RepoRoot .` and fix any findings.
 
 ## Agent file roles
 

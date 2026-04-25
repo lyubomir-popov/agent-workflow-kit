@@ -4,7 +4,17 @@ Completed work belongs here so `TODO.md` stays lean.
 
 ## Short-term
 
-### 2026-04-19 — Session: prompt syncability
+### 2026-04-25 - Session: executable workflow validation
+
+- Added `workflow-kit.ps1` with `lint` and `diff` modes for validating workflow-file conventions and copied canonical asset drift.
+- Added `bin/workflow-kit` and `bin/workflow-kit.cmd` launchers.
+- Added `/run-validation` and `/freshen-status` prompt definitions.
+- Updated `.github/copilot-instructions.md` with repo orientation, repo-type-aware precedence, token discipline, and full/targeted validation sections.
+- Replaced `.github/agents/agent.md` with a concise first-read prompt.
+- Updated `TODO.md` to use Short-term / Medium-term / Long-term priority sections.
+- Documented workflow validation, roadmap/vision scaling, new prompts, and launchers in `README.md` and `ROADMAP.md`.
+
+### 2026-04-19 - Session: prompt syncability
 
 - Moved the canonical VS Code user prompt definitions into `prompts/` so they can live in git and sync through GitHub.
 - Added `install-vscode-prompts.ps1` plus `bin/` wrappers so a cloned boilerplate repo can install or refresh global slash commands on any machine.

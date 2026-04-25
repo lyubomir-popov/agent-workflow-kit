@@ -18,6 +18,7 @@ Use this file to answer two questions quickly:
 | Workflow rules | `.github/copilot-instructions.md` | Canonical workflow and precedence rules for the boilerplate |
 | Product direction | `ROADMAP.md` | Source of truth for long-term direction when no external product spec exists |
 | Scheduler and prompt installer contract | `README.md` | Canonical usage and behavioral description for `agent-loop.ps1`, the `bin/` launchers, `prompts/`, and `install-vscode-prompts.ps1` |
+| Workflow validation contract | `workflow-kit.ps1` and `README.md` | Executable checks and documented usage for linting workflow files and detecting downstream asset drift |
 
 ## Related repos
 

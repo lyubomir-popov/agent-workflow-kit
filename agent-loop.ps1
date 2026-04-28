@@ -54,11 +54,12 @@ param(
     [string]$RepoRoot = $PWD
 )
 
-# Tier -> (model, reasoning effort). [X] is intentionally skipped so subagent
-# / validation tasks don't burn a Copilot CLI invocation.
+# Tier -> (model, reasoning effort). Effort = $null means do not pass --effort
+# (Claude models reject --effort; reasoning is implicit). [X] is intentionally
+# skipped so subagent / validation tasks don't burn a Copilot CLI invocation.
 $TierDispatchMap = @{
-    'H' = @{ Model = 'claude-opus-4.5'; Effort = 'high' }
-    'S' = @{ Model = 'claude-sonnet-4.5'; Effort = 'medium' }
+    'H' = @{ Model = 'claude-opus-4.5'; Effort = $null }
+    'S' = @{ Model = 'claude-sonnet-4.5'; Effort = $null }
     'L' = @{ Model = 'gpt-5.4'; Effort = 'low' }
     'X' = @{ Model = $null; Effort = $null; Skip = $true }
 }
@@ -470,7 +471,7 @@ function Resolve-TaskDispatch {
         Model = $entry.Model
         Effort = $entry.Effort
         Skip  = $false
-        Reason = "tier [$tier] -> $($entry.Model) / $($entry.Effort)"
+        Reason = if ($entry.Effort) { "tier [$tier] -> $($entry.Model) / $($entry.Effort)" } else { "tier [$tier] -> $($entry.Model) (no --effort)" }
     }
 }
 
@@ -968,7 +969,11 @@ function Invoke-CopilotTask {
         [string]$ReasoningEffortLevel
     )
 
-    $copilotArguments = @('-p', $Prompt, '--model', $ModelName, '--effort', $ReasoningEffortLevel, '--autopilot', '--allow-all', '--no-ask-user', '--max-autopilot-continues', '5', '-s')
+    $copilotArguments = @('-p', $Prompt, '--model', $ModelName)
+    if ($ReasoningEffortLevel) {
+        $copilotArguments += @('--effort', $ReasoningEffortLevel)
+    }
+    $copilotArguments += @('--autopilot', '--allow-all', '--no-ask-user', '--max-autopilot-continues', '5', '-s')
     $copilotLaunchSpec = Resolve-CopilotLaunchSpec -CopilotArguments $copilotArguments
 
     $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
@@ -1062,7 +1067,8 @@ if ($DryRun) {
         for ($i = 0; $i -lt $cap; $i++) {
             $dispatch = Resolve-TaskDispatch -Task $allTasks[$i] -DefaultModel $Model -DefaultEffort $ReasoningEffort
             $tierLabel = if ($dispatch.Tier) { "[$($dispatch.Tier)]" } else { '[?]' }
-            $routeLabel = if ($dispatch.Skip) { 'SKIP (subagent / validation)' } else { "$($dispatch.Model) / $($dispatch.Effort)" }
+            $effortDisplay = if ($dispatch.Effort) { " / $($dispatch.Effort)" } else { '' }
+            $routeLabel = if ($dispatch.Skip) { 'SKIP (subagent / validation)' } else { "$($dispatch.Model)$effortDisplay" }
             Write-Host "  $($i + 1). $tierLabel -> $routeLabel" -ForegroundColor DarkCyan
             Write-Host "     $(Get-TaskSummary $allTasks[$i])" -ForegroundColor Yellow
         }

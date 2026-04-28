@@ -201,6 +201,43 @@ Current LLM agents lose coherence after extended autonomous runs because context
 
 User-level VS Code prompt files provide shortcuts for common workflows: `/whats-next` (session start + triage), `/overnight` (preferred shortcut for launching the autonomous `agent-loop.ps1` scheduler), `/audit-workflow` (check all workflow files for drift), `/run-validation` (run declared validation commands), and `/freshen-status` (refresh `STATUS.md` from actual repo state). `/proceed-autonomously` may remain installed as a legacy alias. Canonical prompt definitions should live in this repo under `prompts/` and be installed into the VS Code user prompt directory via `install-vscode-prompts.ps1`.
 
+## Model tier routing and subagent orchestration
+
+Different parts of a session need different model classes. Don't burn premium reasoning on text shuffling, and don't hand architectural decisions to a small model. Tag every open `TODO.md` item with one of these tiers so any agent picking up the queue routes the work to the right place.
+
+| Tag | Tier | Models | Use for |
+|---|---|---|---|
+| `[H]` | Heavy | Claude Opus 4.7, GPT-5 | Cross-file refactors, invariant-bearing changes, naming translations from external sources, architectural decisions, picking the next batch of work. |
+| `[S]` | Standard | Claude Sonnet 4.5, GPT-5 mini | Single-component additions following an established pattern, demo-page authoring, contained code swaps. |
+| `[L]` | Light | Haiku, Gemini Flash, GPT-5 nano | ROADMAP/STATUS/HISTORY housekeeping, INBOX triage, commit-message edits, dependency bumps, lint-rule tweaks. |
+| `[X]` | Subagent / no model | `Explore` subagent, validation commands, Playwright runs | Read-only research, validation, visual regression. Just runs and reports pass/fail. |
+
+Routing rule of thumb:
+
+- "Matches an existing pattern + passes the build invariants" → `[S]`.
+- "Reads N files and decides what shape the new thing should be" → `[H]`.
+- "Moves text from file A to file B" → `[L]`.
+- "Just runs and reports pass/fail" → `[X]`.
+
+### Orchestrator vs subagent execution
+
+A Heavy session should act as an orchestrator: plan, sequence, dispatch, and validate. Bounded mechanical work belongs in a subagent so the orchestrator's context stays focused on decisions.
+
+When a Heavy session is running, it can dispatch:
+
+- The `Explore` subagent for read-only research that would otherwise burn many tool calls (find all call sites, summarize a sibling repo's structure, locate an exact pattern).
+- A per-repo `agent` subagent for any `[L]` task and any small `[S]` task whose recipe is fully written down (in `TODO.md`, `AGENT-INBOX.md`, or a referenced doc).
+
+Rules for the orchestrator:
+
+1. Don't have a Heavy session do `[L]` work directly. Dispatch instead.
+2. Each subagent invocation is stateless. Its prompt must contain everything it needs: the goal, the recipe, validation steps, and exactly what to report back.
+3. Subagents return one report. Plan dependent subagent calls sequentially; run independent ones in parallel.
+4. After a subagent returns, the orchestrator validates the result against the original intent before accepting it. Don't blindly trust unfamiliar diffs.
+5. `[H]` work stays on the orchestrator thread. Do not delegate architectural decisions to a subagent.
+
+When a session starts on a Standard or Light model, it executes its assigned tier directly and escalates back to the user if a task it picks up is actually `[H]`. It does not dispatch its own subagents.
+
 ## Cross-repo coordination
 
 When work in one repo creates a dependency or follow-up in another:

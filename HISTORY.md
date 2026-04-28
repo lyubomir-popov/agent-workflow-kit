@@ -4,6 +4,12 @@ Completed work belongs here so `TODO.md` stays lean.
 
 ## Short-term
 
+### 2026-04-28 - Session: model tier routing and orchestrator/subagent rules
+
+- Added "Model tier routing and subagent orchestration" section to `.github/copilot-instructions.md` defining the `[H]` / `[S]` / `[L]` / `[X]` tag set, the routing rule of thumb, and the orchestrator-vs-subagent execution rules.
+- Codified that Heavy sessions act as orchestrators that dispatch `Explore` and per-repo `agent` subagents for `[L]` and small recipe-driven `[S]` work, and that Standard/Light sessions execute directly without dispatching their own subagents.
+- Captured the rule that subagent invocations are stateless, must carry the full recipe in the prompt, and must be validated by the orchestrator on return.
+
 ### 2026-04-25 - Session: executable workflow validation
 
 - Added `workflow-kit.ps1` with `lint` and `diff` modes for validating workflow-file conventions and copied canonical asset drift.

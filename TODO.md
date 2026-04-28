@@ -13,19 +13,20 @@ Use priority tags inline:
 - `P1` - next important work
 - `P2` - useful soon
 - `P3` - later or opportunistic
+- Every open item should also carry a routing tag: `[H]`, `[S]`, `[L]`, or `[X]` (see `.github/copilot-instructions.md` → "Model tier routing and subagent orchestration").
 
 ## Short-term
 
-- [ ] P2 Observe the stale-TODO warning across a few more real loop runs and tighten or relax the token matching if it proves noisy.
+- [ ] [X] P2 Observe the stale-TODO warning across a few more real loop runs and tighten or relax the token matching if it proves noisy.
 
 ## Medium-term
 
-- [ ] P2 Decide whether scheduler-owned bookkeeping should stop at `TODO.md`, or also record `HISTORY.md` / `STATUS.md` after each completed task.
+- [ ] [H] P2 Decide whether scheduler-owned bookkeeping should stop at `TODO.md`, or also record `HISTORY.md` / `STATUS.md` after each completed task.
 
 ## Long-term
 
-- [ ] P3 Decide whether the loop should run on a branch and PR, or commit directly to the current branch.
-- [ ] P3 Decide how to handle loop failures: retry once, skip, or stop.
+- [ ] [H] P3 Decide whether the loop should run on a branch and PR, or commit directly to the current branch.
+- [ ] [H] P3 Decide how to handle loop failures: retry once, skip, or stop.
 
 ## Open questions
 

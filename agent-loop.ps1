@@ -23,6 +23,13 @@
 .PARAMETER ReasoningEffort
     Copilot CLI reasoning effort level. Default: low.
 
+.PARAMETER UseTierDispatch
+    Parse the [H] / [S] / [L] / [X] tier tag from each task's text and dispatch
+    each task to the matching model + reasoning effort instead of using a single
+    pair for the whole batch. [X] tasks (subagent / no model) are skipped so they
+    can be run separately as validation. -Model and -ReasoningEffort act as the
+    fallback when a task carries no tier tag.
+
 .PARAMETER TaskSection
     The heading that marks the task section in TODO.md. Default: auto-detect from
     common workflow headings.
@@ -42,9 +49,19 @@ param(
     [string]$Model = 'gpt-5.4',
     [ValidateSet('low', 'medium', 'high', 'xhigh')]
     [string]$ReasoningEffort = 'low',
+    [switch]$UseTierDispatch,
     [string]$TaskSection = 'auto',
     [string]$RepoRoot = $PWD
 )
+
+# Tier -> (model, reasoning effort). [X] is intentionally skipped so subagent
+# / validation tasks don't burn a Copilot CLI invocation.
+$TierDispatchMap = @{
+    'H' = @{ Model = 'gpt-5'; Effort = 'high' }
+    'S' = @{ Model = 'gpt-5.4'; Effort = 'medium' }
+    'L' = @{ Model = 'gpt-5.4'; Effort = 'low' }
+    'X' = @{ Model = $null; Effort = $null; Skip = $true }
+}
 
 $ErrorActionPreference = 'Stop'
 Set-Location $RepoRoot
@@ -383,6 +400,78 @@ function Get-TaskSummary {
     param($Task)
 
     return $Task.Text
+}
+
+function Get-TaskTier {
+    param($Task)
+
+    $sourceTexts = Get-TaskSourceTexts -Task $Task
+    foreach ($sourceText in $sourceTexts) {
+        $match = [regex]::Match($sourceText, '`?\[([HSLX])\]`?')
+        if ($match.Success) {
+            return $match.Groups[1].Value.ToUpperInvariant()
+        }
+    }
+
+    return $null
+}
+
+function Resolve-TaskDispatch {
+    param(
+        $Task,
+        [string]$DefaultModel,
+        [string]$DefaultEffort
+    )
+
+    if (-not $UseTierDispatch) {
+        return [pscustomobject]@{
+            Tier  = (Get-TaskTier -Task $Task)
+            Model = $DefaultModel
+            Effort = $DefaultEffort
+            Skip  = $false
+            Reason = 'tier-dispatch off; using -Model / -ReasoningEffort'
+        }
+    }
+
+    $tier = Get-TaskTier -Task $Task
+    if (-not $tier) {
+        return [pscustomobject]@{
+            Tier  = $null
+            Model = $DefaultModel
+            Effort = $DefaultEffort
+            Skip  = $false
+            Reason = 'no tier tag; falling back to -Model / -ReasoningEffort'
+        }
+    }
+
+    $entry = $TierDispatchMap[$tier]
+    if (-not $entry) {
+        return [pscustomobject]@{
+            Tier  = $tier
+            Model = $DefaultModel
+            Effort = $DefaultEffort
+            Skip  = $false
+            Reason = "tier [$tier] not in dispatch map; using fallback"
+        }
+    }
+
+    if ($entry.ContainsKey('Skip') -and $entry.Skip) {
+        return [pscustomobject]@{
+            Tier  = $tier
+            Model = $null
+            Effort = $null
+            Skip  = $true
+            Reason = "tier [$tier] is subagent / no-model; skipping"
+        }
+    }
+
+    return [pscustomobject]@{
+        Tier  = $tier
+        Model = $entry.Model
+        Effort = $entry.Effort
+        Skip  = $false
+        Reason = "tier [$tier] -> $($entry.Model) / $($entry.Effort)"
+    }
 }
 
 function Get-TodoText {
@@ -968,9 +1057,14 @@ if ($DryRun) {
     } else {
         $cap = [Math]::Min($allTasks.Count, $MaxTasks)
         $sectionLabel = if ($taskContext.Section) { $taskContext.Section.Heading } else { 'auto-detect' }
-        Write-Host "`n── Dry run: $($allTasks.Count) actionable task(s) found in $sectionLabel (cap: $MaxTasks) ──" -ForegroundColor Cyan
+        $dispatchLabel = if ($UseTierDispatch) { 'tier dispatch ON' } else { 'tier dispatch OFF (single -Model/-ReasoningEffort)' }
+        Write-Host "`n── Dry run: $($allTasks.Count) actionable task(s) found in $sectionLabel (cap: $MaxTasks; $dispatchLabel) ──" -ForegroundColor Cyan
         for ($i = 0; $i -lt $cap; $i++) {
-            Write-Host "  $($i + 1). $(Get-TaskSummary $allTasks[$i])" -ForegroundColor Yellow
+            $dispatch = Resolve-TaskDispatch -Task $allTasks[$i] -DefaultModel $Model -DefaultEffort $ReasoningEffort
+            $tierLabel = if ($dispatch.Tier) { "[$($dispatch.Tier)]" } else { '[?]' }
+            $routeLabel = if ($dispatch.Skip) { 'SKIP (subagent / validation)' } else { "$($dispatch.Model) / $($dispatch.Effort)" }
+            Write-Host "  $($i + 1). $tierLabel -> $routeLabel" -ForegroundColor DarkCyan
+            Write-Host "     $(Get-TaskSummary $allTasks[$i])" -ForegroundColor Yellow
         }
         if ($allTasks.Count -gt $MaxTasks) {
             Write-Host "  … and $($allTasks.Count - $MaxTasks) more beyond the cap" -ForegroundColor DarkGray
@@ -998,6 +1092,15 @@ while ($taskCount -lt $MaxTasks) {
     $taskCount++
     Write-Host "`n── Task $taskCount ──────────────────────────────────────" -ForegroundColor Cyan
     Write-Host "  $(Get-TaskSummary $task)" -ForegroundColor Yellow
+
+    $dispatch = Resolve-TaskDispatch -Task $task -DefaultModel $Model -DefaultEffort $ReasoningEffort
+    Write-Host "  Dispatch: $($dispatch.Reason)" -ForegroundColor DarkCyan
+    if ($dispatch.Skip) {
+        Write-Host '  Skipping this task (no Copilot CLI invocation). Run it manually with the relevant subagent or validation command.' -ForegroundColor Yellow
+        continue
+    }
+    $taskModel = $dispatch.Model
+    $taskEffort = $dispatch.Effort
 
     $staleTaskWarnings = @(Get-LikelyStaleTaskWarnings -RepoPath $repoRoot -Task $task)
     if ($staleTaskWarnings.Count -gt 0) {
@@ -1056,7 +1159,7 @@ After completing the task:
         # --max-autopilot-continues 5: safety cap on continuation rounds
         # -p:                       non-interactive prompt (exits when done)
         # -s:                       silent (agent response only, no UI chrome)
-        $copilotResult = Invoke-CopilotTask -Prompt $prompt -TimeoutSeconds $TaskTimeoutSeconds -WorkingDirectory $worktreePath -ModelName $Model -ReasoningEffortLevel $ReasoningEffort
+        $copilotResult = Invoke-CopilotTask -Prompt $prompt -TimeoutSeconds $TaskTimeoutSeconds -WorkingDirectory $worktreePath -ModelName $taskModel -ReasoningEffortLevel $taskEffort
 
         foreach ($line in $copilotResult.StdOut) {
             Write-Host "  $line"

@@ -57,8 +57,8 @@ param(
 # Tier -> (model, reasoning effort). [X] is intentionally skipped so subagent
 # / validation tasks don't burn a Copilot CLI invocation.
 $TierDispatchMap = @{
-    'H' = @{ Model = 'gpt-5'; Effort = 'high' }
-    'S' = @{ Model = 'gpt-5.4'; Effort = 'medium' }
+    'H' = @{ Model = 'claude-opus-4.5'; Effort = 'high' }
+    'S' = @{ Model = 'claude-sonnet-4.5'; Effort = 'medium' }
     'L' = @{ Model = 'gpt-5.4'; Effort = 'low' }
     'X' = @{ Model = $null; Effort = $null; Skip = $true }
 }

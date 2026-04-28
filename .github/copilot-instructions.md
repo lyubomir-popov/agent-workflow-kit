@@ -238,6 +238,26 @@ Rules for the orchestrator:
 
 When a session starts on a Standard or Light model, it executes its assigned tier directly and escalates back to the user if a task it picks up is actually `[H]`. It does not dispatch its own subagents.
 
+### Concrete model preferences
+
+These are the user's standing model preferences. Apply them when picking a model in any session, when configuring `agent-loop.ps1 -UseTierDispatch`, and when reading the dispatch label in dry-run output. They override generic "use the heavy model" defaults.
+
+| Tier | Preferred model | Fallback if preferred not available | Cost class |
+|------|-----------------|-------------------------------------|------------|
+| `[H]` | `claude-opus-4.7` or `gpt-5.5` | `gpt-5.4` with `--effort xhigh` | 7.5x (preferred) → 1x+ (fallback) |
+| `[S]` | `gpt-5.4` (with `--effort high` for nontrivial work) | `gpt-5.2` | 1x |
+| `[L]` | `gpt-5.4-mini` or `claude-haiku-4.5` | either is fine | 0.33x |
+| `[X]` | n/a — runs as a subagent or validation command, not a Copilot CLI invocation | n/a | 0x |
+
+Hard rules:
+
+- **Do not use older-generation 1x-multiplier models** (`claude-opus-4.5`, `claude-sonnet-4.5`, `claude-sonnet-4.6`, `gpt-4.1`, `gpt-4o`). They cost the same as `gpt-5.4` but are measurably weaker. The only acceptable Claude models in the standing preference are `claude-opus-4.7` (heavy) and `claude-haiku-4.5` (light).
+- **Reserve the 7.5x premium tier (`claude-opus-4.7` / `gpt-5.5`) for genuinely heavy work**: cross-file refactors, invariant-bearing changes, architectural decisions, planning the next batch, code review.
+- **Use `gpt-5.4` for almost everything else** that the orchestrator does not handle directly: standard component swaps, demo-page authoring, contained code changes, recipe-following work.
+- **Use the 0.33x tier (`gpt-5.4-mini` / `claude-haiku-4.5`) for truly trivial work**: ROADMAP/STATUS/HISTORY housekeeping, INBOX triage, commit-message edits, dependency bumps, lint-rule tweaks.
+- The Copilot CLI's available model IDs lag the VS Code Copilot Chat dropdown. As of 2026-04-28 the CLI does not yet expose `claude-opus-4.7` or `gpt-5.5`; until it does, `agent-loop.ps1` falls back to `gpt-5.4 --effort xhigh` for `[H]`. When the preferred IDs appear (probe with `copilot --model <id> -p x --no-ask-user`), update `TierDispatchMap` in `agent-loop.ps1` to use them.
+- Reasoning effort: GPT-5 family supports `--effort low|medium|high|xhigh`; Claude family rejects `--effort` and the loop must omit it for those models.
+
 ## Cross-repo coordination
 
 When work in one repo creates a dependency or follow-up in another:

@@ -57,10 +57,19 @@ param(
 # Tier -> (model, reasoning effort). Effort = $null means do not pass --effort
 # (Claude models reject --effort; reasoning is implicit). [X] is intentionally
 # skipped so subagent / validation tasks don't burn a Copilot CLI invocation.
+#
+# Preferred targets (when Copilot CLI exposes them) per the kit's model-preference
+# rules in .github/copilot-instructions.md:
+#   [H] -> claude-opus-4.7 (7.5x; not in CLI as of 2026-04-28) or gpt-5.5 (7.5x; not in CLI as of 2026-04-28)
+#   [S] -> gpt-5.4 (1x)
+#   [L] -> gpt-5.4-mini (0.33x) or claude-haiku-4.5 (0.33x)
+# Until the heavy-tier premium models appear in the CLI, [H] uses gpt-5.4 + xhigh
+# effort (closest available step up from [S]). Avoid claude-opus-4.5 / sonnet-4.5
+# / sonnet-4.6: same 1x cost as gpt-5.4, measurably weaker output per the user.
 $TierDispatchMap = @{
-    'H' = @{ Model = 'claude-opus-4.5'; Effort = $null }
-    'S' = @{ Model = 'claude-sonnet-4.5'; Effort = $null }
-    'L' = @{ Model = 'gpt-5.4'; Effort = 'low' }
+    'H' = @{ Model = 'gpt-5.4'; Effort = 'xhigh' }
+    'S' = @{ Model = 'gpt-5.4'; Effort = 'high' }
+    'L' = @{ Model = 'gpt-5.4-mini'; Effort = $null }
     'X' = @{ Model = $null; Effort = $null; Skip = $true }
 }
 

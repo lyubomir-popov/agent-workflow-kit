@@ -1,6 +1,7 @@
 ---
 description: "Launch the agent-loop scheduler for an overnight TODO run using Copilot CLI."
 mode: agent
+model: gpt-5.4-mini
 ---
 
 # Overnight run

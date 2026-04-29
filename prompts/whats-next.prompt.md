@@ -1,6 +1,7 @@
 ---
 description: "Session start: audit workflow files, triage inbox, report what's next."
 mode: agent
+model: gpt-5.4-mini
 ---
 
 # Session start — what's next?

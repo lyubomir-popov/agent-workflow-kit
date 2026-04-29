@@ -1,6 +1,7 @@
 ---
 description: "Run the repo's declared validation commands and report pass/fail with warnings."
 mode: agent
+model: gpt-5.4-mini
 ---
 
 # Run validation

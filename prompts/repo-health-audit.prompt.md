@@ -1,6 +1,7 @@
 ---
 description: "Dual-perspective repo health audit (domain expert + software architect), persisted as a dated report with findings routed into TODO/ROADMAP."
 mode: agent
+model: claude-opus-4.7
 ---
 
 # Repo health audit

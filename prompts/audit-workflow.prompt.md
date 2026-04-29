@@ -1,6 +1,7 @@
 ---
 description: "Audit all workflow markdown files for consistency, staleness, and drift."
 mode: agent
+model: gpt-5.4
 ---
 
 # Audit workflow files

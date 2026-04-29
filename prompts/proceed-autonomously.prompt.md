@@ -1,6 +1,7 @@
 ---
 description: "Legacy alias for launching the overnight agent-loop scheduler using Copilot CLI."
 mode: agent
+model: gpt-5.4-mini
 ---
 
 # Proceed autonomously

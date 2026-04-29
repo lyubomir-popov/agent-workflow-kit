@@ -152,6 +152,50 @@ These mirror the `[H] [S] [L] [X]` tags used in `TODO.md` and described in `.git
 
 **Hard rule**: do not use older 1x-tier models (`claude-sonnet-4.5/4.6`, `gpt-4.1`, `gpt-4o`). They cost the same as `gpt-5.4` and are measurably weaker.
 
+### How model deferral works
+
+Each prompt file in `prompts/` pins its model in YAML frontmatter:
+
+```yaml
+---
+description: "..."
+mode: agent
+model: claude-opus-4.7
+---
+```
+
+When you invoke the slash command (e.g. `/repo-health-audit`), VS Code Copilot Chat **automatically switches to the pinned model for that run** regardless of what's selected in the model picker. After the prompt finishes, your previous model selection returns. This is the [`model` frontmatter field](https://code.visualstudio.com/docs/copilot/customization/prompt-files#_prompt-file-format) documented by VS Code.
+
+Current pinning in this repo:
+
+| Prompt | Pinned model | Why |
+|--------|--------------|-----|
+| `/repo-health-audit` | `claude-opus-4.7` | Heavy synthesis, dual-perspective reasoning |
+| `/audit-workflow` | `gpt-5.4` | Standard-tier scan + safe auto-fixes |
+| `/whats-next` | `gpt-5.4-mini` | Mechanical triage and report-back |
+| `/freshen-status` | `gpt-5.4-mini` | Mechanical sync from repo state |
+| `/run-validation` | `gpt-5.4-mini` | Read-only validation runner |
+| `/overnight` | `gpt-5.4-mini` | Just launches the scheduler; per-task model is `-Model` flag |
+| `/proceed-autonomously` | `gpt-5.4-mini` | Same as `/overnight` |
+
+To override per-invocation, edit the prompt file's `model:` line, or pick a different model in the picker before invoking (the frontmatter wins for the invocation but the picker selection returns afterwards).
+
+To add a new prompt with model pinning:
+
+```yaml
+---
+description: "What this command does"
+mode: agent
+model: gpt-5.4
+tools: ['codebase', 'editFiles', 'runCommands']   # optional restriction
+agent: agent                                       # optional: 'ask' / 'agent' / 'plan' / custom
+---
+
+# Body of the prompt...
+```
+
+If the pinned model isn't available on the current Copilot plan, VS Code falls back to the picker selection and surfaces a notice. There's no need to write fallback logic in the prompt body itself.
+
 ### Install or refresh on any machine
 
 The prompts install to **VS Code's global user prompt directory**, not any workspace. Once installed they are available as slash commands in every project you open on that machine, regardless of which folder is the workspace root.

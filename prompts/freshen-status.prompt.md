@@ -1,6 +1,7 @@
 ---
 description: "Refresh STATUS.md by checking the actual repo state and current workflow files."
 mode: agent
+model: gpt-5.4-mini
 ---
 
 # Freshen status

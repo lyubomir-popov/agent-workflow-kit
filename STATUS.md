@@ -15,6 +15,7 @@
 - **VS Code slash commands are now repo-owned and syncable.** Canonical prompt files live in `prompts/`, and `install-vscode-prompts.ps1` installs them into the global VS Code user prompt folder on each machine so the same commands can be reused anywhere after cloning or pulling this repo.
 - **Workflow validation is now executable.** `workflow-kit.ps1` provides `lint` and `diff` commands for checking workflow-file contract drift, prompt frontmatter, inbox drainage, TODO structure, validation sections, and copied canonical assets.
 - **The code/data repo extension backlog is implemented in the canonical kit.** Repo-type-aware precedence, token discipline, tiered validation, priority TODO sections, concise resume agent shape, roadmap scaling docs, and `/run-validation` / `/freshen-status` prompt files are now in place.
+- **Prompt suite expanded and model-pinned (2026-04-29).** Two new slash commands shipped: `/repo-health-audit` (heavy dual-perspective audit persisted under `docs/analyses/`) and `/orchestrate` (heavy-tier triage + `[S]/[L]/[X]` subagent dispatch). All 8 prompt files now declare a `model:` frontmatter field so the right tier runs each command regardless of the picker. `workflow-kit lint` enforces the convention with a `prompt-frontmatter` warning when `model:` is missing.
 
 ## Current execution plan
 

@@ -231,6 +231,9 @@ function Test-WorkflowRepo {
             if (-not (Test-FrontMatterField -Lines $lines -FieldName 'mode')) {
                 Add-Finding $findings 'warning' 'prompt-frontmatter' $relative 'Prompt file should specify mode.'
             }
+            if (-not (Test-FrontMatterField -Lines $lines -FieldName 'model')) {
+                Add-Finding $findings 'warning' 'prompt-frontmatter' $relative 'Prompt file should pin a model via the model: frontmatter field (e.g. claude-opus-4.7, gpt-5.4, gpt-5.4-mini). Pinning enforces tier discipline so the right model runs the slash command regardless of picker selection.'
+            }
         }
 
         $readmePath = Join-Path $RepoRoot 'README.md'

@@ -4,6 +4,15 @@ Completed work belongs here so `TODO.md` stays lean.
 
 ## Short-term
 
+### 2026-04-29 - Session: prompt suite expansion and model pinning
+
+- Added `/repo-health-audit` prompt — dual-perspective (domain expert + software architect) repo audit that persists a dated report under `docs/analyses/` and routes findings into `TODO.md` / `ROADMAP.md`. Pinned to `claude-opus-4.7`.
+- Added `/orchestrate` prompt — heavy-tier orchestrator workflow that triages `TODO.md` with `[H]/[S]/[L]/[X]` tier tags and dispatches `[S]/[L]/[X]` work to cheaper subagents (gpt-5.4, gpt-5.4-mini, Explore) while keeping `[H]` decisions on the orchestrator thread. Pinned to `claude-opus-4.7`.
+- Pinned a `model:` frontmatter field on all existing prompts: `/audit-workflow` → `gpt-5.4`; `/whats-next`, `/freshen-status`, `/run-validation`, `/overnight`, `/proceed-autonomously` → `gpt-5.4-mini`. Now any slash command runs on the correct tier regardless of picker selection.
+- Extended `workflow-kit.ps1` lint with a `prompt-frontmatter` warning when a prompt is missing `model:`. Convention is now enforced.
+- Documented the model-deferral pattern in `README.md` ("How model deferral works" section), expanded the slash-command catalog with per-command model-tier guidance, and added a cross-machine install guide (clone + `install-vscode-prompts.ps1` + restart VS Code).
+- Updated `.github/copilot-instructions.md` prompt-shortcut paragraph to mention `/orchestrate` and `/repo-health-audit`.
+
 ### 2026-04-28 - Session: model tier routing and orchestrator/subagent rules
 
 - Added "Model tier routing and subagent orchestration" section to `.github/copilot-instructions.md` defining the `[H]` / `[S]` / `[L]` / `[X]` tag set, the routing rule of thumb, and the orchestrator-vs-subagent execution rules.

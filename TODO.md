@@ -18,6 +18,7 @@ Use priority tags inline:
 ## Short-term
 
 - [ ] [X] P2 Observe the stale-TODO warning across a few more real loop runs and tighten or relax the token matching if it proves noisy.
+- [ ] [S] P2 Add lint rule: every `prompts/*.prompt.md` must declare a `model:` frontmatter field. Implemented as a warning in `workflow-kit.ps1` on 2026-04-29 — promote to `error` after one cycle if no false positives surface in downstream repos.
 
 ## Medium-term
 

@@ -181,11 +181,14 @@ agent-loop.ps1 (PowerShell scheduler)
 - `-p` — non-interactive prompt mode
 - `-s` — silent output (agent response only)
 
+#### Resolved decisions (2026-04-29)
+
+- **Bookkeeping scope** — the scheduler updates `TODO.md` only. `HISTORY.md` and `STATUS.md` are synthesis artefacts (need framing across multiple commits, narrative grouping); a per-task auto-append produces noise. The `/orchestrate` and `/freshen-status` prompts handle these explicitly when an orchestrator returns. Separation of concerns wins.
+- **Branch + PR vs direct commit** — direct commit to the current branch stays the default. The disposable worktree already provides isolation. For repos that want PR workflow, an opt-in `-Branch <name>` flag (and optional `gh pr create` hook) is additive and tracked as an `[S]` follow-up.
+- **Failure handling** — stop by default. Retry rarely converges (same prompt → same failure) and silent skip risks blundering through compounding errors. An opt-in `-OnFailure skip|retry|stop` flag is tracked as an `[S]` follow-up for repos with many genuinely independent items.
+
 #### Open questions
 
-- Should the loop run on a branch and PR, or commit directly to master?
-- How to handle failures: retry once, skip, or stop?
-- Should the scheduler also update HISTORY.md, or leave that to the agent?
 - Optimal `--max-autopilot-continues` for real tasks (5 may be low for complex work)
 
 #### VS Code prompt files (implemented)

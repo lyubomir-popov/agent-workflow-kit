@@ -12,6 +12,7 @@ Completed work belongs here so `TODO.md` stays lean.
 - Extended `workflow-kit.ps1` lint with a `prompt-frontmatter` warning when a prompt is missing `model:`. Convention is now enforced.
 - Documented the model-deferral pattern in `README.md` ("How model deferral works" section), expanded the slash-command catalog with per-command model-tier guidance, and added a cross-machine install guide (clone + `install-vscode-prompts.ps1` + restart VS Code).
 - Updated `.github/copilot-instructions.md` prompt-shortcut paragraph to mention `/orchestrate` and `/repo-health-audit`.
+- Resolved three open scheduler-design questions from `ROADMAP.md`: (a) **bookkeeping scope** stays at `TODO.md` only — HISTORY/STATUS are synthesis artefacts that should not be auto-appended per task; (b) **branch vs direct commit** stays direct as the default with an opt-in `-Branch` flag tracked as `[S] P3`; (c) **failure handling** stays `stop` as the default with an opt-in `-OnFailure skip|retry|stop` flag tracked as `[S] P3`. Three `[H]` decisions cleared off the medium/long-term TODO sections.
 
 ### 2026-04-28 - Session: model tier routing and orchestrator/subagent rules
 

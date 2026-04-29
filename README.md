@@ -154,17 +154,54 @@ These mirror the `[H] [S] [L] [X]` tags used in `TODO.md` and described in `.git
 
 ### Install or refresh on any machine
 
+The prompts install to **VS Code's global user prompt directory**, not any workspace. Once installed they are available as slash commands in every project you open on that machine, regardless of which folder is the workspace root.
+
+#### First-time setup on a new machine
+
 ```powershell
+# 1. Clone this repo anywhere convenient (it does not need to be a workspace).
+git clone git@github.com:lyubomir-popov/agent-workflow-kit.git
+cd agent-workflow-kit
+
+# 2. Run the installer.
 pwsh -NoLogo -NoProfile -File ./install-vscode-prompts.ps1
 ```
 
-If `agent-workflow-kit/bin` is already on `PATH`, the wrapper also works:
+Restart or reload VS Code if it was already running; the slash commands then appear in Copilot Chat in every workspace.
+
+#### Refresh after pulling new prompts
+
+```powershell
+cd agent-workflow-kit
+git pull
+pwsh -NoLogo -NoProfile -File ./install-vscode-prompts.ps1
+```
+
+Re-running the installer is idempotent — it overwrites existing prompt files in place, never duplicates.
+
+#### Where the prompts land
+
+| OS | Stable | Insiders (auto-detected) |
+|----|--------|--------------------------|
+| Windows | `%APPDATA%\Code\User\prompts` | `%APPDATA%\Code - Insiders\User\prompts` |
+| macOS | `~/Library/Application Support/Code/User/prompts` | `~/Library/Application Support/Code - Insiders/User/prompts` |
+| Linux | `~/.config/Code/User/prompts` | `~/.config/Code - Insiders/User/prompts` |
+
+The installer also targets Insiders automatically if that profile already exists. Override the default targets with `-TargetPath <path>` (one or more), or force Insiders inclusion with `-IncludeInsiders`.
+
+#### Wrapper command
+
+If `agent-workflow-kit/bin` is on `PATH`:
 
 ```powershell
 install-vscode-prompts
 ```
 
-By default the installer targets the stable VS Code prompt directory and also updates Insiders if that profile already exists. You can pass one or more explicit paths with `-TargetPath`.
+#### One-liner for fresh machines
+
+```powershell
+git clone git@github.com:lyubomir-popov/agent-workflow-kit.git "$env:USERPROFILE\code\agent-workflow-kit"; pwsh -NoLogo -NoProfile -File "$env:USERPROFILE\code\agent-workflow-kit\install-vscode-prompts.ps1"
+```
 
 ## Workflow validation and drift checks
 

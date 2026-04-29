@@ -129,16 +129,30 @@ Most repos decay because the project state gets spread across chat history, rand
 
 This repo can act as the GitHub-synced source of truth for your global VS Code Copilot slash commands. The canonical prompt definitions live in `prompts/`, and `install-vscode-prompts.ps1` copies them into VS Code's user prompt directory on the current machine.
 
-Canonical commands:
+### Command catalog
 
-- `/whats-next` — session-start audit and next-task recommendation
-- `/overnight` — preferred short command for launching the overnight `agent-loop.ps1` scheduler
-- `/audit-workflow` — workflow file drift audit
-- `/run-validation` — run the repo's declared validation command and report pass/fail
-- `/freshen-status` — refresh `STATUS.md` from actual repo state
-- `/proceed-autonomously` — legacy alias for `/overnight`
+| Command | Purpose | Suggested model tier |
+|---------|---------|----------------------|
+| `/whats-next` | Session-start orientation: read `STATUS.md`, drain inboxes, recommend the next task. Reports back without starting work. | `[L]` — `gpt-5.4-mini` or `claude-haiku-4.5` |
+| `/freshen-status` | Refresh `STATUS.md` from the actual repo state (git status, key files, validation output). Mechanical sync. | `[L]` — `gpt-5.4-mini` or `claude-haiku-4.5` |
+| `/audit-workflow` | Check all workflow markdown files for drift, staleness, and convention compliance. Auto-fixes safe issues. | `[L]`–`[S]` — `gpt-5.4-mini` for spot-checks, `gpt-5.4` if drift is widespread |
+| `/run-validation` | Run the repo's declared `## Validation` commands and report pass/fail. Read-only by default. | `[L]` — `gpt-5.4-mini` (or `[X]` if dispatched as a subagent) |
+| `/overnight` | Launch `agent-loop.ps1` to work through `TODO.md` items unattended in fresh worktrees. Each task gets its own Copilot CLI invocation. | Orchestrator: `[L]` — `gpt-5.4-mini` to launch. Per-task model controlled by `-Model` flag (default `gpt-5.4`). |
+| `/proceed-autonomously` | Legacy alias for `/overnight`. Kept installed for muscle memory. | Same as `/overnight`. |
+| `/repo-health-audit` | Strategic dual-perspective audit (domain expert + software architect). Persists a dated report under `docs/analyses/` and routes findings into `TODO.md` / `ROADMAP.md`. Run periodically (every 1–2 months or after major milestones). | `[H]` — `claude-opus-4.7` or `gpt-5.5` preferred; `gpt-5.4 --effort high` as fallback. The follow-up TODO/ROADMAP edits can defer to `[S]` `gpt-5.4` or `[L]` `gpt-5.4-mini`. |
 
-Install or refresh them on any machine after pulling this repo:
+### Model tier conventions
+
+These mirror the `[H] [S] [L] [X]` tags used in `TODO.md` and described in `.github/copilot-instructions.md`:
+
+- **`[H]` Heavy** — `claude-opus-4.7` or `gpt-5.5` (preferred), `gpt-5.4 --effort xhigh` (fallback). Use for cross-file refactors, architectural decisions, strategic analysis. Cost class: ~7.5x.
+- **`[S]` Standard** — `gpt-5.4` (with `--effort high` for nontrivial work). Use for contained code swaps following an established pattern. Cost class: 1x.
+- **`[L]` Light** — `gpt-5.4-mini` or `claude-haiku-4.5`. Use for mechanical text shuffling, housekeeping, INBOX triage, status freshes. Cost class: ~0.33x.
+- **`[X]` Subagent / no model** — runs as a dispatch (`Explore`, validation commands, Playwright). Cost class: 0x at the orchestrator level.
+
+**Hard rule**: do not use older 1x-tier models (`claude-sonnet-4.5/4.6`, `gpt-4.1`, `gpt-4o`). They cost the same as `gpt-5.4` and are measurably weaker.
+
+### Install or refresh on any machine
 
 ```powershell
 pwsh -NoLogo -NoProfile -File ./install-vscode-prompts.ps1

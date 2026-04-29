@@ -140,6 +140,7 @@ This repo can act as the GitHub-synced source of truth for your global VS Code C
 | `/overnight` | Launch `agent-loop.ps1` to work through `TODO.md` items unattended in fresh worktrees. Each task gets its own Copilot CLI invocation. | Orchestrator: `[L]` — `gpt-5.4-mini` to launch. Per-task model controlled by `-Model` flag (default `gpt-5.4`). |
 | `/proceed-autonomously` | Legacy alias for `/overnight`. Kept installed for muscle memory. | Same as `/overnight`. |
 | `/repo-health-audit` | Strategic dual-perspective audit (domain expert + software architect). Persists a dated report under `docs/analyses/` and routes findings into `TODO.md` / `ROADMAP.md`. Run periodically (every 1–2 months or after major milestones). | `[H]` — `claude-opus-4.7` or `gpt-5.5` preferred; `gpt-5.4 --effort high` as fallback. The follow-up TODO/ROADMAP edits can defer to `[S]` `gpt-5.4` or `[L]` `gpt-5.4-mini`. |
+| `/orchestrate` | Heavy-tier orchestrator workflow. Triages `TODO.md` with `[H]/[S]/[L]/[X]` tier tags, then dispatches `[S]/[L]/[X]` items to cheaper subagents (gpt-5.4 / gpt-5.4-mini / Explore) while keeping `[H]` decisions on the orchestrator thread. Preserves token budget by never letting Opus do mechanical text shuffling. | `[H]` — pinned to `claude-opus-4.7`. Subagents it dispatches use `gpt-5.4` and `gpt-5.4-mini`. |
 
 ### Model tier conventions
 
@@ -171,6 +172,7 @@ Current pinning in this repo:
 | Prompt | Pinned model | Why |
 |--------|--------------|-----|
 | `/repo-health-audit` | `claude-opus-4.7` | Heavy synthesis, dual-perspective reasoning |
+| `/orchestrate` | `claude-opus-4.7` | Heavy-tier orchestration; subagent dispatch |
 | `/audit-workflow` | `gpt-5.4` | Standard-tier scan + safe auto-fixes |
 | `/whats-next` | `gpt-5.4-mini` | Mechanical triage and report-back |
 | `/freshen-status` | `gpt-5.4-mini` | Mechanical sync from repo state |

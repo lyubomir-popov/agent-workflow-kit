@@ -265,6 +265,16 @@ pwsh -NoLogo -NoProfile -File /path/to/agent-workflow-kit/workflow-kit.ps1 -Comm
 pwsh -NoLogo -NoProfile -File /path/to/agent-workflow-kit/workflow-kit.ps1 -Command diff -RepoRoot $PWD -KitRoot /path/to/agent-workflow-kit
 ```
 
+If a downstream repo intentionally keeps `agent-workflow-kit` as an external source of truth instead of copying `agent-loop.ps1`, `install-vscode-prompts.ps1`, `bin/`, or `prompts/`, add a repo-root `.workflow-kit.json` file:
+
+```json
+{
+  "canonicalMirrorMode": "external"
+}
+```
+
+In `external` mode, `workflow-kit diff` suppresses missing-file warnings for those canonical mirrored assets while still reporting drift for any mirrored files that do exist locally.
+
 Checks currently cover:
 
 - required workflow files

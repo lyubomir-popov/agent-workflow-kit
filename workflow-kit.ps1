@@ -276,6 +276,44 @@ function Get-CanonicalMirrorFiles {
     return @($files)
 }
 
+function Get-WorkflowKitRepoConfig {
+    param(
+        [string]$RepoRoot,
+        [System.Collections.Generic.List[object]]$Findings
+    )
+
+    $configPath = Join-Path $RepoRoot '.workflow-kit.json'
+    $config = [pscustomobject]@{
+        canonicalMirrorMode = 'mirror'
+    }
+
+    if (-not (Test-Path -LiteralPath $configPath)) {
+        return $config
+    }
+
+    try {
+        $parsed = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+    }
+    catch {
+        Add-Finding $Findings 'error' 'workflow-kit-config' '.workflow-kit.json' 'Config file is not valid JSON.'
+        return $null
+    }
+
+    if ($null -ne $parsed.canonicalMirrorMode -and [string]::IsNullOrWhiteSpace([string]$parsed.canonicalMirrorMode) -eq $false) {
+        $canonicalMirrorMode = [string]$parsed.canonicalMirrorMode
+        if (@('mirror', 'external') -notcontains $canonicalMirrorMode) {
+            Add-Finding $Findings 'error' 'workflow-kit-config' '.workflow-kit.json' 'canonicalMirrorMode must be either "mirror" or "external".'
+            return $null
+        }
+
+        $config = [pscustomobject]@{
+            canonicalMirrorMode = $canonicalMirrorMode
+        }
+    }
+
+    return $config
+}
+
 function Test-WorkflowDrift {
     param(
         [string]$KitRoot,
@@ -283,6 +321,13 @@ function Test-WorkflowDrift {
     )
 
     $findings = [System.Collections.Generic.List[object]]::new()
+    $config = Get-WorkflowKitRepoConfig -RepoRoot $RepoRoot -Findings $findings
+    if ($null -eq $config) {
+        return @($findings)
+    }
+
+    $suppressMissingCanonicalFiles = $config.canonicalMirrorMode -eq 'external'
+
     foreach ($relativePath in Get-CanonicalMirrorFiles -KitRoot $KitRoot) {
         $kitPath = Join-Path $KitRoot $relativePath
         $repoPath = Join-Path $RepoRoot $relativePath
@@ -292,7 +337,9 @@ function Test-WorkflowDrift {
         }
 
         if (-not (Test-Path -LiteralPath $repoPath)) {
-            Add-Finding $findings 'warning' 'canonical-file-missing' $relativePath 'Canonical kit file is absent from target repo. This may be intentional if the repo uses PATH-based launchers only.'
+            if (-not $suppressMissingCanonicalFiles) {
+                Add-Finding $findings 'warning' 'canonical-file-missing' $relativePath 'Canonical kit file is absent from target repo. This may be intentional if the repo uses PATH-based launchers only.'
+            }
             continue
         }
 

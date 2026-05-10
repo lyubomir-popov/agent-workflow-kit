@@ -4,6 +4,11 @@ Completed work belongs here so `TODO.md` stays lean.
 
 ## Short-term
 
+### 2026-05-07 - Session: external canonical mirror mode
+
+- Added optional downstream `.workflow-kit.json` support to `workflow-kit.ps1`. Repos can now set `{"canonicalMirrorMode":"external"}` so `workflow-kit diff` stops warning about intentionally unmirrored prompt, launcher, installer, and scheduler assets while still catching drift in any mirrored files that are present.
+- Documented the new external-kit mode in `README.md` and recorded it in `STATUS.md`.
+
 ### 2026-04-29 - Session: prompt suite expansion and model pinning
 
 - Added `/repo-health-audit` prompt — dual-perspective (domain expert + software architect) repo audit that persists a dated report under `docs/analyses/` and routes findings into `TODO.md` / `ROADMAP.md`. Pinned to `claude-opus-4.7`.

@@ -91,7 +91,7 @@ $TaskHistoryStopWords = @(
     'source', 'sources', 'specs', 'stage', 'status', 'still', 'task', 'tasks', 'todo', 'triage', 'update', 'workflow', 'worktree'
 )
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# -- Helpers -----------------------------------------------------------------
 
 function Get-HeadingLevel {
     param([string]$Line)
@@ -326,9 +326,9 @@ function Get-StatusTableTasks {
                 $summaryParts = Split-StatusTableSummary -Summary $summary
 
                 $taskText = if ($summaryParts.NextAction) {
-                    if ($step) { "$step — $($summaryParts.NextAction)" } else { $summaryParts.NextAction }
+                    if ($step) { "$step - $($summaryParts.NextAction)" } else { $summaryParts.NextAction }
                 } elseif ($step) {
-                    "$step — $summary"
+                    "$step - $summary"
                 } else {
                     $summary
                 }
@@ -1055,7 +1055,7 @@ function Invoke-CopilotTask {
     }
 }
 
-# ── Main loop ────────────────────────────────────────────────────────────────
+# -- Main loop ---------------------------------------------------------------
 
 Assert-CommandAvailable git
 
@@ -1067,12 +1067,12 @@ if ($DryRun) {
     $taskContext = Get-TaskContext -Lines (Get-Content TODO.md)
     $allTasks = @($taskContext.Tasks)
     if ($allTasks.Count -eq 0) {
-        Write-Host "`n✓ No unchecked tasks found." -ForegroundColor Green
+        Write-Host "`n[ok] No unchecked tasks found." -ForegroundColor Green
     } else {
         $cap = [Math]::Min($allTasks.Count, $MaxTasks)
         $sectionLabel = if ($taskContext.Section) { $taskContext.Section.Heading } else { 'auto-detect' }
         $dispatchLabel = if ($UseTierDispatch) { 'tier dispatch ON' } else { 'tier dispatch OFF (single -Model/-ReasoningEffort)' }
-        Write-Host "`n── Dry run: $($allTasks.Count) actionable task(s) found in $sectionLabel (cap: $MaxTasks; $dispatchLabel) ──" -ForegroundColor Cyan
+        Write-Host "`n-- Dry run: $($allTasks.Count) actionable task(s) found in $sectionLabel (cap: $MaxTasks; $dispatchLabel) --" -ForegroundColor Cyan
         for ($i = 0; $i -lt $cap; $i++) {
             $dispatch = Resolve-TaskDispatch -Task $allTasks[$i] -DefaultModel $Model -DefaultEffort $ReasoningEffort
             $tierLabel = if ($dispatch.Tier) { "[$($dispatch.Tier)]" } else { '[?]' }
@@ -1082,7 +1082,7 @@ if ($DryRun) {
             Write-Host "     $(Get-TaskSummary $allTasks[$i])" -ForegroundColor Yellow
         }
         if ($allTasks.Count -gt $MaxTasks) {
-            Write-Host "  … and $($allTasks.Count - $MaxTasks) more beyond the cap" -ForegroundColor DarkGray
+            Write-Host "  ... and $($allTasks.Count - $MaxTasks) more beyond the cap" -ForegroundColor DarkGray
         }
     }
     return
@@ -1100,12 +1100,12 @@ if ($primaryStatusAtStart.Count -gt 0) {
 while ($taskCount -lt $MaxTasks) {
     $task = Get-NextTask
     if (-not $task) {
-        Write-Host "`n✓ No more actionable tasks. Loop complete." -ForegroundColor Green
+        Write-Host "`n[ok] No more actionable tasks. Loop complete." -ForegroundColor Green
         break
     }
 
     $taskCount++
-    Write-Host "`n── Task $taskCount ──────────────────────────────────────" -ForegroundColor Cyan
+    Write-Host "`n-- Task $taskCount --------------------------------------" -ForegroundColor Cyan
     Write-Host "  $(Get-TaskSummary $task)" -ForegroundColor Yellow
 
     $dispatch = Resolve-TaskDispatch -Task $task -DefaultModel $Model -DefaultEffort $ReasoningEffort
@@ -1157,7 +1157,7 @@ After completing the task:
 2. If you fully complete the task, you may leave TODO bookkeeping to the scheduler.
 3. If the task is too large for one safe commit, complete one clearly scoped slice, update TODO.md to reflect the remaining work, and stop after that one commit.
 4. Do not mark a task done unless it is truly complete.
-5. Do NOT move on to other tasks — stop after that one commit.
+5. Do NOT move on to other tasks - stop after that one commit.
 "@
 
     try {
@@ -1193,7 +1193,7 @@ After completing the task:
         }
 
         if ($copilotResult.TimedOut) {
-            Write-Host "  ✗ Copilot timed out after $($copilotResult.ElapsedSeconds)s. Stopping." -ForegroundColor Red
+            Write-Host "  [x] Copilot timed out after $($copilotResult.ElapsedSeconds)s. Stopping." -ForegroundColor Red
             if ($worktreeCommitCount -gt 0) {
                 Write-Host "  Worktree contains unmerged commit(s):" -ForegroundColor Yellow
                 foreach ($line in (Get-CommitSummariesBetween -RepoPath $worktreePath -BaseCommit $worktreeHeadBefore -HeadCommit $worktreeHeadAfter)) {
@@ -1215,7 +1215,7 @@ After completing the task:
         }
 
         if ($exitCode -ne 0) {
-            Write-Host "  ✗ Copilot exited with code $exitCode. Stopping." -ForegroundColor Red
+            Write-Host "  [x] Copilot exited with code $exitCode. Stopping." -ForegroundColor Red
             if ($worktreeCommitCount -gt 0) {
                 $keepWorktree = $true
                 Write-Host "  Worktree contains unmerged commit(s):" -ForegroundColor Yellow
@@ -1228,7 +1228,7 @@ After completing the task:
         }
 
         if ($worktreeCommitCount -eq 0) {
-            Write-Host "  ✗ No new commit detected. Task may have failed. Stopping." -ForegroundColor Red
+            Write-Host "  [x] No new commit detected. Task may have failed. Stopping." -ForegroundColor Red
             $statusWithoutCommit = Get-WorkingTreeStatus -RepoPath $worktreePath
             if ($statusWithoutCommit.Count -gt 0) {
                 $keepWorktree = $true
@@ -1243,7 +1243,7 @@ After completing the task:
 
         if ($worktreeCommitCount -gt 1) {
             $keepWorktree = $true
-            Write-Host "  ✗ Expected one worker commit, found $worktreeCommitCount. Preserving worktree." -ForegroundColor Red
+            Write-Host "  [x] Expected one worker commit, found $worktreeCommitCount. Preserving worktree." -ForegroundColor Red
             foreach ($line in (Get-CommitSummariesBetween -RepoPath $worktreePath -BaseCommit $worktreeHeadBefore -HeadCommit $worktreeHeadAfter)) {
                 Write-Host "    $line" -ForegroundColor Yellow
             }
@@ -1268,7 +1268,7 @@ After completing the task:
         if ($LASTEXITCODE -ne 0) {
             git cherry-pick --abort | Out-Null
             $keepWorktree = $true
-            Write-Host '  ✗ Cherry-pick failed. Preserving worker worktree for inspection.' -ForegroundColor Red
+            Write-Host '  [x] Cherry-pick failed. Preserving worker worktree for inspection.' -ForegroundColor Red
             Write-Host "  Preserved worktree: $worktreePath" -ForegroundColor Yellow
             break
         }
@@ -1281,7 +1281,7 @@ After completing the task:
             foreach ($line in $primaryStatusBeforeBookkeeping) {
                 Write-Host "    $line" -ForegroundColor Yellow
             }
-            Write-Host "  ✓ New commit: $commitAfter" -ForegroundColor Green
+            Write-Host "  [ok] New commit: $commitAfter" -ForegroundColor Green
             break
         }
 
@@ -1293,17 +1293,17 @@ After completing the task:
                 Write-Host "  ! TODO.md changed during the worker commit, but the same task still appears actionable." -ForegroundColor Yellow
                 Write-Host "  ! Scheduler is leaving TODO state untouched to avoid clobbering worker-authored task decomposition." -ForegroundColor Yellow
             } else {
-                Write-Host "  ✓ TODO state updated by worker; skipping scheduler bookkeeping." -ForegroundColor Green
+                Write-Host "  [ok] TODO state updated by worker; skipping scheduler bookkeeping." -ForegroundColor Green
             }
         } else {
             # Mark the task done in TODO.md (scheduler owns TODO bookkeeping by default)
             Mark-TaskDone $task
             $bookkeepingCommit = Commit-Bookkeeping (Get-TaskSummary $task)
-            Write-Host "  ✓ Task marked done in TODO.md" -ForegroundColor Green
-            Write-Host "  ✓ Bookkeeping commit: $bookkeepingCommit" -ForegroundColor Green
+            Write-Host "  [ok] Task marked done in TODO.md" -ForegroundColor Green
+            Write-Host "  [ok] Bookkeeping commit: $bookkeepingCommit" -ForegroundColor Green
         }
 
-        Write-Host "  ✓ New commit: $commitAfter" -ForegroundColor Green
+        Write-Host "  [ok] New commit: $commitAfter" -ForegroundColor Green
     } finally {
         if ($worktreePath -and -not $keepWorktree) {
             try {
@@ -1316,7 +1316,7 @@ After completing the task:
     }
 }
 
-Write-Host "`n── Summary ──────────────────────────────────────────────" -ForegroundColor Cyan
+Write-Host "`n-- Summary ----------------------------------------------" -ForegroundColor Cyan
 Write-Host "  Tasks attempted: $taskCount"
 Write-Host "  HEAD is now: $(Get-HeadCommit -RepoPath $repoRoot)"
 $logCount = $taskCount + 2

@@ -796,7 +796,7 @@ function Remove-TemporaryWorktree {
     }
 
     try {
-        Remove-Item -LiteralPath $WorktreePath -Recurse -Force -ErrorAction Stop
+        Remove-Item -LiteralPath $WorktreePath -Recurse -Force -Confirm:$false -ErrorAction Stop
     } catch {
         throw "Failed to remove temporary worktree contents at $WorktreePath"
     }
@@ -847,6 +847,25 @@ function Get-CommandPaths {
     }
 
     return $paths | Select-Object -Unique
+}
+
+function Join-CommandArguments {
+    param([string[]]$Arguments)
+
+    $quoted = foreach ($argument in $Arguments) {
+        if ($null -eq $argument) {
+            '""'
+            continue
+        }
+
+        if ($argument -match '[\s"]') {
+            '"' + ($argument -replace '"', '\"') + '"'
+        } else {
+            $argument
+        }
+    }
+
+    return ($quoted -join ' ')
 }
 
 function Test-IsCopilotBootstrapPath {
@@ -998,8 +1017,12 @@ function Invoke-CopilotTask {
     $startInfo.RedirectStandardError = $true
 
     $startInfo.FileName = $copilotLaunchSpec.FileName
-    foreach ($argument in $copilotLaunchSpec.ArgumentList) {
-        $null = $startInfo.ArgumentList.Add($argument)
+    if ($null -ne $startInfo.ArgumentList) {
+        foreach ($argument in $copilotLaunchSpec.ArgumentList) {
+            $null = $startInfo.ArgumentList.Add($argument)
+        }
+    } else {
+        $startInfo.Arguments = Join-CommandArguments -Arguments $copilotLaunchSpec.ArgumentList
     }
 
     $process = [System.Diagnostics.Process]::new()

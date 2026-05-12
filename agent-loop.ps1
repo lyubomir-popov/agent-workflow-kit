@@ -918,8 +918,14 @@ function Resolve-CopilotLaunchSpec {
 
     $extension = [System.IO.Path]::GetExtension($selectedPath)
     if ($extension.Equals('.ps1', [System.StringComparison]::OrdinalIgnoreCase)) {
+        try {
+            $hostPath = Resolve-CommandPath 'pwsh'
+        } catch {
+            $hostPath = Resolve-CommandPath 'powershell'
+        }
+
         return [pscustomobject]@{
-            FileName = Resolve-CommandPath 'pwsh'
+            FileName = $hostPath
             ArgumentList = @('-NoLogo', '-NoProfile', '-File', $selectedPath) + $CopilotArguments
         }
     }

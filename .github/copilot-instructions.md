@@ -103,6 +103,8 @@ Do not rewrite higher-priority docs to match lower-priority implementation drift
 2. Read `AGENT-INBOX.md` and triage durable facts into `TODO.md`, `ROADMAP.md`, `STATUS.md`, `HISTORY.md`, or `docs/specs.md`.
 3. Empty both files back to their header templates.
 
+If an INBOX item includes bug screenshots or image attachments, follow this fixed order: inspect the referenced images first, implement the fix, present the fix for user confirmation, and only then delete the referenced images.
+
 ### What goes where
 
 | Information | Goes in |
@@ -168,6 +170,14 @@ If there are no automated checks, at minimum verify that the files you changed a
 - Prefer reusing a small number of foreground integrated terminals the user can actually inspect. Do not spawn dozens of throwaway shells for small checks.
 - Keep track of the terminals you start. If one hangs, times out, or is no longer needed, close it before finishing the task.
 - When using Playwright or browser automation, use Chrome, not Edge.
+
+### Copilot CLI authentication for unattended runs
+
+- Before any unattended run (`agent-loop.ps1`, `/overnight`, tier dispatch), verify Copilot CLI is already authenticated.
+- If the run output says `No authentication information found` or `Please use /login to sign in to use Copilot`, stop automation and perform login first.
+- Login location: open a normal interactive VS Code integrated terminal, run `copilot`, then complete the in-app `/login` flow in that terminal.
+- After successful login, rerun the same unattended command. Do not keep retrying unattended runs while unauthenticated.
+- If terminal automation cannot drive slash commands in the Copilot TUI, explicitly hand off the login step to the user and resume immediately after they confirm login is complete.
 
 ## Repo boundary
 

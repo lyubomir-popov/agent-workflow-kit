@@ -8,6 +8,18 @@ The agent should triage anything durable from this file into `TODO.md`, `ROADMAP
 
 ---
 
+## 2026-05-21 – Anti-patch protocol proposed for boilerplate (from diagram-generator)
+
+The `diagram-generator` repo now has an "Anti-Patch Protocol" section in its `.github/copilot-instructions.md` that prevents agents from stacking local fixes without classifying requests or checking layer ownership. The pattern is general enough to upstream into the boilerplate template:
+
+1. **Classify before coding** — taxonomy: contract change, configuration, bug, feature, one-off
+2. **Patch smell test** — 5 yes/no questions; any "yes" means stop and redesign
+3. **Layer ownership map** — which file owns which concept (per-repo)
+4. **Flag mechanism** — structured report when patching is detected
+5. **After implementing** — run all existing artifacts through the engine, not just the triggering one
+
+Consider adding a "Change Discipline" section to the boilerplate `copilot-instructions.md` template with the classify + smell-test + flag pattern. Repos with layered engines (like `a4-generator`, `baseline-foundry`) would also benefit from declaring a layer-ownership map.
+
 2026-05-07 - Cross-repo follow-up from `lightning-talks`
 
 User preference / possible workflow convention to evaluate upstream:

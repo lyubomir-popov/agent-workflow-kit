@@ -2,21 +2,21 @@
 
 ## What this repo is
 
-`agent-workflow-kit` is the centralised process blueprint for AI-agent workflow conventions across multiple repos (baseline-foundry, brand-layout-ops, canonical-spacing-spec). It owns the canonical `agent-loop.ps1` scheduler, syncable prompt definitions, and the workflow file templates. Changes land here first, then get mirrored to active repos.
+`agent-workflow-kit` is the centralised process blueprint for AI-agent workflow conventions across multiple repos (baseline-foundry, design-foundry, canonical-spacing-spec). It owns the canonical `agent-loop.ps1` scheduler, syncable prompt definitions, and the workflow file templates. Changes land here first, then get mirrored to active repos.
 
 ## Current state
 
-- **Stage 1 (convention) and Stage 2 (refinements) are complete and the scheduler is now proven on real repo work, including this repo.** `agent-loop.ps1` successfully completed bounded tasks in `baseline-foundry`, `canonical-spacing-spec`, `brand-layout-ops`, and one self-hosted task in this repo.
-- **Agent-loop now runs tasks in disposable git worktrees.** The scheduler auto-detects checkbox queues or active-lane status tables, uses explicit Copilot model / reasoning settings, cherry-picks exactly one worker commit back when safe, and preserves the worker worktree when the primary repo is dirty or the run fails.
+- **Stage 1 (convention) and Stage 2 (refinements) are complete and the scheduler is now proven on real repo work, including this repo.** `agent-loop.ps1` successfully completed bounded tasks in `baseline-foundry`, `canonical-spacing-spec`, `design-foundry`, and one self-hosted task in this repo.
+- **Agent-loop now runs tasks in disposable git worktrees.** The scheduler auto-detects checkbox queues or active-lane status tables, supports both Copilot and Codex worker launches, uses explicit model / reasoning settings, cherry-picks worker commits back when safe, and preserves the worker worktree when the primary repo is dirty or the run fails.
 - **Windows temp-worktree cleanup is hardened.** The loop now prunes stale worktree registrations before creation and falls back to force-deleting managed temp dirs plus pruning if `git worktree remove --force` leaves residue.
 - **The self-hosted proof is now recorded in git.** Worker commit `aa7a133` replaced the placeholder `docs/specs.md` entries, and scheduler bookkeeping commit `4fbda32` marked the task done.
-- **The remaining workflow gap is tuning, not rollout.** The `AGENT-INBOX.md` split and stronger terminal guidance are now mirrored into `baseline-foundry`, `brand-layout-ops`, and `canonical-spacing-spec`, while canonical still provides the real TODO-vs-history drift case for future tuning.
+- **The remaining workflow gap is tuning, not rollout.** The `AGENT-INBOX.md` split and stronger terminal guidance are now mirrored into `baseline-foundry`, `design-foundry`, and `canonical-spacing-spec`, while canonical still provides the real TODO-vs-history drift case for future tuning.
 - **Inbox roles are now split.** `INBOX.md` is the user-facing note channel, while `AGENT-INBOX.md` is the machine-generated handoff channel for long agent notes, cross-repo follow-ups, and diagnostics awaiting triage.
 - **VS Code slash commands are now repo-owned and syncable.** Canonical prompt files live in `prompts/`, and `install-vscode-prompts.ps1` installs them into the global VS Code user prompt folder on each machine so the same commands can be reused anywhere after cloning or pulling this repo.
 - **Workflow validation is now executable.** `workflow-kit.ps1` provides `lint` and `diff` commands for checking workflow-file contract drift, prompt frontmatter, inbox drainage, TODO structure, validation sections, and copied canonical assets.
 - **Diff now supports external-kit downstream repos.** A downstream repo can add `.workflow-kit.json` with `{"canonicalMirrorMode":"external"}` to suppress missing-file warnings for intentionally unmirrored prompt, launcher, installer, and scheduler assets while still reporting drift for any mirrored files that do exist locally.
 - **The code/data repo extension backlog is implemented in the canonical kit.** Repo-type-aware precedence, token discipline, tiered validation, priority TODO sections, concise resume agent shape, roadmap scaling docs, and `/run-validation` / `/freshen-status` prompt files are now in place.
-- **Prompt suite expanded and model-pinned (2026-04-29).** Two new slash commands shipped: `/repo-health-audit` (heavy dual-perspective audit persisted under `docs/analyses/`) and `/orchestrate` (heavy-tier triage + `[S]/[L]/[X]` subagent dispatch). All 8 prompt files now declare a `model:` frontmatter field so the right tier runs each command regardless of the picker. `workflow-kit lint` enforces the convention with a `prompt-frontmatter` warning when `model:` is missing.
+- **Prompt suite expanded and model-pinned.** The prompt set now covers workflow maintenance, SpecKit overnight runs, heavy audits, orchestration, plan tightening, sweep-style review, repo syncing, and targeted diagram-generator analysis. Prompt files declare `model:` frontmatter so the right tier runs each command regardless of the picker, and `workflow-kit lint` enforces that contract.
 
 ## Current execution plan
 

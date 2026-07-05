@@ -137,10 +137,15 @@ This repo can act as the GitHub-synced source of truth for your global VS Code C
 | `/freshen-status` | Refresh `STATUS.md` from the actual repo state (git status, key files, validation output). Mechanical sync. | `[L]` — `gpt-5.4-mini` or `claude-haiku-4.5` |
 | `/audit-workflow` | Check all workflow markdown files for drift, staleness, and convention compliance. Auto-fixes safe issues. | `[L]`–`[S]` — `gpt-5.4-mini` for spot-checks, `gpt-5.4` if drift is widespread |
 | `/run-validation` | Run the repo's declared `## Validation` commands and report pass/fail. Read-only by default. | `[L]` — `gpt-5.4-mini` (or `[X]` if dispatched as a subagent) |
-| `/overnight` | Launch `agent-loop.ps1` to work through `TODO.md` items unattended in fresh worktrees. Each task gets its own Copilot CLI invocation. | Orchestrator: `[L]` — `gpt-5.4-mini` to launch. Per-task model controlled by `-Model` flag (default `gpt-5.4`). |
+| `/overnight` | Launch `agent-loop.ps1` in **SpecKit** mode: finish the active spec's `tasks.md`, run adversarial review, address findings, then advance to the next **In Progress** spec from `docs/specs.md`. Unattended multi-hour runs. Uses `-Agent Auto`, so Codex-launched runs use Codex and Copilot-launched runs use Copilot. | Orchestrator: `[L]` — `gpt-5.4-mini` to launch from Copilot surfaces. Per-phase model via `-Model` for Copilot; Codex uses its configured default unless a Codex-compatible model is supplied. |
 | `/proceed-autonomously` | Legacy alias for `/overnight`. Kept installed for muscle memory. | Same as `/overnight`. |
+| `/audit-diagram-generator` | Read-only **diagram-generator** audit: health, staleness, architectural drift, Python legacy traces, double-work, duplicate sources of truth, and force-layout restoration status. Reports in chat; can persist to `docs/architecture/repo-health-audit-*.md`. | `[H]` — `claude-opus-4.7` or `gpt-5.5` preferred; `gpt-5.4 --effort high` as fallback. |
+| `/competing-audit` | Run two competing heavy-tier review passes in parallel on one target artifact, then synthesize a single prioritized action plan. | `[H]` — `claude-opus-4.7` plus `gpt-5.5` or `gpt-5.4 --effort xhigh` |
 | `/repo-health-audit` | Strategic dual-perspective audit (domain expert + software architect). Persists a dated report under `docs/analyses/` and routes findings into `TODO.md` / `ROADMAP.md`. Run periodically (every 1–2 months or after major milestones). | `[H]` — `claude-opus-4.7` or `gpt-5.5` preferred; `gpt-5.4 --effort high` as fallback. The follow-up TODO/ROADMAP edits can defer to `[S]` `gpt-5.4` or `[L]` `gpt-5.4-mini`. |
 | `/orchestrate` | Heavy-tier orchestrator workflow. Triages `TODO.md` with `[H]/[S]/[L]/[X]` tier tags, then dispatches `[S]/[L]/[X]` items to cheaper subagents (gpt-5.4 / gpt-5.4-mini / Explore) while keeping `[H]` decisions on the orchestrator thread. Preserves token budget by never letting Opus do mechanical text shuffling. | `[H]` — pinned to `claude-opus-4.7`. Subagents it dispatches use `gpt-5.4` and `gpt-5.4-mini`. |
+| `/simo-plan-sweep` | Tighten an existing implementation plan into safer phases with validation, commit checkpoints, and per-phase sweep instructions before any coding starts. | `[S]` — `gpt-5.4` |
+| `/simo-sweep` | Run a broad post-change sweep using parallel critical reviewers, then synthesize verified findings and residual risks. | `[H]` — `claude-opus-4.7` |
+| `/sync-all-repos` | Commit and push every dirty repo in the current multi-root workspace so the full working state is available on another machine. | `[L]` — `gpt-5.4-mini` |
 
 ### Model tier conventions
 
@@ -151,7 +156,7 @@ These mirror the `[H] [S] [L] [X]` tags used in `TODO.md` and described in `.git
 - **`[L]` Light** — `gpt-5.4-mini` or `claude-haiku-4.5`. Use for mechanical text shuffling, housekeeping, INBOX triage, status freshes. Cost class: ~0.33x.
 - **`[X]` Subagent / no model** — runs as a dispatch (`Explore`, validation commands, Playwright). Cost class: 0x at the orchestrator level.
 
-**Hard rule**: do not use older 1x-tier models (`claude-sonnet-4.5/4.6`, `gpt-4.1`, `gpt-4o`). They cost the same as `gpt-5.4` and are measurably weaker.
+**Hard rule**: use the lowest-cost model that is likely to work. Older 1x-tier models (`claude-sonnet-4.5/4.6`, `gpt-4.1`, `gpt-4o`) are allowed when they are the cheapest workable option or when you want model-diverse review, but do not pay 1x for them by default when a clearly stronger 1x model is available.
 
 ### How model deferral works
 
@@ -171,13 +176,18 @@ Current pinning in this repo:
 
 | Prompt | Pinned model | Why |
 |--------|--------------|-----|
+| `/audit-diagram-generator` | `claude-opus-4.7` | diagram-generator architecture and drift synthesis |
+| `/competing-audit` | `claude-opus-4.7` | competing dual-heavy audit and synthesis |
 | `/repo-health-audit` | `claude-opus-4.7` | Heavy synthesis, dual-perspective reasoning |
 | `/orchestrate` | `claude-opus-4.7` | Heavy-tier orchestration; subagent dispatch |
+| `/simo-plan-sweep` | `gpt-5.4` | plan tightening and phased implementation prep |
+| `/simo-sweep` | `claude-opus-4.7` | deep post-change sweep with parallel reviewers |
+| `/sync-all-repos` | `gpt-5.4-mini` | mechanical commit-and-push across workspace repos |
 | `/audit-workflow` | `gpt-5.4` | Standard-tier scan + safe auto-fixes |
 | `/whats-next` | `gpt-5.4-mini` | Mechanical triage and report-back |
 | `/freshen-status` | `gpt-5.4-mini` | Mechanical sync from repo state |
 | `/run-validation` | `gpt-5.4-mini` | Read-only validation runner |
-| `/overnight` | `gpt-5.4-mini` | Just launches the scheduler; per-task model is `-Model` flag |
+| `/overnight` | `gpt-5.4-mini` | Just launches the scheduler from Copilot surfaces; `-Agent Auto` uses Codex when launched from Codex |
 | `/proceed-autonomously` | `gpt-5.4-mini` | Same as `/overnight` |
 
 To override per-invocation, edit the prompt file's `model:` line, or pick a different model in the picker before invoking (the frontmatter wins for the invocation but the picker selection returns afterwards).
@@ -289,21 +299,34 @@ Checks currently cover:
 
 ## Autonomous agent loop
 
-`agent-loop.ps1` is a PowerShell scheduler that feeds Copilot CLI one TODO item at a time. It enables unattended overnight runs.
+`agent-loop.ps1` is a PowerShell scheduler that feeds a selected worker CLI in disposable worktrees. `-Agent Auto` uses Codex when launched from a Codex environment and Copilot otherwise. It supports two workflows:
+
+- **`-Workflow SpecKit`** (default for `/overnight`) — implement in-progress spec packages from `docs/specs.md` until `tasks.md` is complete, adversarial review, address findings, next spec.
+- **`-Workflow Todo`** (legacy) — one `TODO.md` checkbox per worker invocation.
 
 ### Prerequisites
 
-1. **Copilot CLI** installed (`npm install -g @anthropic-ai/copilot-cli` or via VS Code prompt)
-2. **GitHub CLI** authenticated (`gh auth login --web -h github.com`) — Copilot CLI reads this token
+1. **Worker CLI** installed: `codex` for Codex-launched runs, or `copilot` for Copilot-launched runs
+2. **GitHub CLI** authenticated (`gh auth login --web -h github.com`) — use the real `gh.exe`; do not shadow it with a PowerShell `gh` git-grep function (use `gg` for `git grep` instead)
 3. **PowerShell 7+** (works on Windows, WSL, or macOS)
 
-### How it works
+### How it works (SpecKit / overnight)
+
+```
+agent-loop discovers in-progress specs (current feat/* branch first, then docs/specs.md)
+  → implement phase: repeat the selected worker until specs/<id>/tasks.md has no unchecked items
+  → adversarial-review phase: one worker run; findings → AGENT-INBOX.md
+  → address-review phase: up to MaxAddressRounds while active inbox findings remain
+  → advance to the next in-progress spec until the queue is exhausted
+```
+
+### How it works (Todo / legacy)
 
 ```
 agent-loop reads TODO.md and finds the next actionable item under the target heading
-  → builds a prompt for Copilot CLI
+  → builds a prompt for the selected worker CLI
   → creates a disposable git worktree at the target repo's current HEAD
-  → runs: copilot -p <prompt> --autopilot --allow-all --no-ask-user -s inside that worktree
+  → runs the selected worker non-interactively inside that worktree
   → verifies the worker produced exactly one new commit
   → cherry-picks that commit back when the primary repo is clean
   → updates TODO.md and creates a separate bookkeeping commit when scheduler-owned bookkeeping is still safe
@@ -314,12 +337,16 @@ agent-loop reads TODO.md and finds the next actionable item under the target hea
 ### Usage
 
 ```powershell
-# If agent-workflow-kit/bin is on PATH:
-agent-loop -DryRun                     # preview tasks without running
-agent-loop                             # run (default: up to 10 tasks)
-agent-loop -MaxTasks 3                 # limit to 3 tasks
-agent-loop -Model gpt-5.4              # choose the Copilot model explicitly
-agent-loop -ReasoningEffort low        # bias the worker toward faster, narrower action
+# SpecKit overnight (unlimited invocations by default):
+pwsh -NoLogo -NoProfile -File /path/to/agent-workflow-kit/agent-loop.ps1 -Workflow SpecKit -RepoRoot $PWD -DryRun
+pwsh -NoLogo -NoProfile -File /path/to/agent-workflow-kit/agent-loop.ps1 -Workflow SpecKit -Agent Auto -RepoRoot $PWD -MaxTasks 0 -TaskTimeoutSeconds 3600 -MaxContinues 25 -OnFailure skip
+
+# Legacy TODO mode:
+agent-loop -Workflow Todo -DryRun
+agent-loop -Workflow Todo -MaxTasks 3
+agent-loop -Agent Auto                 # use Codex when launched from Codex, otherwise Copilot
+agent-loop -Model gpt-5.4              # choose the worker model explicitly; Codex ignores Copilot-style aliases
+agent-loop -ReasoningEffort low        # bias the worker toward faster, narrower action where supported
 agent-loop -TaskTimeoutSeconds 600     # stop a hung task after 10 minutes
 agent-loop -TaskSection "### Batch tasks"  # target a subsection heading
 
@@ -369,14 +396,14 @@ To update the loop, edit `agent-loop.ps1` in this repo. All repos pick up the ch
 
 - Each task runs in a disposable git worktree rooted at the target repo's current `HEAD`
 - If the primary repo is dirty, the loop still runs the worker task in isolation but preserves the completed worker worktree for manual inspection instead of cherry-picking it back automatically
-- The loop stops on any Copilot CLI non-zero exit or if no new worker commit is detected
+- The loop stops on any worker CLI non-zero exit or if no new worker commit is detected
 - The loop warns when recent commit subjects overlap strongly with the current TODO item so stale queue entries are easier to spot before rerunning work
 - The loop kills a task that exceeds the per-task timeout (`-TaskTimeoutSeconds`, default `900`)
-- The loop passes an explicit Copilot model (`-Model`, default `gpt-5.4`) instead of relying on the CLI default
-- The loop passes an explicit reasoning effort (`-ReasoningEffort`, default `low`) so automation favors a quick narrow slice over long speculative planning
+- For Copilot runs, the loop passes an explicit model (`-Model`, default `gpt-5.4`) instead of relying on the CLI default; for Codex runs, Copilot-style model aliases are ignored unless a Codex-compatible model is supplied
+- For Copilot runs, the loop passes an explicit reasoning effort (`-ReasoningEffort`, default `low`) so automation favors a quick narrow slice over long speculative planning; Codex uses its configured reasoning behavior
 - Automatic cherry-pick and scheduler TODO bookkeeping only happen when the primary repo is clean
 - Every completed task produces a separate bookkeeping commit for the TODO.md change
-- `--max-autopilot-continues 5` caps each task's thinking rounds
+- `--max-autopilot-continues` caps each Copilot task's thinking rounds; Codex does not expose the same continuation flag
 - `--no-ask-user` prevents the agent from blocking on questions
 - `-DryRun` lets you preview what would execute
 - `--allow-all` grants file/tool permissions — run on a branch if concerned

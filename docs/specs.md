@@ -25,7 +25,7 @@ Use this file to answer two questions quickly:
 | Repo | Relationship | Notes |
 |------|--------------|-------|
 | `baseline-foundry` | Downstream consumer | Active repo that mirrors workflow-file refinements from this boilerplate and has already been used for real loop-driven tasks |
-| `brand-layout-ops` | Downstream consumer | Active repo that mirrors workflow-file refinements from this boilerplate and surfaced the stale temp-worktree cleanup case |
+| `design-foundry` | Downstream consumer | Active repo that mirrors workflow-file refinements from this boilerplate and surfaced the stale temp-worktree cleanup case |
 | `canonical-spacing-spec` | Downstream consumer | Active repo that mirrors workflow-file refinements from this boilerplate and has already been used for real loop-driven tasks |
 
 ## Notes

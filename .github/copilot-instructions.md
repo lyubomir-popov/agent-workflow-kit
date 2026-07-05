@@ -261,7 +261,7 @@ These are the user's standing model preferences. Apply them when picking a model
 
 Hard rules:
 
-- **Do not use older-generation 1x-multiplier models** (`claude-opus-4.5`, `claude-sonnet-4.5`, `claude-sonnet-4.6`, `gpt-4.1`, `gpt-4o`). They cost the same as `gpt-5.4` but are measurably weaker. The only acceptable Claude models in the standing preference are `claude-opus-4.7` (heavy) and `claude-haiku-4.5` (light).
+- **Prefer the lowest-cost model that is likely to succeed.** Older-generation 1x-multiplier models (`claude-opus-4.5`, `claude-sonnet-4.5`, `claude-sonnet-4.6`, `gpt-4.1`, `gpt-4o`) are allowed when they are the cheapest workable option or when a second-opinion review benefits from model diversity, but do not pay 1x for them by default when a clearly stronger 1x model is available.
 - **Reserve the 7.5x premium tier (`claude-opus-4.7` / `gpt-5.5`) for genuinely heavy work**: cross-file refactors, invariant-bearing changes, architectural decisions, planning the next batch, code review.
 - **Use `gpt-5.4` for almost everything else** that the orchestrator does not handle directly: standard component swaps, demo-page authoring, contained code changes, recipe-following work.
 - **Use the 0.33x tier (`gpt-5.4-mini` / `claude-haiku-4.5`) for truly trivial work**: ROADMAP/STATUS/HISTORY housekeeping, INBOX triage, commit-message edits, dependency bumps, lint-rule tweaks.

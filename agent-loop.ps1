@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-  Agent-loop scheduler: feeds Copilot CLI one TODO item at a time.
+  Agent-loop scheduler: feeds the selected worker CLI one TODO item at a time.
 
 .DESCRIPTION
     Reads TODO.md, finds the next actionable item under the configured or auto-detected
-    task heading, builds a prompt, invokes Copilot CLI in non-interactive autopilot mode,
+    task heading, builds a prompt, invokes the selected worker CLI in non-interactive mode,
     and checks whether a new commit appeared. Repeats until no actionable tasks remain
     or a failure is detected.
 
@@ -12,13 +12,19 @@
   Safety cap on how many tasks to process in one run. Default: 10.
 
 .PARAMETER DryRun
-  Parse and display tasks without invoking Copilot CLI.
+  Parse and display tasks without invoking the worker CLI.
 
 .PARAMETER TaskTimeoutSeconds
-    Maximum runtime for one Copilot task before the scheduler kills it and stops.
+    Maximum runtime for one worker task before the scheduler kills it and stops.
 
 .PARAMETER Model
-    AI model passed through to Copilot CLI. Default: gpt-5.4.
+    AI model passed through to the worker CLI. Default: gpt-5.4 for Copilot.
+    Codex runs ignore Copilot-style gpt-5.4 model names and use the local Codex
+    default unless a Codex-compatible model name is provided.
+
+.PARAMETER Agent
+    Worker CLI to launch. Auto picks Codex when the scheduler is launched from a
+    Codex environment, otherwise Copilot.
 
 .PARAMETER ReasoningEffort
     Copilot CLI reasoning effort level. Default: low.
@@ -34,9 +40,31 @@
     The heading that marks the task section in TODO.md. Default: auto-detect from
     common workflow headings.
 
+.PARAMETER OnFailure
+    What to do when a task fails (timeout, non-zero exit, no commit, cherry-pick
+    conflict). 'stop' halts the loop (default, current behaviour). 'skip' logs
+    the failure and moves to the next task.
+
+.PARAMETER MaxContinues
+    Safety cap on Copilot CLI continuation rounds per task (--max-autopilot-continues).
+    Codex does not expose the same continuation flag, so this is Copilot-only.
+    Default: 5. Raise for complex tasks that need more agent turns.
+
+.PARAMETER Workflow
+    Todo: read unchecked items from TODO.md (legacy scheduler).
+    SpecKit: drive the active spec package(s) from docs/specs.md through implement,
+    adversarial review, and address phases until no in-progress specs remain.
+
+.PARAMETER MaxSpecs
+    SpecKit only. Cap how many in-progress spec packages to process (0 = no cap).
+
+.PARAMETER MaxAddressRounds
+    SpecKit only. How many address-review invocations to attempt per spec after the
+    adversarial review (default: 3).
+
 .NOTES
   Prerequisites:
-    - Copilot CLI installed: npm install -g @anthropic-ai/copilot-cli (or via VS Code)
+    - Worker CLI installed: codex for Codex launches, or copilot for Copilot launches
     - GitHub auth: gh auth login --web -h github.com
     - PowerShell 7+ available as `pwsh` on macOS, Ubuntu, and Windows
     - Start from a clean git working tree for real runs; the script aborts if the repo is dirty
@@ -46,17 +74,26 @@ param(
     [int]$MaxTasks = 10,
     [switch]$DryRun,
     [int]$TaskTimeoutSeconds = 900,
+    [ValidateSet('Auto', 'Copilot', 'Codex')]
+    [string]$Agent = 'Auto',
     [string]$Model = 'gpt-5.4',
     [ValidateSet('low', 'medium', 'high', 'xhigh')]
     [string]$ReasoningEffort = 'low',
     [switch]$UseTierDispatch,
     [string]$TaskSection = 'auto',
+    [ValidateSet('stop', 'skip')]
+    [string]$OnFailure = 'stop',
+    [int]$MaxContinues = 5,
+    [ValidateSet('Todo', 'SpecKit')]
+    [string]$Workflow = 'Todo',
+    [int]$MaxSpecs = 0,
+    [int]$MaxAddressRounds = 3,
     [string]$RepoRoot = $PWD
 )
 
 # Tier -> (model, reasoning effort). Effort = $null means do not pass --effort
 # (Claude models reject --effort; reasoning is implicit). [X] is intentionally
-# skipped so subagent / validation tasks don't burn a Copilot CLI invocation.
+# skipped so subagent / validation tasks don't burn a worker CLI invocation.
 #
 # Preferred targets (when Copilot CLI exposes them) per the kit's model-preference
 # rules in .github/copilot-instructions.md:
@@ -75,6 +112,31 @@ $TierDispatchMap = @{
 
 $ErrorActionPreference = 'Stop'
 Set-Location $RepoRoot
+
+function Resolve-WorkerAgent {
+    param([string]$RequestedAgent)
+
+    if ($RequestedAgent -eq 'Codex') {
+        return 'Codex'
+    }
+    if ($RequestedAgent -eq 'Copilot') {
+        return 'Copilot'
+    }
+
+    $codexLaunched = (
+        $env:CODEX_THREAD_ID -or
+        $env:CODEX_CI -or
+        $env:CODEX_INTERNAL_ORIGINATOR_OVERRIDE
+    )
+
+    if ($codexLaunched) {
+        return 'Codex'
+    }
+
+    return 'Copilot'
+}
+
+$WorkerAgent = Resolve-WorkerAgent -RequestedAgent $Agent
 
 $DefaultTaskSectionCandidates = @(
     '## Active TODO',
@@ -646,12 +708,529 @@ function Get-TaskSourceSummary {
 
 function Get-NextTask {
     <# Returns the next actionable task object, or $null if none remain. #>
+    param([int[]]$ExcludeLineIndices = @())
+
     $taskContext = Get-TaskContext -Lines (Get-Content TODO.md)
-    if ($taskContext.Tasks.Count -gt 0) {
-        return $taskContext.Tasks[0]
+    foreach ($candidate in $taskContext.Tasks) {
+        if ($candidate.LineIndex -notin $ExcludeLineIndices) {
+            return $candidate
+        }
     }
 
     return $null
+}
+
+function Get-SpecPackageFromBranch {
+    param([string]$RepoPath)
+
+    $branch = git -C $RepoPath rev-parse --abbrev-ref HEAD 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $branch) {
+        return $null
+    }
+
+    if ($branch -match '^feat/(?<id>\d{3})-(?<slug>[A-Za-z0-9-]+)$') {
+        $relativePath = "specs/$($Matches.id)-$($Matches.slug)"
+        $absolutePath = Join-Path $RepoPath $relativePath
+        if (Test-Path -LiteralPath $absolutePath) {
+            return [pscustomobject]@{
+                Id = $Matches.id
+                Slug = $Matches.slug
+                RelativePath = $relativePath
+                AbsolutePath = $absolutePath
+                Branch = $branch
+                Source = 'current-branch'
+            }
+        }
+    }
+
+    return $null
+}
+
+function Get-InProgressSpecPackagesFromIndex {
+    param([string]$RepoPath)
+
+    $specsIndexPath = Join-Path $RepoPath 'docs/specs.md'
+    if (-not (Test-Path -LiteralPath $specsIndexPath)) {
+        return @()
+    }
+
+    $packages = [System.Collections.Generic.List[object]]::new()
+    foreach ($line in Get-Content -LiteralPath $specsIndexPath) {
+        if ($line -notmatch '^\|\s*(?<label>\d{3}\s+[^|]+)\|\s*`(?<path>specs/\d{3}-[^`/]+)/`\s*\|\s*(?<status>In Progress)\s*\|') {
+            continue
+        }
+
+        $relativePath = $Matches.path.TrimEnd('/')
+        $label = $Matches.label.Trim()
+        $absolutePath = Join-Path $RepoPath $relativePath
+        if (-not (Test-Path -LiteralPath $absolutePath)) {
+            continue
+        }
+
+        $idSlug = Split-Path $relativePath -Leaf
+        if ($idSlug -notmatch '^(?<id>\d{3})-(?<slug>.+)$') {
+            continue
+        }
+
+        $packages.Add([pscustomobject]@{
+            Id = $Matches.id
+            Slug = $Matches.slug
+            RelativePath = $relativePath
+            AbsolutePath = $absolutePath
+            Branch = "feat/$idSlug"
+            Label = $label
+            Source = 'docs/specs.md'
+        }) | Out-Null
+    }
+
+    return @($packages | Sort-Object { [int]$_.Id })
+}
+
+function Test-SpecPackageIndexedInProgress {
+    param(
+        [string]$RepoPath,
+        $SpecPackage
+    )
+
+    foreach ($spec in Get-InProgressSpecPackagesFromIndex -RepoPath $RepoPath) {
+        if ($spec.RelativePath -ieq $SpecPackage.RelativePath) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
+function Get-SpecKitWorkQueue {
+    param([string]$RepoPath)
+
+    $queue = [System.Collections.Generic.List[object]]::new()
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+
+    $branchSpec = Get-SpecPackageFromBranch -RepoPath $RepoPath
+    if ($branchSpec) {
+        $branchUnchecked = @(Get-UncheckedSpecTasks -SpecPackage $branchSpec)
+        $branchIndexedInProgress = Test-SpecPackageIndexedInProgress -RepoPath $RepoPath -SpecPackage $branchSpec
+        if ($branchUnchecked.Count -gt 0 -or $branchIndexedInProgress) {
+            $queue.Add($branchSpec) | Out-Null
+            $null = $seen.Add($branchSpec.RelativePath)
+        }
+    }
+
+    foreach ($spec in Get-InProgressSpecPackagesFromIndex -RepoPath $RepoPath) {
+        if ($seen.Add($spec.RelativePath)) {
+            $queue.Add($spec) | Out-Null
+        }
+    }
+
+    if ($MaxSpecs -gt 0) {
+        return @($queue | Select-Object -First $MaxSpecs)
+    }
+
+    return @($queue)
+}
+
+function Get-SpecTasksFilePath {
+    param($SpecPackage)
+
+    return Join-Path $SpecPackage.AbsolutePath 'tasks.md'
+}
+
+function Get-UncheckedSpecTasks {
+    param($SpecPackage)
+
+    $tasksPath = Get-SpecTasksFilePath -SpecPackage $SpecPackage
+    if (-not (Test-Path -LiteralPath $tasksPath)) {
+        return @()
+    }
+
+    $lines = @(Get-Content -LiteralPath $tasksPath)
+    $tasks = @()
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -match '^\s*-\s\[ \]\s+(.+)$') {
+            $tasks += [pscustomobject]@{
+                Kind = 'spec-checkbox'
+                Text = $Matches[1]
+                LineIndex = $i
+                SpecPackage = $SpecPackage
+                TasksPath = $tasksPath
+            }
+        }
+    }
+
+    return $tasks
+}
+
+function Test-SpecTasksComplete {
+    param($SpecPackage)
+
+    return (Get-UncheckedSpecTasks -SpecPackage $SpecPackage).Count -eq 0
+}
+
+function Get-NextUncheckedSpecTask {
+    param($SpecPackage)
+
+    $tasks = @(Get-UncheckedSpecTasks -SpecPackage $SpecPackage)
+    if ($tasks.Count -eq 0) {
+        return $null
+    }
+
+    return $tasks[0]
+}
+
+function Get-SpecKitPhaseLabel {
+    param([ValidateSet('implement', 'adversarial-review', 'address-review')]
+    [string]$Phase)
+
+    switch ($Phase) {
+        'implement' { return 'implement (spec-kit tasks)' }
+        'adversarial-review' { return 'adversarial review' }
+        'address-review' { return 'address review findings' }
+    }
+}
+
+function Get-AdversarialReviewPromptPath {
+    param([string]$RepoPath)
+
+    $candidates = @(
+        (Join-Path $RepoPath 'specs/ADVERSARIAL_REVIEW_PROMPT.md'),
+        (Join-Path $RepoPath 'AGENT-INBOX.md')
+    )
+
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate) {
+            return $candidate
+        }
+    }
+
+    return $null
+}
+
+function Test-AgentInboxHasActiveFindings {
+    param([string]$RepoPath)
+
+    $inboxPath = Join-Path $RepoPath 'AGENT-INBOX.md'
+    if (-not (Test-Path -LiteralPath $inboxPath)) {
+        return $false
+    }
+
+    $content = Get-Content -LiteralPath $inboxPath -Raw
+    if ($content -match '(?is)##\s+(?!Resolved)[^\r\n#].+?(?:\r?\n(?!##\s|# ).+)+') {
+        return $true
+    }
+
+    return $false
+}
+
+function Build-SpecKitPrompt {
+    param(
+        $SpecPackage,
+        [ValidateSet('implement', 'adversarial-review', 'address-review')]
+        [string]$Phase,
+        $Task = $null,
+        [string]$RepoPath
+    )
+
+    $specDir = $SpecPackage.RelativePath
+    $branch = $SpecPackage.Branch
+    $rulesPath = if (Test-Path -LiteralPath (Join-Path $RepoPath 'AGENTS.md')) { 'AGENTS.md' } else { '.github/copilot-instructions.md' }
+    $adversarialPath = Get-AdversarialReviewPromptPath -RepoPath $RepoPath
+    $agentInboxPath = 'AGENT-INBOX.md'
+
+    $phaseBody = switch ($Phase) {
+        'implement' {
+            $taskLine = if ($Task) { $Task.Text } else { '(next unchecked item in tasks.md)' }
+            @"
+Phase: implement — work through the active spec-kit package until its tasks are complete.
+
+Spec package: $specDir
+Feature branch: $branch
+Current unchecked task focus: $taskLine
+
+Execution rules:
+1. Read $rulesPath, $specDir/spec.md, $specDir/tasks.md, and AGENTS.md handover if present.
+2. This is an unattended overnight run. Do not stop after a single small commit if more unchecked tasks remain.
+3. Implement the current unchecked task(s) in tasks.md. Mark a task [x] only when it is truly complete.
+4. Continue through additional unchecked tasks in the same session when safe (--max-autopilot-continues is raised for this run).
+5. Make logically grouped commits as you go; multiple commits are expected for a large spec.
+6. Run targeted validation for the areas you change. Use the repo's declared validation commands when appropriate.
+7. Update $specDir/tasks.md, spec.md status notes, and AGENTS.md handover when the work warrants it.
+8. Do not start unrelated specs, TODO.md side quests, or repo-wide audits.
+9. If blocked, document the blocker in the current project's $agentInboxPath at the repo root and stop with a clear explanation instead of guessing.
+"@
+        }
+        'adversarial-review' {
+            $reviewSource = if ($adversarialPath) { $adversarialPath } else { 'a fresh adversarial review of the branch changes for this spec' }
+            @"
+Phase: adversarial review — after implementation tasks are complete for this spec package.
+
+Spec package: $specDir
+Feature branch: $branch
+
+Execution rules:
+1. Read $rulesPath, $specDir/spec.md, $specDir/tasks.md, and $reviewSource.
+2. Perform a skeptical adversarial review of the work done for this spec on the current branch.
+3. Write findings to the current project's $agentInboxPath at the repo root after any resolved/historical sections. Be specific and actionable.
+4. Do not hardcode another repo's path. Use the current repo's root-level $agentInboxPath file for the review drop.
+5. Do not implement fixes in this phase unless a trivial doc correction is required to record the review.
+6. Commit only the review write-up ($agentInboxPath and any spec/task note updates needed to record review state).
+"@
+        }
+        'address-review' {
+            @"
+Phase: address review — fix or explicitly defer findings from the adversarial review.
+
+Spec package: $specDir
+Feature branch: $branch
+
+Execution rules:
+1. Read the current project's $agentInboxPath at the repo root and treat active findings as the work queue for this phase.
+2. Fix the highest-priority actionable items with code/tests/docs changes as appropriate.
+3. Move resolved findings into a resolved section or remove stale items from the active inbox per repo conventions.
+4. Update $specDir/tasks.md if the review reopened work; do not falsely close the spec.
+5. Make one or more commits with real fixes. Continue within this session while active findings remain and you can make safe progress.
+6. Run targeted validation for changed areas.
+"@
+        }
+    }
+
+    return @"
+You are working in the repo at the current directory.
+
+Read $rulesPath for workflow rules.
+
+$phaseBody
+
+After completing this phase's work:
+1. Stage and commit your changes with messages that follow the repo's commit rules.
+2. Do not switch to a different spec package or unrelated TODO work.
+"@
+}
+
+function Invoke-SpecKitWorkerPhase {
+    param(
+        $SpecPackage,
+        [ValidateSet('implement', 'adversarial-review', 'address-review')]
+        [string]$Phase,
+        $Task,
+        [string]$RepoPath,
+        [ref]$InvocationCount,
+        [ref]$SkippedLineIndices,
+        [string]$DefaultModel,
+        [string]$DefaultEffort
+    )
+
+    $phaseLabel = Get-SpecKitPhaseLabel -Phase $Phase
+    Write-Host "`n-- $($SpecPackage.RelativePath): $phaseLabel ----------------" -ForegroundColor Cyan
+    if ($Task) {
+        Write-Host "  $($Task.Text)" -ForegroundColor Yellow
+    }
+
+    $dispatch = if ($Task) {
+        Resolve-TaskDispatch -Task $Task -DefaultModel $DefaultModel -DefaultEffort $DefaultEffort
+    } else {
+        [pscustomobject]@{
+            Tier = $null
+            Model = $DefaultModel
+            Effort = $DefaultEffort
+            Skip = $false
+            Reason = 'spec-kit phase dispatch'
+        }
+    }
+
+    Write-Host "  Dispatch: $($dispatch.Reason)" -ForegroundColor DarkCyan
+    if ($dispatch.Skip) {
+        Write-Host '  Skipping this invocation (tier dispatch marked skip).' -ForegroundColor Yellow
+        return [pscustomobject]@{ Status = 'skipped'; KeepWorktree = $false; WorktreePath = $null }
+    }
+
+    $prompt = Build-SpecKitPrompt -SpecPackage $SpecPackage -Phase $Phase -Task $Task -RepoPath $RepoPath
+    $commitBefore = Get-HeadCommit -RepoPath $RepoPath
+    $worktreePath = $null
+    $keepWorktree = $false
+
+    try {
+        $worktreePath = New-TemporaryWorktree -RepoPath $RepoPath
+        $worktreeHeadBefore = Get-HeadCommit -RepoPath $worktreePath
+
+        Write-Host "  Using temporary worktree: $worktreePath" -ForegroundColor DarkGray
+        Write-Host "  Invoking $WorkerAgent CLI..." -ForegroundColor DarkGray
+
+        $copilotResult = Invoke-AgentTask -Prompt $prompt -TimeoutSeconds $TaskTimeoutSeconds -WorkingDirectory $worktreePath -ModelName $dispatch.Model -ReasoningEffortLevel $dispatch.Effort
+
+        foreach ($line in $copilotResult.StdOut) { Write-Host "  $line" }
+        foreach ($line in $copilotResult.StdErr) { Write-Host "  $line" }
+
+        $worktreeHeadAfter = Get-HeadCommit -RepoPath $worktreePath
+        $worktreeCommitCount = if ($worktreeHeadBefore -eq $worktreeHeadAfter) {
+            0
+        } else {
+            Get-CommitCountBetween -RepoPath $worktreePath -BaseCommit $worktreeHeadBefore -HeadCommit $worktreeHeadAfter
+        }
+
+        if ($copilotResult.TimedOut) {
+            Write-Host "  [x] $WorkerAgent timed out after $($copilotResult.ElapsedSeconds)s." -ForegroundColor Red
+            if ($worktreeCommitCount -gt 0) { $keepWorktree = $true }
+            if ($OnFailure -eq 'skip') { return [pscustomobject]@{ Status = 'failed-continue'; KeepWorktree = $keepWorktree; WorktreePath = $worktreePath } }
+            return [pscustomobject]@{ Status = 'failed-stop'; KeepWorktree = $keepWorktree; WorktreePath = $worktreePath }
+        }
+
+        if ($copilotResult.ExitCode -ne 0) {
+            Write-Host "  [x] $WorkerAgent exited with code $($copilotResult.ExitCode)." -ForegroundColor Red
+            if ($worktreeCommitCount -gt 0) { $keepWorktree = $true }
+            if ($OnFailure -eq 'skip') { return [pscustomobject]@{ Status = 'failed-continue'; KeepWorktree = $keepWorktree; WorktreePath = $worktreePath } }
+            return [pscustomobject]@{ Status = 'failed-stop'; KeepWorktree = $keepWorktree; WorktreePath = $worktreePath }
+        }
+
+        if ($worktreeCommitCount -eq 0) {
+            Write-Host '  [x] No new commit detected for this phase invocation.' -ForegroundColor Red
+            $statusWithoutCommit = Get-WorkingTreeStatus -RepoPath $worktreePath
+            if ($statusWithoutCommit.Count -gt 0) { $keepWorktree = $true }
+            if ($OnFailure -eq 'skip') { return [pscustomobject]@{ Status = 'failed-continue'; KeepWorktree = $keepWorktree; WorktreePath = $worktreePath } }
+            return [pscustomobject]@{ Status = 'failed-stop'; KeepWorktree = $keepWorktree; WorktreePath = $worktreePath }
+        }
+
+        $primaryStatusBeforeApply = Get-WorkingTreeStatus -RepoPath $RepoPath
+        if ($primaryStatusBeforeApply.Count -gt 0) {
+            $keepWorktree = $true
+            Write-Host '  ! Primary worktree is dirty; skipping automatic cherry-pick.' -ForegroundColor Yellow
+            return [pscustomobject]@{ Status = 'dirty-primary'; KeepWorktree = $keepWorktree; WorktreePath = $worktreePath }
+        }
+
+        Write-Host '  Cherry-picking worker commit(s) into primary worktree...' -ForegroundColor DarkGray
+        git cherry-pick "$worktreeHeadBefore..$worktreeHeadAfter" | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            git cherry-pick --abort | Out-Null
+            $keepWorktree = $true
+            Write-Host '  [x] Cherry-pick failed. Preserving worker worktree for inspection.' -ForegroundColor Red
+            if ($OnFailure -eq 'skip') { return [pscustomobject]@{ Status = 'failed-continue'; KeepWorktree = $keepWorktree; WorktreePath = $worktreePath } }
+            return [pscustomobject]@{ Status = 'failed-stop'; KeepWorktree = $keepWorktree; WorktreePath = $worktreePath }
+        }
+
+        $commitAfter = Get-HeadCommit -RepoPath $RepoPath
+        Write-Host "  [ok] New commit: $commitAfter" -ForegroundColor Green
+        return [pscustomobject]@{ Status = 'ok'; KeepWorktree = $false; WorktreePath = $worktreePath }
+    } finally {
+        if ($worktreePath -and -not $keepWorktree) {
+            try {
+                Remove-TemporaryWorktree -RepoPath $RepoPath -WorktreePath $worktreePath
+            } catch {
+                Write-Host "  ! Failed to remove temporary worktree $worktreePath" -ForegroundColor Yellow
+            }
+        } elseif ($worktreePath -and $keepWorktree) {
+            Write-Host "  Preserved worktree: $worktreePath" -ForegroundColor Yellow
+        }
+    }
+}
+
+function Start-SpecKitScheduler {
+    param([string]$RepoPath)
+
+    if ($DryRun) {
+        $queue = Get-SpecKitWorkQueue -RepoPath $RepoPath
+        if ($queue.Count -eq 0) {
+            Write-Host "`n[ok] No in-progress spec packages found (current feat/* branch or docs/specs.md)." -ForegroundColor Green
+            return
+        }
+
+        Write-Host "`n-- Dry run: SpecKit overnight queue ($($queue.Count) package(s)) --" -ForegroundColor Cyan
+        foreach ($spec in $queue) {
+            $unchecked = @(Get-UncheckedSpecTasks -SpecPackage $spec)
+            Write-Host "  $($spec.RelativePath) [$($spec.Source)] branch=$($spec.Branch) unchecked=$($unchecked.Count)" -ForegroundColor Yellow
+            foreach ($task in $unchecked | Select-Object -First 5) {
+                Write-Host "    - [ ] $($task.Text)" -ForegroundColor DarkYellow
+            }
+            if ($unchecked.Count -gt 5) {
+                Write-Host "    ... and $($unchecked.Count - 5) more" -ForegroundColor DarkGray
+            }
+            Write-Host '    phases: implement -> adversarial-review -> address-review' -ForegroundColor DarkCyan
+        }
+
+        $capLabel = if ($MaxTasks -gt 0) { "$MaxTasks $WorkerAgent invocation(s)" } else { "unlimited $WorkerAgent invocations" }
+        Write-Host "  Invocation cap: $capLabel" -ForegroundColor DarkGray
+        Write-Host "  Worker agent: $WorkerAgent" -ForegroundColor DarkGray
+        return
+    }
+
+    Assert-WorkerCommandAvailable
+    Write-Host "`n-- SpecKit scheduler ------------------------------------" -ForegroundColor Cyan
+    Write-Host "  Worker agent: $WorkerAgent" -ForegroundColor DarkGray
+
+    $primaryStatusAtStart = Get-WorkingTreeStatus -RepoPath $RepoPath
+    if ($primaryStatusAtStart.Count -gt 0) {
+        Write-Host '  ! Primary worktree is already dirty. Tasks will run in disposable worktrees, but completed commits will be preserved for manual inspection instead of being applied automatically.' -ForegroundColor Yellow
+    }
+
+    $queue = Get-SpecKitWorkQueue -RepoPath $RepoPath
+    if ($queue.Count -eq 0) {
+        Write-Host "`n[ok] No in-progress spec packages found." -ForegroundColor Green
+        return
+    }
+
+    $invocationCount = 0
+    $stopAll = $false
+
+    foreach ($spec in $queue) {
+        if ($stopAll) { break }
+
+        Write-Host "`n== Spec package: $($spec.RelativePath) ($($spec.Branch)) ==" -ForegroundColor Magenta
+
+        git -C $RepoPath rev-parse --verify $spec.Branch 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            git -C $RepoPath checkout $spec.Branch | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "  ! Could not checkout $($spec.Branch); continuing on current branch." -ForegroundColor Yellow
+            }
+        }
+
+        while (-not (Test-SpecTasksComplete -SpecPackage $spec)) {
+            $invocationCount++
+            if ($MaxTasks -gt 0 -and $invocationCount -gt $MaxTasks) {
+                Write-Host '  Invocation cap reached; stopping SpecKit scheduler.' -ForegroundColor Yellow
+                $stopAll = $true
+                break
+            }
+
+            $task = Get-NextUncheckedSpecTask -SpecPackage $spec
+            $result = Invoke-SpecKitWorkerPhase -SpecPackage $spec -Phase 'implement' -Task $task -RepoPath $RepoPath -InvocationCount ([ref]$invocationCount) -SkippedLineIndices ([ref]$null) -DefaultModel $Model -DefaultEffort $ReasoningEffort
+            if ($result.Status -eq 'failed-stop' -or $result.Status -eq 'dirty-primary') { $stopAll = $true; break }
+        }
+
+        if ($stopAll) { break }
+        if (-not (Test-SpecTasksComplete -SpecPackage $spec)) {
+            Write-Host '  ! Spec tasks still unchecked; skipping review phases for this package.' -ForegroundColor Yellow
+            continue
+        }
+
+        Write-Host '  [ok] Spec tasks complete; running adversarial review.' -ForegroundColor Green
+
+        foreach ($phase in @('adversarial-review')) {
+            $invocationCount++
+            if ($MaxTasks -gt 0 -and $invocationCount -gt $MaxTasks) { $stopAll = $true; break }
+            $result = Invoke-SpecKitWorkerPhase -SpecPackage $spec -Phase $phase -Task $null -RepoPath $RepoPath -InvocationCount ([ref]$invocationCount) -SkippedLineIndices ([ref]$null) -DefaultModel $Model -DefaultEffort $ReasoningEffort
+            if ($result.Status -eq 'failed-stop' -or $result.Status -eq 'dirty-primary') { $stopAll = $true; break }
+        }
+
+        if ($stopAll) { break }
+
+        for ($round = 1; $round -le $MaxAddressRounds; $round++) {
+            $invocationCount++
+            if ($MaxTasks -gt 0 -and $invocationCount -gt $MaxTasks) { $stopAll = $true; break }
+            Write-Host "  Address round $round / $MaxAddressRounds" -ForegroundColor DarkCyan
+            $result = Invoke-SpecKitWorkerPhase -SpecPackage $spec -Phase 'address-review' -Task $null -RepoPath $RepoPath -InvocationCount ([ref]$invocationCount) -SkippedLineIndices ([ref]$null) -DefaultModel $Model -DefaultEffort $ReasoningEffort
+            if ($result.Status -eq 'failed-stop' -or $result.Status -eq 'dirty-primary') { $stopAll = $true; break }
+            if (-not (Test-AgentInboxHasActiveFindings -RepoPath $RepoPath)) {
+                Write-Host '  [ok] No active AGENT-INBOX findings; address phase complete.' -ForegroundColor Green
+                break
+            }
+        }
+
+        Write-Host "  [ok] Finished spec package $($spec.RelativePath)" -ForegroundColor Green
+    }
+
+    Write-Host "`n-- SpecKit summary -------------------------------------" -ForegroundColor Cyan
+    Write-Host "  $WorkerAgent invocations: $invocationCount"
+    Write-Host "  HEAD is now: $(Get-HeadCommit -RepoPath $RepoPath)"
 }
 
 function Mark-TaskDone {
@@ -1007,7 +1586,7 @@ function Invoke-CopilotTask {
     if ($ReasoningEffortLevel) {
         $copilotArguments += @('--effort', $ReasoningEffortLevel)
     }
-    $copilotArguments += @('--autopilot', '--allow-all', '--no-ask-user', '--max-autopilot-continues', '5', '-s')
+    $copilotArguments += @('--autopilot', '--allow-all', '--no-ask-user', '--max-autopilot-continues', "$MaxContinues", '-s')
     $copilotLaunchSpec = Resolve-CopilotLaunchSpec -CopilotArguments $copilotArguments
 
     $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
@@ -1084,12 +1663,153 @@ function Invoke-CopilotTask {
     }
 }
 
+function Test-CodexCompatibleModel {
+    param([string]$ModelName)
+
+    if (-not $ModelName) {
+        return $false
+    }
+
+    # gpt-5.4 / gpt-5.4-mini are Copilot model aliases. Let Codex use its
+    # configured default unless the caller explicitly passes a Codex model name.
+    return ($ModelName -notmatch '^gpt-5\.4')
+}
+
+function Invoke-CodexTask {
+    param(
+        [string]$Prompt,
+        [int]$TimeoutSeconds,
+        [string]$WorkingDirectory,
+        [string]$ModelName,
+        [string]$ReasoningEffortLevel
+    )
+
+    $codexArguments = @(
+        'exec',
+        '--cd', $WorkingDirectory,
+        '--dangerously-bypass-approvals-and-sandbox',
+        '--color', 'never'
+    )
+    if (Test-CodexCompatibleModel -ModelName $ModelName) {
+        $codexArguments += @('--model', $ModelName)
+    }
+    $codexArguments += @($Prompt)
+
+    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $startInfo.WorkingDirectory = $WorkingDirectory
+    $startInfo.UseShellExecute = $false
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $startInfo.FileName = Resolve-CommandPath 'codex'
+
+    if ($null -ne $startInfo.ArgumentList) {
+        foreach ($argument in $codexArguments) {
+            $null = $startInfo.ArgumentList.Add($argument)
+        }
+    } else {
+        $startInfo.Arguments = Join-CommandArguments -Arguments $codexArguments
+    }
+
+    $process = [System.Diagnostics.Process]::new()
+    $process.StartInfo = $startInfo
+
+    try {
+        if (-not $process.Start()) {
+            throw 'Failed to start Codex CLI process.'
+        }
+
+        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+        $stderrTask = $process.StandardError.ReadToEndAsync()
+
+        $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+        $nextHeartbeatSeconds = 30
+        $timedOut = $false
+
+        while (-not $process.WaitForExit(1000)) {
+            $elapsedSeconds = [int][Math]::Floor($stopwatch.Elapsed.TotalSeconds)
+
+            if ($elapsedSeconds -ge $TimeoutSeconds) {
+                $timedOut = $true
+                break
+            }
+
+            if ($elapsedSeconds -ge $nextHeartbeatSeconds) {
+                Write-Host "  Still running... ${elapsedSeconds}s elapsed" -ForegroundColor DarkGray
+                $nextHeartbeatSeconds += 30
+            }
+        }
+
+        if ($timedOut) {
+            try {
+                $process.Kill($true)
+            } catch {
+                Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            }
+
+            $null = $process.WaitForExit()
+        } else {
+            $null = $process.WaitForExit()
+        }
+
+        $stdoutText = $stdoutTask.GetAwaiter().GetResult()
+        $stderrText = $stderrTask.GetAwaiter().GetResult()
+
+        $stdoutLines = if ($stdoutText) { @($stdoutText -split "`r?`n" | Where-Object { $_ -ne '' }) } else { @() }
+        $stderrLines = if ($stderrText) { @($stderrText -split "`r?`n" | Where-Object { $_ -ne '' }) } else { @() }
+
+        return [pscustomobject]@{
+            ExitCode = if ($timedOut) { -1 } else { $process.ExitCode }
+            TimedOut = $timedOut
+            ElapsedSeconds = [int][Math]::Floor($stopwatch.Elapsed.TotalSeconds)
+            StdOut = @($stdoutLines)
+            StdErr = @($stderrLines)
+        }
+    } finally {
+        $process.Dispose()
+    }
+}
+
+function Assert-WorkerCommandAvailable {
+    if ($WorkerAgent -eq 'Codex') {
+        Assert-CommandAvailable codex
+        return
+    }
+
+    Assert-CommandAvailable copilot
+}
+
+function Invoke-AgentTask {
+    param(
+        [string]$Prompt,
+        [int]$TimeoutSeconds,
+        [string]$WorkingDirectory,
+        [string]$ModelName,
+        [string]$ReasoningEffortLevel
+    )
+
+    if ($WorkerAgent -eq 'Codex') {
+        return Invoke-CodexTask -Prompt $Prompt -TimeoutSeconds $TimeoutSeconds -WorkingDirectory $WorkingDirectory -ModelName $ModelName -ReasoningEffortLevel $ReasoningEffortLevel
+    }
+
+    return Invoke-CopilotTask -Prompt $Prompt -TimeoutSeconds $TimeoutSeconds -WorkingDirectory $WorkingDirectory -ModelName $ModelName -ReasoningEffortLevel $ReasoningEffortLevel
+}
+
 # -- Main loop ---------------------------------------------------------------
 
 Assert-CommandAvailable git
+Set-Location $RepoRoot
+$repoRoot = (Get-Location).Path
+
+if ($Workflow -eq 'SpecKit') {
+    if (-not $PSBoundParameters.ContainsKey('MaxTasks')) { $MaxTasks = 0 }
+    if (-not $PSBoundParameters.ContainsKey('MaxContinues')) { $MaxContinues = 25 }
+    if (-not $PSBoundParameters.ContainsKey('TaskTimeoutSeconds')) { $TaskTimeoutSeconds = 3600 }
+    if (-not $PSBoundParameters.ContainsKey('OnFailure')) { $OnFailure = 'skip' }
+    Start-SpecKitScheduler -RepoPath $repoRoot
+    return
+}
 
 $taskCount = 0
-$repoRoot = (Get-Location).Path
 
 # Dry-run: list all tasks at once and exit
 if ($DryRun) {
@@ -1117,7 +1837,7 @@ if ($DryRun) {
     return
 }
 
-Assert-CommandAvailable copilot
+Assert-WorkerCommandAvailable
 $primaryStatusAtStart = Get-WorkingTreeStatus -RepoPath $repoRoot
 if ($primaryStatusAtStart.Count -gt 0) {
     Write-Host '  ! Primary worktree is already dirty. Tasks will run in disposable worktrees, but completed commits will be preserved for manual inspection instead of being applied automatically.' -ForegroundColor Yellow
@@ -1126,8 +1846,10 @@ if ($primaryStatusAtStart.Count -gt 0) {
     }
 }
 
+$skippedLineIndices = @()
+
 while ($taskCount -lt $MaxTasks) {
-    $task = Get-NextTask
+    $task = Get-NextTask -ExcludeLineIndices $skippedLineIndices
     if (-not $task) {
         Write-Host "`n[ok] No more actionable tasks. Loop complete." -ForegroundColor Green
         break
@@ -1140,7 +1862,7 @@ while ($taskCount -lt $MaxTasks) {
     $dispatch = Resolve-TaskDispatch -Task $task -DefaultModel $Model -DefaultEffort $ReasoningEffort
     Write-Host "  Dispatch: $($dispatch.Reason)" -ForegroundColor DarkCyan
     if ($dispatch.Skip) {
-        Write-Host '  Skipping this task (no Copilot CLI invocation). Run it manually with the relevant subagent or validation command.' -ForegroundColor Yellow
+        Write-Host "  Skipping this task (no $WorkerAgent CLI invocation). Run it manually with the relevant subagent or validation command." -ForegroundColor Yellow
         continue
     }
     $taskModel = $dispatch.Model
@@ -1194,16 +1916,16 @@ After completing the task:
         $worktreeHeadBefore = Get-HeadCommit -RepoPath $worktreePath
 
         Write-Host "  Using temporary worktree: $worktreePath" -ForegroundColor DarkGray
-        Write-Host "  Invoking Copilot CLI..." -ForegroundColor DarkGray
+        Write-Host "  Invoking $WorkerAgent CLI..." -ForegroundColor DarkGray
 
-        # Invoke Copilot CLI in non-interactive autopilot mode.
+        # Invoke the selected worker CLI in non-interactive mode.
         # --autopilot:              no human in the loop
         # --allow-all:              don't prompt for file/tool permissions
         # --no-ask-user:            don't block waiting for human input
-        # --max-autopilot-continues 5: safety cap on continuation rounds
+        # --max-autopilot-continues:   safety cap on continuation rounds
         # -p:                       non-interactive prompt (exits when done)
         # -s:                       silent (agent response only, no UI chrome)
-        $copilotResult = Invoke-CopilotTask -Prompt $prompt -TimeoutSeconds $TaskTimeoutSeconds -WorkingDirectory $worktreePath -ModelName $taskModel -ReasoningEffortLevel $taskEffort
+        $copilotResult = Invoke-AgentTask -Prompt $prompt -TimeoutSeconds $TaskTimeoutSeconds -WorkingDirectory $worktreePath -ModelName $taskModel -ReasoningEffortLevel $taskEffort
 
         foreach ($line in $copilotResult.StdOut) {
             Write-Host "  $line"
@@ -1222,7 +1944,7 @@ After completing the task:
         }
 
         if ($copilotResult.TimedOut) {
-            Write-Host "  [x] Copilot timed out after $($copilotResult.ElapsedSeconds)s. Stopping." -ForegroundColor Red
+            Write-Host "  [x] $WorkerAgent timed out after $($copilotResult.ElapsedSeconds)s. Stopping." -ForegroundColor Red
             if ($worktreeCommitCount -gt 0) {
                 Write-Host "  Worktree contains unmerged commit(s):" -ForegroundColor Yellow
                 foreach ($line in (Get-CommitSummariesBetween -RepoPath $worktreePath -BaseCommit $worktreeHeadBefore -HeadCommit $worktreeHeadAfter)) {
@@ -1240,11 +1962,16 @@ After completing the task:
                 Write-Host "  Preserved worktree: $worktreePath" -ForegroundColor Yellow
             }
 
+            if ($OnFailure -eq 'skip') {
+                Write-Host '  [skip] Skipping to next task.' -ForegroundColor Yellow
+                $skippedLineIndices += $task.LineIndex
+                continue
+            }
             break
         }
 
         if ($exitCode -ne 0) {
-            Write-Host "  [x] Copilot exited with code $exitCode. Stopping." -ForegroundColor Red
+            Write-Host "  [x] $WorkerAgent exited with code $exitCode. Stopping." -ForegroundColor Red
             if ($worktreeCommitCount -gt 0) {
                 $keepWorktree = $true
                 Write-Host "  Worktree contains unmerged commit(s):" -ForegroundColor Yellow
@@ -1252,6 +1979,11 @@ After completing the task:
                     Write-Host "    $line" -ForegroundColor Yellow
                 }
                 Write-Host "  Preserved worktree: $worktreePath" -ForegroundColor Yellow
+            }
+            if ($OnFailure -eq 'skip') {
+                Write-Host '  [skip] Skipping to next task.' -ForegroundColor Yellow
+                $skippedLineIndices += $task.LineIndex
+                continue
             }
             break
         }
@@ -1267,17 +1999,19 @@ After completing the task:
                 }
                 Write-Host "  Preserved worktree: $worktreePath" -ForegroundColor Yellow
             }
+            if ($OnFailure -eq 'skip') {
+                Write-Host '  [skip] Skipping to next task.' -ForegroundColor Yellow
+                $skippedLineIndices += $task.LineIndex
+                continue
+            }
             break
         }
 
         if ($worktreeCommitCount -gt 1) {
-            $keepWorktree = $true
-            Write-Host "  [x] Expected one worker commit, found $worktreeCommitCount. Preserving worktree." -ForegroundColor Red
+            Write-Host "  Worker made $worktreeCommitCount commits. Cherry-picking range..." -ForegroundColor Yellow
             foreach ($line in (Get-CommitSummariesBetween -RepoPath $worktreePath -BaseCommit $worktreeHeadBefore -HeadCommit $worktreeHeadAfter)) {
-                Write-Host "    $line" -ForegroundColor Yellow
+                Write-Host "    $line" -ForegroundColor DarkCyan
             }
-            Write-Host "  Preserved worktree: $worktreePath" -ForegroundColor Yellow
-            break
         }
 
         $primaryStatusBeforeApply = Get-WorkingTreeStatus -RepoPath $repoRoot
@@ -1287,18 +2021,24 @@ After completing the task:
             foreach ($line in $primaryStatusBeforeApply) {
                 Write-Host "    $line" -ForegroundColor Yellow
             }
-            Write-Host "  Worker commit to inspect manually: $worktreeHeadAfter" -ForegroundColor Yellow
+            Write-Host "  Worker commit(s) to inspect manually: $worktreeHeadAfter" -ForegroundColor Yellow
             Write-Host "  Preserved worktree: $worktreePath" -ForegroundColor Yellow
             break
         }
 
-        Write-Host "  Cherry-picking worker commit into primary worktree..." -ForegroundColor DarkGray
-        git cherry-pick $worktreeHeadAfter | Out-Null
+        $cherryPickLabel = if ($worktreeCommitCount -gt 1) { 'commit range' } else { 'worker commit' }
+        Write-Host "  Cherry-picking $cherryPickLabel into primary worktree..." -ForegroundColor DarkGray
+        git cherry-pick "$worktreeHeadBefore..$worktreeHeadAfter" | Out-Null
         if ($LASTEXITCODE -ne 0) {
             git cherry-pick --abort | Out-Null
             $keepWorktree = $true
             Write-Host '  [x] Cherry-pick failed. Preserving worker worktree for inspection.' -ForegroundColor Red
             Write-Host "  Preserved worktree: $worktreePath" -ForegroundColor Yellow
+            if ($OnFailure -eq 'skip') {
+                Write-Host '  [skip] Skipping to next task.' -ForegroundColor Yellow
+                $skippedLineIndices += $task.LineIndex
+                continue
+            }
             break
         }
 
@@ -1347,6 +2087,9 @@ After completing the task:
 
 Write-Host "`n-- Summary ----------------------------------------------" -ForegroundColor Cyan
 Write-Host "  Tasks attempted: $taskCount"
+if ($skippedLineIndices.Count -gt 0) {
+    Write-Host "  Tasks skipped (failures): $($skippedLineIndices.Count)" -ForegroundColor Yellow
+}
 Write-Host "  HEAD is now: $(Get-HeadCommit -RepoPath $repoRoot)"
 $logCount = $taskCount + 2
 $recentLog = git log --oneline -$logCount

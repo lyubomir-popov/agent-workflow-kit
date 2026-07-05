@@ -44,7 +44,7 @@ This repo is the centralised process blueprint for AI-agent workflow conventions
 
 ## Improvement backlog — code/data-repo extensions
 
-Items 7–14 came from a cross-repo audit (2026-04-24) against `gg` (PlantComposer), a data-heavy ontology repo that has independently evolved patterns the current downstream consumers (`baseline-foundry`, `brand-layout-ops`, `canonical-spacing-spec`) have not. They generalise the kit beyond docs/spec repos.
+Items 7–14 came from a cross-repo audit (2026-04-24) against `gg` (PlantComposer), a data-heavy ontology repo that has independently evolved patterns the current downstream consumers (`baseline-foundry`, `design-foundry`, `canonical-spacing-spec`) have not. They generalise the kit beyond docs/spec repos.
 
 ### 7. Repo-type-aware source-of-truth precedence - implemented
 
@@ -141,12 +141,28 @@ The linter checks required workflow files, frontmatter, inbox drainage, `TODO.md
 
 The diff mode also compares copied canonical scheduler, launcher, installer, and prompt files against the kit so downstream repos can detect drift.
 
+### 16. Change-discipline / anti-patch protocol - proposed
+
+Downstream repos with layered engines eventually rediscover the same failure mode: an agent keeps stacking local fixes without classifying the request, checking ownership, or running the whole system through the existing artifacts. The next boilerplate refinement should probably add a reusable "Change discipline" section to `.github/copilot-instructions.md` covering:
+
+- classify before coding
+- patch smell test
+- layer ownership map
+- explicit "this looks like a patch" reporting
+- rerun existing artifact suites, not just the triggering case
+
+This idea came back from `diagram-generator` and is general enough to upstream once the wording is stable.
+
+### 17. Workflow-file naming/read-order convention - proposed
+
+Cold-start readability in large repos may improve if kit-owned workflow files and repo-local docs are visually distinct instead of relying on alphabetical ordering alone. One possible direction is a stronger naming convention for kit-owned workflow files versus local docs. This is still a research topic, not an active change.
+
 
 ## Research backlog
 
 ### Autonomous overnight runs ✅
 
-Proven architecture using Copilot CLI as the worker and a PowerShell script as the scheduler. Tested successfully with 2 trivial tasks — both completed, committed, and checked off automatically.
+Proven architecture using Copilot CLI as the worker and `agent-loop.ps1` as the scheduler. **SpecKit mode** (`-Workflow SpecKit`, used by `/overnight`) drives in-progress spec packages through implement → adversarial review → address phases until `docs/specs.md` has no remaining work. Legacy **Todo mode** (`-Workflow Todo`) still processes one `TODO.md` item per invocation.
 
 #### Architecture
 

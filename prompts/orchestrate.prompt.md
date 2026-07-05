@@ -20,7 +20,7 @@ This command implements the **Model tier routing and subagent orchestration** se
 | `[X]` | Subagent / no model | `Explore` subagent or validation commands | Read-only research or pass/fail checks. |
 
 **Hard rules**:
-- Never use older 1x-tier models (`claude-sonnet-4.5/4.6`, `gpt-4.1`, `gpt-4o`) — same cost as `gpt-5.4`, weaker results.
+- Prefer the lowest-cost model that is likely to succeed. Older 1x-tier models (`claude-sonnet-4.5/4.6`, `gpt-4.1`, `gpt-4o`) are allowed when they are the cheapest workable option or when you want model-diverse review.
 - `[H]` work stays on this orchestrator thread. Do not delegate architectural decisions.
 - Each subagent invocation is stateless. Its prompt must include the goal, the recipe, validation steps, and exactly what to report back.
 
@@ -54,7 +54,7 @@ For each `[S]`, `[L]`, or `[X]` item, use the `runSubagent` tool. The subagent's
 
 ```
 Subagent: agent  (per-repo)
-Model: GPT-5.4 (copilot)        # or higher --effort if nontrivial
+Model: gpt-5.4                  # or higher --effort if nontrivial
 
 Goal: <one sentence>
 

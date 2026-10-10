@@ -24,6 +24,21 @@ docs/specs.md    — upstream specs and sibling-repo references
 
 The rule: every important piece of project state lives in exactly one place.
 
+## Spec Kit
+
+Spec Kit is initialized in this repository with PowerShell scripts and Codex
+and Claude Code integrations. The existing Specify CLI used for initialization
+is `0.8.17.dev0`; no machine-wide CLI upgrade was performed.
+
+- Project infrastructure and templates: `.specify/`.
+- Codex skills: `.agents/skills/speckit-*/`.
+- Claude skills: `.claude/skills/speckit-*/`.
+- Active feature: [Spec 001](specs/001-spec-first-workflow/spec.md).
+- Review: [Opus specification review request](specs/001-spec-first-workflow/reviews/2026-10-10-opus-spec-review-request.md).
+
+Load Spec Kit only for requested spec work. Spec 001 is awaiting the owner's
+Opus review; the existing workflow remains active until implementation.
+
 ## What this is
 
 Use this repo as a starter or reference whenever you create a new project and want the same lightweight operating model.

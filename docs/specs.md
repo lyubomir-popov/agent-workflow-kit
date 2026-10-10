@@ -11,7 +11,13 @@ Use this file to answer two questions quickly:
 1. What upstream docs or specs control behavior here?
 2. Which sibling repos are references versus sources of truth?
 
-## Source docs
+## Current packages
+
+| Spec | Package | Status |
+|---|---|---|
+| 001 Spec-first agent workflow | [001-spec-first-workflow](../specs/001-spec-first-workflow/spec.md) | Draft; awaiting owner-run Opus specification review. Implementation has not started. |
+
+## Existing governing sources
 
 | Source | Path or URL | Role |
 |--------|-------------|------|
@@ -33,5 +39,5 @@ Use this file to answer two questions quickly:
 - Prefer stable paths where possible.
 - If a draft path is the canonical latest path, note that explicitly.
 - If old snapshots exist, identify them as legacy or archive rather than active source.
-- This repo has no separate external spec at the moment; the boilerplate's governing documents live in-repo.
+- Spec 001 proposes the next operating model. Existing instructions remain active until its reviewed implementation lands.
 - The related repos above are references and rollout targets, not sources of truth for this repo's workflow rules.

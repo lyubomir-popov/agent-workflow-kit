@@ -6,6 +6,8 @@
 
 ## Current state
 
+- Active proposal: [Spec 001](specs/001-spec-first-workflow/spec.md), on `feat/001-spec-first-workflow`. Spec Kit is initialized for Codex and Claude. The owner requested Opus specification review before implementation; use the saved package review request.
+
 - **Stage 1 (convention) and Stage 2 (refinements) are complete and the scheduler is now proven on real repo work, including this repo.** `agent-loop.ps1` successfully completed bounded tasks in `baseline-foundry`, `canonical-spacing-spec`, `design-foundry`, and one self-hosted task in this repo.
 - **Agent-loop now runs tasks in disposable git worktrees.** The scheduler auto-detects checkbox queues or active-lane status tables, supports both Copilot and Codex worker launches, uses explicit model / reasoning settings, cherry-picks worker commits back when safe, and preserves the worker worktree when the primary repo is dirty or the run fails.
 - **Windows temp-worktree cleanup is hardened.** The loop now prunes stale worktree registrations before creation and falls back to force-deleting managed temp dirs plus pruning if `git worktree remove --force` leaves residue.

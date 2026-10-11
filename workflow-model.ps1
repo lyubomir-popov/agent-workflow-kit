@@ -208,23 +208,38 @@ function Get-WorkflowPackages {
     return $packages
 }
 
-function Get-WorkflowTasks {
-    param($Package)
-    $text = Read-WorkflowPackageFile $Package 'tasks.md'
-    if (-not $text) { return @() }
-    $header = ($text -split '(?m)^##\s',2)[0]
-    if ($header -notmatch '(?m)^\*\*Entry checkpoint\*\*:\s*(CP\d+)\s*$') { throw "task-gate: missing Entry checkpoint in $($Package.RelativePath)/tasks.md." }
-    $defaultGate = $Matches[1]; $seen=@{}; $tasks=@(); $index=0
-    foreach ($line in ($text -split "`r?`n")) {
+function Get-WorkflowTaskDeclarations {
+    param([AllowEmptyString()][string]$Text, [string]$Path='tasks.md')
+    $header=($Text -split '(?m)^##\s',2)[0]
+    $entryLines=@([regex]::Matches($header,'(?im)^\*\*Entry checkpoint\*\*:[^\r\n]*') | ForEach-Object Value)
+    $seen=@{}; $tasks=@(); $index=0
+    foreach ($line in ($Text -split "`r?`n")) {
         if ($line -match '^\s*- \[([ xX])\] (T\d{3,})\s+(.+)$') {
             $id=$Matches[2]; $done=$Matches[1] -ne ' '; $description=$Matches[3]
-            if ($seen.ContainsKey($id)) { throw "task-identity: duplicate $id in $($Package.RelativePath)." }
+            if ($seen.ContainsKey($id)) { throw "task-identity: duplicate $id in $Path." }
             $seen[$id]=$true
-            $gate=if ($description -match '\(gate: (CP\d+)\)') { $Matches[1] } else { $defaultGate }
-            if ($gate -notin @($Package.Checkpoints.Id)) { throw "task-gate: unknown $gate for $id." }
-            $tasks += [pscustomobject]@{Id=$id; Text="$id $description"; Complete=$done; Gate=$gate; Manual=($description -match '\(manual\)'); LineIndex=$index; SpecPackage=$Package; Kind='spec-checkbox'}
-        } elseif ($line -match '^\s*- \[[ xX]\]') { throw "task-identity: checklist needs a stable Tnnn ID in $($Package.RelativePath)." }
+            $tasks += [pscustomobject]@{
+                Id=$id; Description=$description; Complete=$done; LineIndex=$index
+                GateAnnotations=@([regex]::Matches($description,'(?i)\(gate: CP\d+\)') | ForEach-Object Value)
+                ManualAnnotations=@([regex]::Matches($description,'(?i)\(manual\)') | ForEach-Object Value)
+            }
+        } elseif ($line -match '^\s*- \[[ xX]\]') { throw "task-identity: checklist needs a stable Tnnn ID in $Path." }
         $index++
+    }
+    return [pscustomobject]@{Header=$header; EntryLines=$entryLines; Tasks=$tasks}
+}
+
+function Get-WorkflowTasks {
+    param($Package)
+    $text=Read-WorkflowPackageFile $Package 'tasks.md'
+    if (-not $text) { return @() }
+    $declarations=Get-WorkflowTaskDeclarations $text "$($Package.RelativePath)/tasks.md"
+    if ($declarations.Header -notmatch '(?m)^\*\*Entry checkpoint\*\*:\s*(CP\d+)\s*$') { throw "task-gate: missing Entry checkpoint in $($Package.RelativePath)/tasks.md." }
+    $defaultGate=$Matches[1]; $tasks=@()
+    foreach ($task in $declarations.Tasks) {
+        $gate=if ($task.Description -match '\(gate: (CP\d+)\)') { $Matches[1] } else { $defaultGate }
+        if ($gate -notin @($Package.Checkpoints.Id)) { throw "task-gate: unknown $gate for $($task.Id)." }
+        $tasks += [pscustomobject]@{Id=$task.Id; Text="$($task.Id) $($task.Description)"; Complete=$task.Complete; Gate=$gate; Manual=($task.ManualAnnotations.Count -gt 0); LineIndex=$task.LineIndex; SpecPackage=$Package; Kind='spec-checkbox'}
     }
     return $tasks
 }

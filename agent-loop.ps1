@@ -945,6 +945,8 @@ spec lifecycle, linked entry checkpoint and accepted verdict before work and at
 scope changes. Stop before every uncleared gate; never clear owner checkpoints.
 Implement only the focused task. Update its checkbox/current-work header after
 validation and commit with an area prefix. No unrelated tasks or automatic reviews.
+Preserve .workflow-kit.json, the task entry checkpoint, task IDs/order, and every
+gate/manual annotation. These are owner declarations; task descriptions may change.
 Saved review requests/findings/dispositions belong in $specDir/reviews/, naming
 checkpoint, scope, reviewed revision, actual known reviewer and verdict. Preserve
 findings; transfer only a recipient/scope/artifact/action link through the inbox.

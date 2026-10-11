@@ -18,6 +18,7 @@ function Assert-WorkflowWorkerRange {
         $names=@(git -C $RepoPath diff --name-only --no-renames -z $BaseCommit $revision)
         if ($LASTEXITCODE) { throw 'worker-incomplete: cannot inspect changed paths.' }
         foreach ($path in (($names -join "`n") -split "`0" | Where-Object { $_ })) {
+            if ($path -eq '.workflow-kit.json') { throw "worker-incomplete: owner workflow policy changed at $revision ($path)." }
             if ($path -notmatch '(^|/)(spec\.md|tasks\.md)$' -and $path -notmatch '(^|/)reviews/') { continue }
             $before=Read-WorkflowRevisionFile $RepoPath $BaseCommit $path
             $after=Read-WorkflowRevisionFile $RepoPath $revision $path
@@ -30,8 +31,23 @@ function Assert-WorkflowWorkerRange {
                 throw "worker-incomplete: review verdict added or modified at $revision ($path)."
             }
             if ($path -match '(^|/)tasks\.md$') {
-                $completedBefore=@([regex]::Matches([string]$before,'(?m)^\s*- \[[xX]\] (T\d{3,})\b') | ForEach-Object { $_.Groups[1].Value })
-                $completedAfter=@([regex]::Matches([string]$after,'(?m)^\s*- \[[xX]\] (T\d{3,})\b') | ForEach-Object { $_.Groups[1].Value })
+                $beforeTasks=Get-WorkflowTaskDeclarations ([string]$before) $path
+                $afterTasks=Get-WorkflowTaskDeclarations ([string]$after) $path
+                if (($beforeTasks.EntryLines -join "`n") -cne ($afterTasks.EntryLines -join "`n")) {
+                    throw "worker-incomplete: task entry checkpoint changed at $revision ($path)."
+                }
+                if (($beforeTasks.Tasks.Id -join "`n") -cne ($afterTasks.Tasks.Id -join "`n")) {
+                    throw "worker-incomplete: task IDs added, removed or reordered at $revision ($path)."
+                }
+                for ($index=0; $index -lt $beforeTasks.Tasks.Count; $index++) {
+                    $oldTask=$beforeTasks.Tasks[$index]; $newTask=$afterTasks.Tasks[$index]
+                    if (($oldTask.GateAnnotations -join "`n") -cne ($newTask.GateAnnotations -join "`n") -or
+                        ($oldTask.ManualAnnotations -join "`n") -cne ($newTask.ManualAnnotations -join "`n")) {
+                        throw "worker-incomplete: task gate/manual annotation changed for $($oldTask.Id) at $revision ($path)."
+                    }
+                }
+                $completedBefore=@($beforeTasks.Tasks | Where-Object Complete | ForEach-Object Id)
+                $completedAfter=@($afterTasks.Tasks | Where-Object Complete | ForEach-Object Id)
                 foreach ($id in $completedAfter) {
                     if ($id -notin $completedBefore -and ($id -ne $TaskId -or $path -cne "$PackagePath/tasks.md")) {
                         throw "worker-incomplete: unrelated task $id newly completed at $revision ($path)."

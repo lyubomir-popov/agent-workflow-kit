@@ -13,9 +13,15 @@ Use this file to answer two questions quickly:
 
 ## Current packages
 
-| Spec | Package | Status |
+| Spec | Package | Branch | Status |
+|---|---|---|---|
+| 001 Spec-first agent workflow | [001-spec-first-workflow](../specs/001-spec-first-workflow/spec.md) | `feat/001-spec-first-workflow` | Review findings received; amendments await owner acceptance. CP1 not cleared; implementation has not started. |
+
+## Candidates
+
+| Spec | Proposed scope | Sources |
 |---|---|---|
-| 001 Spec-first agent workflow | [001-spec-first-workflow](../specs/001-spec-first-workflow/spec.md) | Draft; awaiting owner-run Opus specification review. Implementation has not started. |
+| 002 Cross-repository orchestration | Bounded briefs, worker ownership, revision-aware returns, sequencing, calibration; package not created | `canonical-spacing-spec` with `baseline-foundry`, and the Jira bridge; starts after Spec 001 slice A on separate authorization |
 
 ## Existing governing sources
 

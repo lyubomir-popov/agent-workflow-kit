@@ -17,7 +17,7 @@ Use priority tags inline:
 
 ## Short-term
 
-- [ ] [H] P1 Receive the [Spec 001 Opus specification review](specs/001-spec-first-workflow/reviews/2026-10-10-opus-spec-review-request.md) before planning or implementing the workflow renewal.
+- [ ] [H] P1 Obtain owner acceptance of [Spec 001 author dispositions](specs/001-spec-first-workflow/reviews/2026-10-11-author-dispositions.md) and CP1 clearance before planning or implementing the workflow renewal.
 
 - [ ] [X] P2 Observe the stale-TODO warning across a few more real loop runs and tighten or relax the token matching if it proves noisy.
 - [ ] [S] P2 Add lint rule: every `prompts/*.prompt.md` must declare a `model:` frontmatter field. Implemented as a warning in `workflow-kit.ps1` on 2026-04-29 — promote to `error` after one cycle if no false positives surface in downstream repos.

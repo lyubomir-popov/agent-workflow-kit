@@ -36,8 +36,8 @@ is `0.8.17.dev0`; no machine-wide CLI upgrade was performed.
 - Active feature: [Spec 001](specs/001-spec-first-workflow/spec.md).
 - Review: [Opus specification review request](specs/001-spec-first-workflow/reviews/2026-10-10-opus-spec-review-request.md).
 
-Load Spec Kit only for requested spec work. Spec 001 is awaiting the owner's
-Opus review; the existing workflow remains active until implementation.
+Load Spec Kit only for requested spec work. Spec 001 has Opus findings;
+amendments await owner acceptance. The existing workflow remains active.
 
 ## What this is
 

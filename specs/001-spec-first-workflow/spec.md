@@ -2,9 +2,9 @@
 
 **Feature branch**: `feat/001-spec-first-workflow`
 **Created**: 2026-10-10
-**Lifecycle**: ready
+**Lifecycle**: active
 **Scope**: `001/spec-r2`; supersedes `001/spec-r1` (`059405a`)
-**Superseded tasks**: none; implementation tasks have not been authored.
+**Superseded tasks**: none.
 
 **Checkpoints**:
 

@@ -1,49 +1,46 @@
-# Specs
+# Spec catalog
 
-## Purpose
-
-List the external sources that govern this repo.
-
-If a spec or specs exist, they are the source of truth and should be linked here. If no formal spec exists, `ROADMAP.md` assumes the role of the source of truth for product direction, and this file can be kept minimal or used to list sibling-repo references only.
-
-Use this file to answer two questions quickly:
-
-1. What upstream docs or specs control behavior here?
-2. Which sibling repos are references versus sources of truth?
+Start with the first current package below, resolved on its declared branch.
+Its `spec.md` owns lifecycle/checkpoints; its `tasks.md` owns execution state.
+Catalog order is the resume pointer, not unattended-work authorization.
 
 ## Current packages
 
-| Spec | Package | Branch | Status |
-|---|---|---|---|
-| 001 Spec-first agent workflow | [001-spec-first-workflow](../specs/001-spec-first-workflow/spec.md) | `feat/001-spec-first-workflow` | Review findings received; amendments await owner acceptance. CP1 not cleared; implementation has not started. |
+| Spec | Package | Branch |
+|---|---|---|
+| 001 Spec-first agent workflow | [001-spec-first-workflow](../specs/001-spec-first-workflow/spec.md) | `feat/001-spec-first-workflow` |
 
 ## Candidates
 
-| Spec | Proposed scope | Sources |
-|---|---|---|
-| 002 Cross-repository orchestration | Bounded briefs, worker ownership, revision-aware returns, sequencing, calibration; package not created | `canonical-spacing-spec` with `baseline-foundry`, and the Jira bridge; starts after Spec 001 slice A on separate authorization |
+Candidates are unpromoted ideas, not executable tasks (maximum ten entries).
 
-## Existing governing sources
+| Idea | Scope/source |
+|---|---|
+| 002 Cross-repository orchestration | Bounded briefs, worker ownership, revision-aware returns, sequencing, calibration; sources: canonical-spacing-spec/baseline-foundry and Jira bridge. Separate owner authorization after the workflow's first slice. |
+| Legacy stale-task warning calibration | Observe real legacy loop runs; tune commit-subject matching if noisy. Former `[X] P2` TODO. |
+| Prompt frontmatter enforcement | Promote missing `model:` from warning to error after a consumer observation cycle without false positives. Former `[S] P2` TODO. |
+| Optional branch/PR workflow | Add `-Branch <name>` and consider separately authorized `-OpenPR`; retain direct-commit legacy default. Former `[S] P3` TODO. |
+| Failure-policy refinement | Evaluate skip/retry/stop for independent queues and transient failures; retain gate stops and incomplete reporting. Former `[S] P3` TODO; inspect existing flags first. |
+| Continuation-budget tuning | Determine useful `--max-autopilot-continues` for real tasks; five may be low for complex work. Former TODO open question. |
 
-| Source | Path or URL | Role |
-|--------|-------------|------|
-| Workflow rules | `.github/copilot-instructions.md` | Canonical workflow and precedence rules for the boilerplate |
-| Product direction | `ROADMAP.md` | Source of truth for long-term direction when no external product spec exists |
-| Scheduler and prompt installer contract | `README.md` | Canonical usage and behavioral description for `agent-loop.ps1`, the `bin/` launchers, `prompts/`, and `install-vscode-prompts.ps1` |
-| Workflow validation contract | `workflow-kit.ps1` and `README.md` | Executable checks and documented usage for linting workflow files and detecting downstream asset drift |
+## Governing references
 
-## Related repos
+| Source | Role |
+|---|---|
+| [AGENTS](../AGENTS.md) | Static ownership, precedence, scope, and verification rules |
+| [Constitution](../.specify/memory/constitution.md) | Durable principles |
+| [README](../README.md) | Script, launcher, installer, and prompt usage |
+| [ROADMAP](../ROADMAP.md) | On-demand direction and resolved design history |
+| [Operations](operations.md) | Terminal and authentication procedure |
+| [Enforcement](enforcement.md) | Host triggers and gaps |
 
-| Repo | Relationship | Notes |
-|------|--------------|-------|
-| `baseline-foundry` | Downstream consumer | Active repo that mirrors workflow-file refinements from this boilerplate and has already been used for real loop-driven tasks |
-| `design-foundry` | Downstream consumer | Active repo that mirrors workflow-file refinements from this boilerplate and surfaced the stale temp-worktree cleanup case |
-| `canonical-spacing-spec` | Downstream consumer | Active repo that mirrors workflow-file refinements from this boilerplate and has already been used for real loop-driven tasks |
+## Related repositories
 
-## Notes
+`baseline-foundry`, `design-foundry`, and `canonical-spacing-spec` are consumer
+references, not workflow owners here. No consumer modification or rollout
+is implied by this catalog.
 
-- Prefer stable paths where possible.
-- If a draft path is the canonical latest path, note that explicitly.
-- If old snapshots exist, identify them as legacy or archive rather than active source.
-- Spec 001 proposes the next operating model. Existing instructions remain active until its reviewed implementation lands.
-- The related repos above are references and rollout targets, not sources of truth for this repo's workflow rules.
+## Archive
+
+Delivered packages stay at their original `specs/` paths and retain their numbers.
+Move their catalog rows here at delivery; do not copy lifecycle into this catalog.

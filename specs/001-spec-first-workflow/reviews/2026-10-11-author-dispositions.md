@@ -47,6 +47,8 @@ by this document. The next action is owner acceptance of these dispositions.
 
 ## Owner acceptance and amendments, 2026-10-11
 
+**Accepted scope**: `001/spec-r2`
+
 Source: the owner's instruction for `feat/001-spec-first-workflow`, dated
 2026-10-11. The owner accepts all author dispositions above with these amendments
 and explicitly clears CP1. The historical pending-clearance and later-`closed`

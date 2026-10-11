@@ -84,6 +84,33 @@ function Get-HighestNumberFromNames {
     return $highest
 }
 
+# All retained package identities and locally known refs reserve their numbers.
+# This deliberately performs no fetch or remote query, including during dry run.
+function Get-WorkflowReservedFeatureNumbers {
+    param([string]$RepoRoot)
+    $names = @()
+    $specs = Join-Path $RepoRoot 'specs'
+    if (Test-Path -LiteralPath $specs -PathType Container) {
+        $names += @(Get-ChildItem -LiteralPath $specs -Directory | ForEach-Object Name)
+    }
+    foreach ($entry in @(Get-WorkflowCatalog -RepoRoot $RepoRoot)) { $names += "$($entry.Id)-reserved" }
+    $refs = @(git -C $RepoRoot for-each-ref '--format=%(refname)' 2>$null)
+    if ($LASTEXITCODE -ne 0) { throw 'specify-numbering: cannot enumerate local Git refs.' }
+    $names += $refs
+    $numbers = @()
+    foreach ($name in $names) {
+        foreach ($segment in ($name -split '/')) {
+            if ($segment -match '^\d{8}-\d{6}-') { continue }
+            $match = [regex]::Match($segment, '^(\d{3,})-')
+            if (-not $match.Success) { continue }
+            [long]$value = 0
+            if (-not [long]::TryParse($match.Groups[1].Value, [ref]$value)) { throw "specify-numbering: identity is outside the supported range: $name" }
+            $numbers += $value
+        }
+    }
+    return @($numbers | Sort-Object -Unique)
+}
+
 function Get-HighestNumberFromBranches {
     param()
 
@@ -172,10 +199,23 @@ $repoRoot = Get-RepoRoot
 # Check if git is available at this repo root (not a parent)
 $hasGit = Test-HasGit
 
+$workflowConfig = Get-SpecKitWorkflowConfig -RepoRoot $repoRoot
+if ($workflowConfig) {
+    . (Join-Path $repoRoot 'workflow-model.ps1')
+    if (-not $hasGit) { throw 'specify-workflow: versioned repositories require Git.' }
+    if ($AllowExistingBranch) { throw 'specify-numbering: AllowExistingBranch cannot reuse a reserved package identity.' }
+    if ($Timestamp) { throw 'specify-numbering: versioned catalogs require sequential package identities; Timestamp is unsupported.' }
+    if ($Number -lt 0) { throw 'specify-numbering: Number must be positive, or zero for automatic allocation.' }
+    git -C $repoRoot show-ref --verify --quiet "refs/heads/$($workflowConfig.targetBranch)"
+    if ($LASTEXITCODE -ne 0) { throw "specify-workflow: configured local target branch '$($workflowConfig.targetBranch)' does not exist." }
+    $reservedNumbers = @(Get-WorkflowReservedFeatureNumbers -RepoRoot $repoRoot)
+    if ($Number -gt 0 -and $Number -in $reservedNumbers) { throw "specify-numbering: package number $Number is already reserved." }
+}
+
 Set-Location $repoRoot
 
 $specsDir = Join-Path $repoRoot 'specs'
-if (-not $DryRun) {
+if (-not $DryRun -and -not $workflowConfig) {
     New-Item -ItemType Directory -Path $specsDir -Force | Out-Null
 }
 
@@ -246,7 +286,11 @@ if ($Timestamp) {
 } else {
     # Determine branch number
     if ($Number -eq 0) {
-        if ($DryRun -and $hasGit) {
+        if ($workflowConfig) {
+            $highestReserved = if ($reservedNumbers.Count) { $reservedNumbers[-1] } else { 0 }
+            if ($highestReserved -eq [long]::MaxValue) { throw 'specify-numbering: sequential identity range is exhausted.' }
+            $Number = $highestReserved + 1
+        } elseif ($DryRun -and $hasGit) {
             # Dry-run: query remotes via ls-remote (side-effect-free, no fetch)
             $Number = Get-NextBranchNumber -SpecsDir $specsDir -SkipFetch
         } elseif ($DryRun) {
@@ -295,7 +339,11 @@ if (-not $DryRun) {
         $branchCreated = $false
         $branchCreateError = ''
         try {
-            $branchCreateError = git checkout -q -b $branchName 2>&1 | Out-String
+            $branchCreateError = if ($workflowConfig) {
+                git checkout -q -b $branchName $workflowConfig.targetBranch 2>&1 | Out-String
+            } else {
+                git checkout -q -b $branchName 2>&1 | Out-String
+            }
             if ($LASTEXITCODE -eq 0) {
                 $branchCreated = $true
             }
@@ -304,6 +352,9 @@ if (-not $DryRun) {
         }
 
         if (-not $branchCreated) {
+            if ($workflowConfig) {
+                throw "specify-workflow: failed to create branch '$branchName' from '$($workflowConfig.targetBranch)'. $($branchCreateError.Trim())"
+            }
             $currentBranch = ''
             try { $currentBranch = (git rev-parse --abbrev-ref HEAD 2>$null).Trim() } catch {}
             # Check if branch already exists
@@ -360,7 +411,7 @@ if (-not $DryRun) {
     }
 
     # Set the SPECIFY_FEATURE environment variable for the current session
-    $env:SPECIFY_FEATURE = $branchName
+    if (-not $workflowConfig) { $env:SPECIFY_FEATURE = $branchName }
 }
 
 if ($Json) {
@@ -379,7 +430,7 @@ if ($Json) {
     Write-Output "SPEC_FILE: $specFile"
     Write-Output "FEATURE_NUM: $featureNum"
     Write-Output "HAS_GIT: $hasGit"
-    if (-not $DryRun) {
+    if (-not $DryRun -and -not $workflowConfig) {
         Write-Output "SPECIFY_FEATURE environment variable set to: $branchName"
     }
 }

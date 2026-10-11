@@ -41,6 +41,8 @@ All pass. No constitution exception or unresolved technical decision.
   principles-only constitution: migrate every FR-036 section to its named owner.
 - `.githooks/pre-commit`, `.github/workflows/workflow.yml`, `docs/enforcement.md`:
   compose local hooks, CI backstop and honest per-host gaps.
+- `workflow-checks.ps1`, `workflow-scheduler.ps1`, `workflow-hook.ps1`: on-demand
+  script libraries and commit entry point; they store no workflow state.
 - `tests/`: compatible Pester runner and isolated Git fixtures.
 
 ## Slices and acceptance

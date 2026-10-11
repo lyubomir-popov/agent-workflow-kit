@@ -53,7 +53,8 @@
 .PARAMETER Workflow
     Todo: read unchecked items from TODO.md (legacy scheduler).
     SpecKit: drive the active spec package(s) from docs/specs.md through implement,
-    adversarial review, and address phases until no in-progress specs remain.
+    In versioned repositories, drive catalog packages with active lifecycle and
+    owner-cleared entry/task gates. Legacy SpecKit display routing is retained.
 
 .PARAMETER MaxSpecs
     SpecKit only. Cap how many in-progress spec packages to process (0 = no cap).
@@ -96,7 +97,7 @@ param(
 # skipped so subagent / validation tasks don't burn a worker CLI invocation.
 #
 # Preferred targets (when Copilot CLI exposes them) per the kit's model-preference
-# rules in .github/copilot-instructions.md:
+# rules owned here (other surfaces link to this table):
 #   [H] -> claude-opus-4.7 (7.5x; not in CLI as of 2026-04-28) or gpt-5.5 (7.5x; not in CLI as of 2026-04-28)
 #   [S] -> gpt-5.4 (1x)
 #   [L] -> gpt-5.4-mini (0.33x) or claude-haiku-4.5 (0.33x)
@@ -111,6 +112,8 @@ $TierDispatchMap = @{
 }
 
 $ErrorActionPreference = 'Stop'
+. "$PSScriptRoot/workflow-model.ps1"
+. "$PSScriptRoot/workflow-scheduler.ps1"
 Set-Location $RepoRoot
 
 function Resolve-WorkerAgent {
@@ -906,20 +909,16 @@ function Get-AdversarialReviewPromptPath {
     return $null
 }
 
-function Test-AgentInboxHasActiveFindings {
-    param([string]$RepoPath)
+function Test-PackageReviewHasActiveFindings {
+    param([string]$RepoPath, $SpecPackage)
 
-    $inboxPath = Join-Path $RepoPath 'AGENT-INBOX.md'
+    $inboxPath = Join-Path $RepoPath "$($SpecPackage.RelativePath)/reviews/agent-review.md"
     if (-not (Test-Path -LiteralPath $inboxPath)) {
-        return $false
-    }
-
-    $content = Get-Content -LiteralPath $inboxPath -Raw
-    if ($content -match '(?is)##\s+(?!Resolved)[^\r\n#].+?(?:\r?\n(?!##\s|# ).+)+') {
         return $true
     }
 
-    return $false
+    $content = Get-Content -LiteralPath $inboxPath -Raw
+    return $content -notmatch '(?im)^[-* ]*\*?\*?Verdict\*?\*?:\s*\*?\*?accept\b' -or $content -match '(?m)^\s*- \[ \]'
 }
 
 function Build-SpecKitPrompt {
@@ -933,9 +932,30 @@ function Build-SpecKitPrompt {
 
     $specDir = $SpecPackage.RelativePath
     $branch = $SpecPackage.Branch
+    $config = Get-WorkflowConfig $RepoPath
+    if ($config) {
+        $taskLine = if ($Task) { $Task.Text } else { 'owner-requested review phase' }
+        return @"
+Read AGENTS.md, $specDir/spec.md and the bounded current-work header in $specDir/tasks.md.
+Package: $specDir; scope: $($SpecPackage.Scope); integration branch: $branch; target/base: $($config.targetBranch).
+Phase: $Phase. Focus: $taskLine.
+This marked detached scratch worktree is authorized only for this package's task
+and necessary kit implementation paths. Integrate only into $branch. Verify the
+spec lifecycle, linked entry checkpoint and accepted verdict before work and at
+scope changes. Stop before every uncleared gate; never clear owner checkpoints.
+Implement only the focused task. Update its checkbox/current-work header after
+validation and commit with an area prefix. No unrelated tasks or automatic reviews.
+Saved review requests/findings/dispositions belong in $specDir/reviews/, naming
+checkpoint, scope, reviewed revision, actual known reviewer and verdict. Preserve
+findings; transfer only a recipient/scope/artifact/action link through the inbox.
+No AGENTS handover or lifecycle edits, no SPECKIT markers, no root state files,
+no network/push/installer/cross-repo operations without explicit owner instruction.
+On incomplete work record the blocker in the task header and preserve all work.
+"@
+    }
     $rulesPath = if (Test-Path -LiteralPath (Join-Path $RepoPath 'AGENTS.md')) { 'AGENTS.md' } else { '.github/copilot-instructions.md' }
     $adversarialPath = Get-AdversarialReviewPromptPath -RepoPath $RepoPath
-    $agentInboxPath = 'AGENT-INBOX.md'
+    $agentInboxPath = "$specDir/reviews/agent-review.md"
 
     $phaseBody = switch ($Phase) {
         'implement' {
@@ -948,15 +968,15 @@ Feature branch: $branch
 Current unchecked task focus: $taskLine
 
 Execution rules:
-1. Read $rulesPath, $specDir/spec.md, $specDir/tasks.md, and AGENTS.md handover if present.
+1. Read $rulesPath, $specDir/spec.md and $specDir/tasks.md.
 2. This is an unattended overnight run. Do not stop after a single small commit if more unchecked tasks remain.
 3. Implement the current unchecked task(s) in tasks.md. Mark a task [x] only when it is truly complete.
 4. Continue through additional unchecked tasks in the same session when safe (--max-autopilot-continues is raised for this run).
 5. Make logically grouped commits as you go; multiple commits are expected for a large spec.
 6. Run targeted validation for the areas you change. Use the repo's declared validation commands when appropriate.
-7. Update $specDir/tasks.md, spec.md status notes, and AGENTS.md handover when the work warrants it.
+7. Update $specDir/tasks.md and its current-work header; never add an AGENTS handover.
 8. Do not start unrelated specs, TODO.md side quests, or repo-wide audits.
-9. If blocked, document the blocker in the current project's $agentInboxPath at the repo root and stop with a clear explanation instead of guessing.
+9. If blocked, document the blocker in the package task header and stop with a clear explanation.
 "@
         }
         'adversarial-review' {
@@ -970,8 +990,8 @@ Feature branch: $branch
 Execution rules:
 1. Read $rulesPath, $specDir/spec.md, $specDir/tasks.md, and $reviewSource.
 2. Perform a skeptical adversarial review of the work done for this spec on the current branch.
-3. Write findings to the current project's $agentInboxPath at the repo root after any resolved/historical sections. Be specific and actionable.
-4. Do not hardcode another repo's path. Use the current repo's root-level $agentInboxPath file for the review drop.
+3. Save a separate request and findings in $specDir/reviews/, naming scope, reviewed revision, actual reviewer, verdict and actionable findings.
+4. Write complete findings to $agentInboxPath; the root inbox may hold only a transient recipient/scope/artifact/action link.
 5. Do not implement fixes in this phase unless a trivial doc correction is required to record the review.
 6. Commit only the review write-up ($agentInboxPath and any spec/task note updates needed to record review state).
 "@
@@ -984,9 +1004,9 @@ Spec package: $specDir
 Feature branch: $branch
 
 Execution rules:
-1. Read the current project's $agentInboxPath at the repo root and treat active findings as the work queue for this phase.
+1. Read the package's $agentInboxPath and treat unresolved findings as the work queue.
 2. Fix the highest-priority actionable items with code/tests/docs changes as appropriate.
-3. Move resolved findings into a resolved section or remove stale items from the active inbox per repo conventions.
+3. Preserve all findings and record per-finding dispositions beside them; never clear owner checkpoints.
 4. Update $specDir/tasks.md if the review reopened work; do not falsely close the spec.
 5. Make one or more commits with real fixes. Continue within this session while active findings remain and you can make safe progress.
 6. Run targeted validation for changed areas.
@@ -1047,7 +1067,7 @@ function Invoke-SpecKitWorkerPhase {
     $prompt = Build-SpecKitPrompt -SpecPackage $SpecPackage -Phase $Phase -Task $Task -RepoPath $RepoPath
     $commitBefore = Get-HeadCommit -RepoPath $RepoPath
     $worktreePath = $null
-    $keepWorktree = $false
+    $keepWorktree = $true
 
     try {
         $worktreePath = New-TemporaryWorktree -RepoPath $RepoPath
@@ -1055,6 +1075,14 @@ function Invoke-SpecKitWorkerPhase {
 
         Write-Host "  Using temporary worktree: $worktreePath" -ForegroundColor DarkGray
         Write-Host "  Invoking $WorkerAgent CLI..." -ForegroundColor DarkGray
+
+        if (Get-WorkflowConfig $RepoPath) {
+            $null = Assert-WorkflowPreflight $worktreePath
+            $scratchPackage = Select-WorkflowPackage $worktreePath $SpecPackage.RelativePath
+            if ($scratchPackage.Scope -ne $SpecPackage.Scope -or $scratchPackage.Lifecycle -ne 'active') { throw 'worker-incomplete: scratch scope/lifecycle changed before dispatch.' }
+            $problem = Get-WorkflowGateProblem $scratchPackage $Task.Gate
+            if ($problem) { throw "worker-incomplete: $problem" }
+        }
 
         $copilotResult = Invoke-AgentTask -Prompt $prompt -TimeoutSeconds $TaskTimeoutSeconds -WorkingDirectory $worktreePath -ModelName $dispatch.Model -ReasoningEffortLevel $dispatch.Effort
 
@@ -1098,9 +1126,9 @@ function Invoke-SpecKitWorkerPhase {
         }
 
         Write-Host '  Cherry-picking worker commit(s) into primary worktree...' -ForegroundColor DarkGray
-        git cherry-pick "$worktreeHeadBefore..$worktreeHeadAfter" | Out-Null
+        git -C $RepoPath cherry-pick "$worktreeHeadBefore..$worktreeHeadAfter" | Out-Null
         if ($LASTEXITCODE -ne 0) {
-            git cherry-pick --abort | Out-Null
+            git -C $RepoPath cherry-pick --abort | Out-Null
             $keepWorktree = $true
             Write-Host '  [x] Cherry-pick failed. Preserving worker worktree for inspection.' -ForegroundColor Red
             if ($OnFailure -eq 'skip') { return [pscustomobject]@{ Status = 'failed-continue'; KeepWorktree = $keepWorktree; WorktreePath = $worktreePath } }
@@ -1109,6 +1137,7 @@ function Invoke-SpecKitWorkerPhase {
 
         $commitAfter = Get-HeadCommit -RepoPath $RepoPath
         Write-Host "  [ok] New commit: $commitAfter" -ForegroundColor Green
+        $keepWorktree = $false
         return [pscustomobject]@{ Status = 'ok'; KeepWorktree = $false; WorktreePath = $worktreePath }
     } finally {
         if ($worktreePath -and -not $keepWorktree) {
@@ -1179,9 +1208,9 @@ function Start-SpecKitScheduler {
         if ($LASTEXITCODE -eq 0) {
             git -C $RepoPath checkout $spec.Branch | Out-Null
             if ($LASTEXITCODE -ne 0) {
-                Write-Host "  ! Could not checkout $($spec.Branch); continuing on current branch." -ForegroundColor Yellow
+                throw "checkout-incomplete: could not checkout $($spec.Branch); no worker dispatched."
             }
-        }
+        } else { throw "checkout-incomplete: branch $($spec.Branch) is missing." }
 
         while (-not (Test-SpecTasksComplete -SpecPackage $spec)) {
             $invocationCount++
@@ -1213,19 +1242,17 @@ function Start-SpecKitScheduler {
 
         if ($stopAll) { break }
 
-        for ($round = 1; $round -le $MaxAddressRounds; $round++) {
+        $null = Invoke-BoundedRemediation -MaxRounds $MaxAddressRounds -HasFindings {
+            Test-PackageReviewHasActiveFindings -RepoPath $RepoPath -SpecPackage $spec
+        } -RunRound {
+            param($round)
             $invocationCount++
-            if ($MaxTasks -gt 0 -and $invocationCount -gt $MaxTasks) { $stopAll = $true; break }
+            if ($MaxTasks -gt 0 -and $invocationCount -gt $MaxTasks) { throw 'scheduler-incomplete: invocation cap with review findings remaining.' }
             Write-Host "  Address round $round / $MaxAddressRounds" -ForegroundColor DarkCyan
             $result = Invoke-SpecKitWorkerPhase -SpecPackage $spec -Phase 'address-review' -Task $null -RepoPath $RepoPath -InvocationCount ([ref]$invocationCount) -SkippedLineIndices ([ref]$null) -DefaultModel $Model -DefaultEffort $ReasoningEffort
-            if ($result.Status -eq 'failed-stop' -or $result.Status -eq 'dirty-primary') { $stopAll = $true; break }
-            if (-not (Test-AgentInboxHasActiveFindings -RepoPath $RepoPath)) {
-                Write-Host '  [ok] No active AGENT-INBOX findings; address phase complete.' -ForegroundColor Green
-                break
-            }
+            return $result.Status
         }
-
-        Write-Host "  [ok] Finished spec package $($spec.RelativePath)" -ForegroundColor Green
+        Write-Host "  [ok] Finished legacy spec package $($spec.RelativePath)" -ForegroundColor Green
     }
 
     Write-Host "`n-- SpecKit summary -------------------------------------" -ForegroundColor Cyan
@@ -1329,61 +1356,12 @@ function Get-CommitSummariesBetween {
 
 function New-TemporaryWorktree {
     param([string]$RepoPath)
-
-    $repoName = Split-Path $RepoPath -Leaf
-    $worktreeRoot = Join-Path ([System.IO.Path]::GetTempPath()) 'agent-loop-worktrees'
-    $null = New-Item -ItemType Directory -Force -Path $worktreeRoot
-
-    git -C $RepoPath worktree prune --expire now | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Failed to prune stale worktrees for $RepoPath"
-    }
-
-    $worktreePath = Join-Path $worktreeRoot "$repoName-$([guid]::NewGuid().ToString('N'))"
-    git -C $RepoPath worktree add --detach $worktreePath HEAD | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Failed to create temporary worktree at $worktreePath"
-    }
-
-    return $worktreePath
+    return New-WorkflowScratch -RepoPath $RepoPath
 }
 
 function Remove-TemporaryWorktree {
-    param(
-        [string]$RepoPath,
-        [string]$WorktreePath
-    )
-
-    $managedRoot = Join-Path ([System.IO.Path]::GetTempPath()) 'agent-loop-worktrees'
-    $canForceDelete = $WorktreePath.StartsWith($managedRoot, [System.StringComparison]::OrdinalIgnoreCase)
-
-    if (-not (Test-Path $WorktreePath)) {
-        git -C $RepoPath worktree prune --expire now | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to prune stale worktrees for $RepoPath"
-        }
-        return
-    }
-
-    git -C $RepoPath worktree remove --force $WorktreePath | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-        return
-    }
-
-    if (-not $canForceDelete) {
-        throw "Failed to remove temporary worktree at $WorktreePath"
-    }
-
-    try {
-        Remove-Item -LiteralPath $WorktreePath -Recurse -Force -Confirm:$false -ErrorAction Stop
-    } catch {
-        throw "Failed to remove temporary worktree contents at $WorktreePath"
-    }
-
-    git -C $RepoPath worktree prune --expire now | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Failed to prune stale worktrees for $RepoPath"
-    }
+    param([string]$RepoPath, [string]$WorktreePath)
+    Remove-WorkflowScratch -RepoPath $RepoPath -WorktreePath $WorktreePath
 }
 
 function Assert-CommandAvailable {
@@ -1800,6 +1778,16 @@ Assert-CommandAvailable git
 Set-Location $RepoRoot
 $repoRoot = (Get-Location).Path
 
+$workflowConfig = Get-WorkflowConfig $repoRoot
+if ($workflowConfig) {
+    if ($PSBoundParameters.ContainsKey('Workflow') -and $Workflow -eq 'Todo') {
+        throw 'workflow-incomplete: migrated repositories cannot execute the legacy TODO scheduler.'
+    }
+    if (-not $PSBoundParameters.ContainsKey('MaxTasks')) { $MaxTasks = 0 }
+    Start-WorkflowScheduler -RepoPath $repoRoot -Config $workflowConfig
+    return
+}
+
 if ($Workflow -eq 'SpecKit') {
     if (-not $PSBoundParameters.ContainsKey('MaxTasks')) { $MaxTasks = 0 }
     if (-not $PSBoundParameters.ContainsKey('MaxContinues')) { $MaxContinues = 25 }
@@ -1880,7 +1868,7 @@ while ($taskCount -lt $MaxTasks) {
     $commitBefore = Get-HeadCommit -RepoPath $repoRoot
     $todoBefore = Get-TodoText
     $worktreePath = $null
-    $keepWorktree = $false
+    $keepWorktree = $true
 
     # Build the prompt. The agent sees the repo, reads the workflow files,
     # does the task, and commits.
@@ -2043,6 +2031,7 @@ After completing the task:
         }
 
         $commitAfter = Get-HeadCommit -RepoPath $repoRoot
+        $keepWorktree = $false
 
         $primaryStatusBeforeBookkeeping = Get-WorkingTreeStatus -RepoPath $repoRoot
         if ($primaryStatusBeforeBookkeeping.Count -gt 0) {

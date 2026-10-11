@@ -21,6 +21,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+. "$PSScriptRoot/workflow-model.ps1"
+. "$PSScriptRoot/workflow-checks.ps1"
+
 function Resolve-RepoPath {
     param([string]$Path)
 
@@ -37,6 +40,7 @@ function New-Finding {
     )
 
     return [pscustomobject]@{
+        id = ('{0}:{1}' -f $Rule, $Path)
         severity = $Severity
         rule = $Rule
         path = $Path
@@ -124,7 +128,7 @@ function Test-InboxDrained {
     }
 }
 
-function Test-WorkflowRepo {
+function Test-LegacyWorkflowRepo {
     param([string]$RepoRoot)
 
     $findings = [System.Collections.Generic.List[object]]::new()
@@ -251,12 +255,23 @@ function Test-WorkflowRepo {
     return @($findings)
 }
 
+function Test-WorkflowRepo {
+    param([string]$RepoRoot)
+    try { $config = Get-WorkflowConfig $RepoRoot }
+    catch { return @(New-Finding error workflow-config '.workflow-kit.json' $_.Exception.Message) }
+    if ($config) { return @(Test-SpecWorkflowRepo $RepoRoot $config) }
+    return @(Test-LegacyWorkflowRepo $RepoRoot)
+}
+
 function Get-CanonicalMirrorFiles {
     param([string]$KitRoot)
 
     $files = [System.Collections.Generic.List[string]]::new()
     foreach ($relative in @(
         'agent-loop.ps1',
+        'workflow-model.ps1',
+        'workflow-checks.ps1',
+        'workflow-scheduler.ps1',
         'install-vscode-prompts.ps1',
         'bin/agent-loop',
         'bin/agent-loop.cmd',
@@ -371,6 +386,9 @@ function Write-WorkflowReport {
         [pscustomobject]@{
             findings = $normalizedFindings
             summary = $summary
+            mode = $script:WorkflowMode
+            triggers = Get-WorkflowTriggerReport $script:ReportRepoRoot
+            limits = @('Mechanical evidence does not establish semantic prose freshness.', 'Host instruction compliance and skipped hooks are not enforceable by files.')
         } | ConvertTo-Json -Depth 5
     } else {
         if ($normalizedFindings.Count -eq 0) {
@@ -390,6 +408,9 @@ function Write-WorkflowReport {
 
 $resolvedRepoRoot = Resolve-RepoPath $RepoRoot
 $resolvedKitRoot = Resolve-RepoPath $KitRoot
+$script:ReportRepoRoot = $resolvedRepoRoot
+$script:WorkflowMode = 'legacy'
+try { if (Get-WorkflowConfig $resolvedRepoRoot) { $script:WorkflowMode = 'spec-first' } } catch { $script:WorkflowMode = 'invalid' }
 
 switch ($Command) {
     'lint' {

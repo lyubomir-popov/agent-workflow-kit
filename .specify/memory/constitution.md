@@ -35,9 +35,8 @@ usage and avoid machine-specific paths in reusable artifacts.
 
 ## Governance
 
-These principles capture the existing owner instructions and kit invariants.
-Spec 001 proposes the next workflow contract and needs independent review.
-The current operating instructions remain in `.github/copilot-instructions.md`
-until an accepted implementation replaces them coherently.
+Amend principles explicitly with owner authorization and preserve their rationale.
+Keep operational routing, feature state, task lists, and review gates in their
+declared owners; this constitution contains durable principles only.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-10 | **Last amended**: 2026-10-10
+**Version**: 1.1.0 | **Ratified**: 2026-10-10 | **Last amended**: 2026-10-11

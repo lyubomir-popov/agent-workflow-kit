@@ -1,6 +1,25 @@
 #!/usr/bin/env pwsh
 # Common PowerShell functions analogous to common.sh
 
+# The shared model owns activation and package/branch validation. A local cursor
+# remains a legacy convenience only.
+function Get-SpecKitWorkflowConfig {
+    param([string]$RepoRoot)
+    $modelPath = Join-Path $RepoRoot 'workflow-model.ps1'
+    if (Test-Path -LiteralPath $modelPath -PathType Leaf) {
+        . $modelPath
+        return Get-WorkflowConfig -RepoRoot $RepoRoot
+    }
+    $configPath = Join-Path $RepoRoot '.workflow-kit.json'
+    if (Test-Path -LiteralPath $configPath -PathType Leaf) {
+        $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json -ErrorAction Stop
+        if ($config.PSObject.Properties.Name -contains 'workflowModelVersion') {
+            throw 'specify-workflow: versioned configuration requires workflow-model.ps1.'
+        }
+    }
+    return $null
+}
+
 # Find repository root by searching upward for .specify directory
 # This is the primary marker for spec-kit projects
 function Find-SpecifyRoot {
@@ -49,6 +68,11 @@ function Get-RepoRoot {
 }
 
 function Get-CurrentBranch {
+    $repoRoot = Get-RepoRoot
+    if (Get-SpecKitWorkflowConfig -RepoRoot $repoRoot) {
+        . (Join-Path $repoRoot 'workflow-model.ps1')
+        return Get-WorkflowBranch -RepoRoot $repoRoot
+    }
     # First check if SPECIFY_FEATURE environment variable is set
     if ($env:SPECIFY_FEATURE) {
         return $env:SPECIFY_FEATURE
@@ -142,6 +166,20 @@ function Test-FeatureBranch {
         [string]$Branch,
         [bool]$HasGit = $true
     )
+
+    $repoRoot = Get-RepoRoot
+    if (Get-SpecKitWorkflowConfig -RepoRoot $repoRoot) {
+        . (Join-Path $repoRoot 'workflow-model.ps1')
+        try {
+            $actualBranch = Get-WorkflowBranch -RepoRoot $repoRoot
+            if ($Branch -ne $actualBranch) { throw 'The supplied branch does not match the actual Git branch.' }
+            $null = Select-WorkflowPackage -RepoRoot $repoRoot -Selection $env:SPECIFY_FEATURE_DIRECTORY
+            return $true
+        } catch {
+            [Console]::Error.WriteLine("ERROR: $($_.Exception.Message)")
+            return $false
+        }
+    }
     
     # For non-git repos, we can't enforce branch naming but still provide output
     if (-not $HasGit) {
@@ -171,6 +209,8 @@ function Test-FeatureJsonMatchesFeatureDir {
         [Parameter(Mandatory = $true)][string]$RepoRoot,
         [Parameter(Mandatory = $true)][string]$ActiveFeatureDir
     )
+
+    if (Get-SpecKitWorkflowConfig -RepoRoot $RepoRoot) { return $false }
 
     $featureJson = Join-Path (Join-Path $RepoRoot '.specify') 'feature.json'
     if (-not (Test-Path -LiteralPath $featureJson -PathType Leaf)) {
@@ -283,8 +323,29 @@ function Get-FeatureDirFromBranchPrefixOrExit {
 
 function Get-FeaturePathsEnv {
     $repoRoot = Get-RepoRoot
-    $currentBranch = Get-CurrentBranch
     $hasGit = Test-HasGit
+
+    if (Get-SpecKitWorkflowConfig -RepoRoot $repoRoot) {
+        . (Join-Path $repoRoot 'workflow-model.ps1')
+        $currentBranch = Get-WorkflowBranch -RepoRoot $repoRoot
+        $package = Select-WorkflowPackage -RepoRoot $repoRoot -Selection $env:SPECIFY_FEATURE_DIRECTORY
+        $featureDir = $package.AbsolutePath
+        if (-not $featureDir) { throw 'specify-workflow: selected package is not in the current worktree.' }
+        return [PSCustomObject]@{
+            REPO_ROOT = $repoRoot
+            CURRENT_BRANCH = $currentBranch
+            HAS_GIT = $hasGit
+            FEATURE_DIR = $featureDir
+            FEATURE_SPEC = Join-Path $featureDir 'spec.md'
+            IMPL_PLAN = Join-Path $featureDir 'plan.md'
+            TASKS = Join-Path $featureDir 'tasks.md'
+            RESEARCH = Join-Path $featureDir 'research.md'
+            DATA_MODEL = Join-Path $featureDir 'data-model.md'
+            QUICKSTART = Join-Path $featureDir 'quickstart.md'
+            CONTRACTS_DIR = Join-Path $featureDir 'contracts'
+        }
+    }
+    $currentBranch = Get-CurrentBranch
 
     # Resolve feature directory.  Priority:
     #   1. SPECIFY_FEATURE_DIRECTORY env var (explicit override)

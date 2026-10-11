@@ -1,3 +1,5 @@
 # Inbox
 
-Drop notes here. The agent will triage items into `TODO.md` (near-term) or `ROADMAP.md` (longer-term), then empty this file back to its template header.
+User-authored notes belong here. Name recipient/scope, an artifact link, and the
+requested action where applicable. Retain unread/unresolved notes; remove only
+after receipt and resolution or durable transfer to the owning package/direction.

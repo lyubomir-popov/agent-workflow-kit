@@ -6,6 +6,7 @@
 **Scope**: `001/spec-r2`; supersedes `001/spec-r1` (`059405a`)
 **Superseded tasks**: none.
 
+<a id="checkpoints"></a>
 **Checkpoints**:
 
 | ID | Gate | Verdict link | State |

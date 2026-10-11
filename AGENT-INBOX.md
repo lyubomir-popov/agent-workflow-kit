@@ -7,3 +7,4 @@ unresolved handoffs until receipt and resolution or durable transfer.
 Receipt or durable transfer must preserve the package's full evidence.
 
 - Recipient: owner; Scope: `001/spec-r2` slice A, CP2; Artifacts: [Opus findings](specs/001-spec-first-workflow/reviews/2026-10-11-opus-slice-a-review.md), [author dispositions](specs/001-spec-first-workflow/reviews/2026-10-11-cp2-author-dispositions.md), [validation](specs/001-spec-first-workflow/evidence/slice-a-validation.md#cp2-remediation-validation); Action: accept the ten fixes and three named-owner deferrals, then decide CP2 clearance before manual slice B planning. No delta review requested.
+- Recipient: Spec 001 author and owner; Scope: `001/spec-r2` slice A, CP2; Artifact: [owner-requested Opus delta review](specs/001-spec-first-workflow/reviews/2026-10-11-opus-slice-a-delta-review.md); Action: fix CPA-R1/R2 before any unattended slice B run; owner decides R3 and CP2 timing.

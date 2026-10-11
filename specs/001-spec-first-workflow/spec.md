@@ -12,7 +12,7 @@
 | ID | Gate | Verdict link | State |
 |---|---|---|---|
 | CP1 | Opus spec review | [Opus findings](reviews/2026-10-10-opus-spec-review.md); [owner acceptance, 2026-10-11](reviews/2026-10-11-author-dispositions.md#owner-acceptance-and-amendments-2026-10-11) | owner-cleared |
-| CP2 | Opus slice A review | [Opus findings](reviews/2026-10-11-opus-slice-a-review.md); [author dispositions](reviews/2026-10-11-cp2-author-dispositions.md) | pending |
+| CP2 | Opus slice A review | [Opus findings](reviews/2026-10-11-opus-slice-a-review.md); [initial dispositions](reviews/2026-10-11-cp2-author-dispositions.md); [owner-requested delta findings](reviews/2026-10-11-opus-slice-a-delta-review.md); [delta dispositions](reviews/2026-10-12-cp2-delta-author-dispositions.md) | pending |
 | CP3 | Opus slice B review | Pending owner-run review after slice B | pending |
 | CP4 | Opus slice C review | Pending owner-run review after slice C | pending |
 

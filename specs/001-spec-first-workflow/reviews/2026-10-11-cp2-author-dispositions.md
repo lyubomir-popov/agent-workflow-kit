@@ -4,8 +4,10 @@ Date: 2026-10-11. Author: Codex, Spec 001 implementer.
 Scope: `001/spec-r2`, slice A corrections authorized by the owner's 2026-10-11 decisions.
 Findings: [saved Opus review](2026-10-11-opus-slice-a-review.md).
 Validation: [slice A evidence](../evidence/slice-a-validation.md#cp2-remediation-validation).
-This is an author disposition record. CP2 stays pending; only the owner clears it.
-No delta review is requested or started. Rejected findings: none.
+This is the initial author disposition record at `60a4f00`. CP2 stays pending;
+only the owner clears it. The owner subsequently requested the saved delta review;
+[delta dispositions](2026-10-12-cp2-delta-author-dispositions.md) amend CPA-B1's
+closure through CPA-R1 and record remaining decisions. Rejected findings: none.
 
 - **CPA-B1**: fixed at `691b668` / `tests/Worker.Tests.ps1`: rejects owner-block edits, added/modified review verdicts, unrelated task completions and an edit later reverted; retains scratch before cherry-pick; `docs/enforcement.md` states the launcher checks and base-authorship limit.
 - **CPA-B2**: fixed at `bc6f0f5` / `tests/Worker.Tests.ps1`: legacy TODO cherry-pick plus separate bookkeeping removes scratch, clean zero-commit failures remove scratch, ignored evidence survives; `tests/Scheduler.Tests.ps1` preserves patch-equivalent scratch when a changed path diverges; legacy review/remediation changes are recorded as intended FR-018 fixes in the evidence.

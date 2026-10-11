@@ -101,9 +101,11 @@ scratch removal. All execution is confined to disposable fixture repositories.
 
 ## Owner follow-up
 
-Accept the saved CP2 findings and [author dispositions](../reviews/2026-10-11-cp2-author-dispositions.md)
-before clearing CP2 or authorizing manual slice B planning. Required B/C work and
-acceptance remain unfinished. No delta review has been requested or started.
+Review the saved CP2 and owner-requested delta findings and
+[delta dispositions](../reviews/2026-10-12-cp2-delta-author-dispositions.md), choose
+CPA-R3 and triage remaining minors before deciding CP2 clearance and slice B scope.
+Required B/C work and acceptance remain unfinished. No further review was launched
+by the implementer.
 
 ## CP2 remediation validation
 
@@ -145,3 +147,37 @@ and cleanup tests use isolated local Git fixtures. The CI step is exercised offl
 with synthetic remote refs; remote CI and Linux execution are unverified. No live
 worker, push, prompt installation, vendor skill edit, sibling edit, slice B/C
 implementation, tag/closeout implementation, or delta review was performed.
+
+## CP2 delta remediation validation
+
+Date: 2026-10-12. Code revision: `fcca278`. Author: Codex, Spec 001 implementer.
+The owner-requested [delta findings](../reviews/2026-10-11-opus-slice-a-delta-review.md)
+record the independent 106/106 run at `60a4f00` (232 seconds). The earlier no-delta
+statements describe that original handoff; the owner subsequently requested the
+saved delta review. This author round fixes R1/R2 under CP1 and leaves CP2 pending.
+
+| Commit | Result | Full suite before commit |
+|---|---|---|
+| `2e4959a` | Save exactly the supplied delta review and inbox | 106 passed, 213.24 seconds |
+| `fcca278` | Protect task declarations/order and versioned workflow policy; share task parsing and update worker instructions/coverage limits | 115 passed, 391.02 seconds |
+
+The focused worker run passed **18/18**, 133.93 seconds. The full code run passed
+**115 tests, 0 failed, 0 skipped**. Fixture runs were sequential. Before committing,
+strict lint, scheduler dry run and whitespace checks also passed; lint reports
+zero errors/warnings and one semantic-limit info. The metadata handoff links both
+review rounds and dispositions, with CP2 still pending and T025 manual.
+The metadata handoff repeated the full suite: **115 passed, 0 failed, 0 skipped**,
+321.16 seconds; strict lint, dry run and whitespace checks passed again.
+
+| Finding | Acceptance fixtures/checks |
+|---|---|
+| CPA-R1 | Worker.Tests: reject entry-checkpoint change/removal; existing gate removal/change/addition; manual removal/addition; added unchecked ID; removed ID; moving later work ahead of a manual boundary; a gate edit reverted by a later commit |
+| CPA-R1 permitted edits | Existing production integration test now starts with the future task already declared; focused completion, both task descriptions, Next tasks/Blockers header fields and spec body edits still integrate |
+| CPA-R2 | Worker.Tests: reject budget-exception, target, host-budget and config-deletion changes, plus a policy edit restored by a later commit |
+| R1/R2 preservation | Every rejected fixture returns worker-incomplete, retains its scratch worktree, preserves the primary head and leaves the focused primary task unchecked |
+| CPA-r3 | Enforcement documentation states the current-checkout preflight/code-integrity limit; no code pinning claim or implementation |
+| CPA-R3, CPA-r1/r2/r4 | Pending owner choice/triage, with no implementation completion claim; delta dispositions record the remaining scope |
+
+No actual worker process ran. No target write, push, prompt installation, vendor
+skill edit, sibling-repository edit, slice B/C implementation or further Opus
+review was performed. Original CPA-M5/CPA-m2/CPA-m5 deferrals remain unchanged.

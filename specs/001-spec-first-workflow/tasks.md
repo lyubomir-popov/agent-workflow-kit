@@ -1,8 +1,8 @@
 # Current work
 
-**Next tasks**: T024.
+**Next tasks**: T025 (manual).
 **Blockers**: Owner decision on CPA-R3 and CP2 acceptance before slice B planning.
-**Checkpoint links**: [slice gates](spec.md#checkpoints); [CP2 delta findings](reviews/2026-10-11-opus-slice-a-delta-review.md); [dispositions](reviews/2026-10-11-cp2-author-dispositions.md).
+**Checkpoint links**: [slice gates](spec.md#checkpoints); [CP2 delta findings](reviews/2026-10-11-opus-slice-a-delta-review.md); [delta dispositions](reviews/2026-10-12-cp2-delta-author-dispositions.md).
 **Entry checkpoint**: CP1
 **Validation**: [commands](quickstart.md); [author results and FR map](evidence/slice-a-validation.md).
 
@@ -63,7 +63,8 @@ this round fixes CPA-R1/R2 under the existing slice A entry gate.
 - [x] T021 Detect missing Spec Kit integrations, author catalog/lifecycle on creation, test create → setup-plan, and repair CI branch restoration (CPA-M3, CPA-M4) (gate: CP1).
 - [x] T022 Save finding dispositions and validation evidence, update pending CP2/inbox links, and hand back to the owner (gate: CP1).
 - [x] T023 Reject worker changes to task entry checkpoints, gate/manual declarations and task ID structure; reject all worker changes to `.workflow-kit.json`; test rejected ranges and allowed description/header edits (CPA-R1, CPA-R2) (gate: CP1).
-- [ ] T024 Record delta dispositions/evidence, retain CPA-R3 for the owner's decision and update the pending CP2/inbox handoff (gate: CP1).
+- [x] T024 Record delta dispositions/evidence, retain CPA-R3 for the owner's decision and update the pending CP2/inbox handoff (gate: CP1).
+- [ ] T025 Owner decision: select the CPA-R3 target-registration or worktree-resume option and scope its implementation; reconcile remaining delta minors before CP2 acceptance (manual) (gate: CP1).
 
 ## Deferred slices
 

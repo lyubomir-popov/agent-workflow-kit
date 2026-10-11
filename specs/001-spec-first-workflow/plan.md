@@ -68,8 +68,11 @@ authorization; then remove kit placeholders. Stop at CP4 for owner acceptance.
 CP2 carryovers for the future slice B plan: CPA-M5 scratch inspection scaling,
 CPA-m2 staged hook package scoping, and CPA-m5 hook/mirror coverage for the later
 rollout. Named owner: Codex (Spec 001 implementer), after CP2 owner clearance.
-The [CP2 dispositions](reviews/2026-10-11-cp2-author-dispositions.md) record scope
-and evidence; T018–T022 are the CP1-gated slice A remediation tasks.
+The [initial CP2 dispositions](reviews/2026-10-11-cp2-author-dispositions.md) and
+[delta dispositions](reviews/2026-10-12-cp2-delta-author-dispositions.md) record scope
+and evidence; T018–T024 are the CP1-gated slice A remediation tasks. T025 is the
+manual owner decision on CPA-R3 and remaining minor triage. Target registration
+versus worktree resume is unresolved; neither design is selected by the implementer.
 
 Fixture tests cover resume, lifecycle states, declared worktrees/branch mismatch,
 gates and verdicts, fourteen drift updates, lines/bytes/aggregate budgets, markers,

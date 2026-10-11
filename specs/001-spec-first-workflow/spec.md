@@ -2,7 +2,7 @@
 
 **Feature branch**: `feat/001-spec-first-workflow`
 **Created**: 2026-10-10
-**Lifecycle**: review
+**Lifecycle**: ready
 **Scope**: `001/spec-r2`; supersedes `001/spec-r1` (`059405a`)
 **Superseded tasks**: none; implementation tasks have not been authored.
 
@@ -10,13 +10,17 @@
 
 | ID | Gate | Verdict link | State |
 |---|---|---|---|
-| CP1 | Opus spec review | [Opus findings and owner decisions](reviews/2026-10-10-opus-spec-review.md) | findings-received |
+| CP1 | Opus spec review | [Opus findings](reviews/2026-10-10-opus-spec-review.md); [owner acceptance, 2026-10-11](reviews/2026-10-11-author-dispositions.md#owner-acceptance-and-amendments-2026-10-11) | owner-cleared |
+| CP2 | Opus slice A review | Pending owner-run review after slice A | pending |
+| CP3 | Opus slice B review | Pending owner-run review after slice B | pending |
+| CP4 | Opus slice C review | Pending owner-run review after slice C | pending |
 
 **Input**: Bring the kit up to date with the frequently used repositories.
 Prevent staleness and instruction growth, remove overlapping legacy state,
 and complete worktree cleanup after spec delivery. Cross-repo orchestration
 moves to Spec 002. [Author dispositions](reviews/2026-10-11-author-dispositions.md)
-record these amendments; only the owner can clear CP1.
+record the owner's acceptance and amendments dated 2026-10-11. CP1 is
+owner-cleared; later slice checkpoints remain pending.
 
 ## User scenarios and testing
 
@@ -165,8 +169,12 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
 - An existing commit hook must be preserved; an editor ignores repo instructions.
 - A Spec Kit upgrade attempts to overwrite customized templates or the constitution.
 - Vendor skills inject marker blocks, or a stale local feature cursor names closed work.
-- A delivery snapshot remains `delivered` after physical cleanup; marking it `closed`
-  needs a separately authorized documentation change, not a closeout target write.
+- Landed work remains terminally `delivered`, whether cleanup completes or retains
+  a worktree; `closed` means withdrawn or abandoned without delivery.
+- An annotated `archive/<package-id>` tag preserves proof before branch deletion;
+  pushing it requires authorization, and an interrupted closeout can reuse it.
+- Retained worktrees, unknown proof, and dirty state are computed from Git/config
+  during preview; package-owned holds must already be declared before delivery.
 
 ## Requirements
 
@@ -206,7 +214,13 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
   `HISTORY.md` as active owners. Useful state moves to packages/catalog;
   history becomes inactive records or remains recoverable in Git. Stable
   product direction may remain on demand; root roadmaps MUST cease to be
-  required cold-start or execution inputs.
+  required cold-start or execution inputs. Kit self-hosting in slice A MUST
+  leave each retired file as a 2–3 line placeholder pointing to `docs/specs.md`,
+  preventing installed legacy prompts from recreating it. Slice C removes these
+  placeholders after the owner installs the dual-mode prompts. Open TODO items
+  move to catalog candidates (at most ten) or `ROADMAP.md`; HISTORY content
+  remains recoverable in Git or moves to an on-demand archive. Nothing useful
+  may be lost.
 - **FR-007**: Root `AGENTS.md` MUST contain invariants and static routing to
   `docs/specs.md`, never the active spec or per-feature state. `CLAUDE.md` MUST
   contain only `@AGENTS.md`; Copilot instructions become a one- or two-line
@@ -307,14 +321,20 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
   worktrees, and reconcile eligible local/remote branches. The final commit
   on the delivery branch MUST set `Lifecycle: delivered` and move its catalog
   entry to the archive section, so a squash carries both. Package directories
-  MUST stay in `specs/`; closeout MUST NOT write to the target branch.
+  MUST stay in `specs/`; closeout MUST NOT write to the target branch. Before
+  deleting the delivery branch, closeout MUST create an annotated
+  `archive/<package-id>` tag on the accepted head as preserved proof (FR-020).
+  Pushing this tag requires authorization.
 - **FR-020**: Merge proof MUST identify the target and accepted source
   revision. Automatic proof is ancestry, or, for squash delivery, exact equality
   on the target with the branch head for every path the branch changed relative
   to its declared base, including additions, deletions, modes, and renames.
-  Otherwise owner confirmation MUST record target, landed commit, and accepted
-  head in the package; proof must be preserved before deletion. Closeout may use
-  the network when authorized. Similarity, a provider claim alone, branch names,
+  Otherwise owner confirmation is required. Before branch deletion, the annotated
+  `archive/<package-id>` tag MUST point to the accepted head; its message records
+  target, landed commit, proof method (`ancestry`, `changed-path equality`, or
+  `owner confirmation`), and date. This tag preserves proof without a new state
+  file or target-branch write. Closeout may use the network only when authorized;
+  tag pushes require authorization. Similarity, a provider claim alone, branch names,
   and missing/stale refs are not proof. Unknown proof retains worktree and branch.
 - **FR-021**: Cleanup MUST meet these preservation clauses:
   1. Inspect tracked/untracked changes, ignored content, unpublished commits,
@@ -323,7 +343,9 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
      a tracked file or known evidence MUST NOT become disposable by pattern match.
   3. Use kit defaults `node_modules/`, `.venv/`, `.pytest_cache/`,
      `__pycache__/`, and `coverage/`; repo overrides require explicit declaration.
-  4. Keep holds in the package, so deleting a local marker cannot remove a hold.
+  4. Declare package-owned holds before delivery, so deleting a local marker
+     cannot remove a hold. Compute cleanup status, including retained worktrees,
+     unknown proof, and dirty state, from Git/config during preview; do not persist it.
   5. Preserve evidence and non-disposable ignored content before deletion.
   6. Treat existing old worktrees as inventory candidates, never abandoned by age.
 - **FR-022**: Cleanup MUST honor repo/session authorization. Ordinary
@@ -340,12 +362,14 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
   rejected. The primary checkout MUST never be a cleanup target.
 - **FR-024**: Closeout MUST be resumable/idempotent. Evidence must be durably
   preserved before its source worktree disappears, including owner-confirmed
-  proof when automatic proof fails. The final delivery commit carries lifecycle
-  and catalog changes (FR-019); cleanup MUST NOT add a target-branch commit.
-  `delivered` does not assert cleanup complete: retained targets have concise
-  package-owned reasons/holds. Marking `closed` is a later, separately authorized
-  documentation change on a declared maintenance branch, not a deletion prerequisite.
-  Its catalog branch must be updated together; old package copies are snapshots.
+  proof when automatic proof fails, using the annotated archive tag (FR-020).
+  The final delivery commit carries lifecycle and catalog changes (FR-019);
+  cleanup MUST NOT add a target-branch commit or new state file. `delivered` is
+  the terminal lifecycle for landed work and does not assert cleanup complete;
+  `closed` means ended without delivery (withdrawn or abandoned). No post-merge
+  documentation change is required. Retention reasons and cleanup status are
+  computed from Git/config in the preview, not persisted; package-owned holds
+  are declared before delivery. Retry MUST reuse preserved proof safely.
   Separate parked/held work does not prevent other eligible cleanup.
 
 #### Cross-repository orchestration – moved to Spec 002
@@ -388,8 +412,10 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
 - **FR-033**: The top block in `spec.md` MUST remain the sole lifecycle owner
   for the whole package life. The fixed `**Lifecycle**:` key accepts only
   `draft`, `review`, `ready`, `active`, `parked`, `delivered`, `closed`, `superseded`:
-  intent, review, authorized planning, execution, hold, delivery awaiting/retaining
-  cleanup, completed closeout, or replaced scope respectively. Transitions require
+  intent, review, authorized planning, execution, hold, terminal landed delivery,
+  ended without delivery (withdrawn or abandoned), or replaced scope respectively.
+  `delivered` remains terminal after cleanup; no post-merge documentation change
+  to `closed` is needed. Transitions require
   the phase's owner authorization and gates; `ready` is not unattended execution.
   Its `**Checkpoints**:` table MUST have ID, gate, verdict link, state columns.
   States are `pending`, `findings-received`, `owner-cleared`, `superseded`;
@@ -454,7 +480,11 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
   A – ownership, lifecycle, lint/budgets, scheduler gates, Spec Kit alignment,
   and self-hosting; B – closeout; C – migration procedure and prompt dual mode.
   Self-hosting A may activate only kit-local instructions/config; it MUST NOT
-  install shared prompts or claim B/C complete. Before A, declare CP2 (after A),
+  install shared prompts or claim B/C complete. Slice A leaves root `STATUS.md`,
+  `TODO.md`, and `HISTORY.md` as 2–3 line catalog placeholders (FR-006); slice C
+  removes them only after the owner installs dual-mode prompts. `plan.md` covers
+  all three slices briefly; `tasks.md` details slice A only, with one-line
+  placeholders for B and C. Before A, declare CP2 (after A),
   CP3 (after B), CP4 (after C) in the same checkpoint table. Beyond-slice work
   stops until the owner clears that checkpoint. Spec 002 may start after A,
   on separate authorization; no package is created by this revision.
@@ -470,7 +500,8 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
 - **Checkpoint**: Package table ID/gate/verdict link/state, with reviewed scope,
   reviewer, and findings in linked artifacts; only the owner clears advancement.
 - **Worktree disposition**: Repo, branch/target, merge evidence, preservation
-  and holds, closeout outcome; inventory plus a concise package record.
+  and pre-delivery package holds; cleanup outcome/reasons computed from Git/config
+  in preview, with proof preserved in an annotated archive tag.
 - **Workflow config**: One versioned per-repo policy declaration (FR-035),
   separate from package lifecycle and task state.
 
@@ -498,12 +529,18 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
   tracked/untracked/ignored evidence, unpublished commits, holds, locks, path
   escapes, and interruption. No protected content is lost; repeated closeout
   performs no new destructive action on completed targets. Squash tests exercise
-  all changed-path equality and owner confirmation. Scratch force tests require
+  all changed-path equality and owner confirmation. Before branch deletion,
+  an annotated `archive/<package-id>` tag on the accepted head preserves the
+  target, landed commit, proof method, and date; tag pushes require authorization.
+  Scratch force tests require
   marker/root proof; delivery worktrees never inherit scratch permissions.
 - **SC-006**: Eligible verified closeout removes its worktree and reconciles
   branches. The delivery commit carries the archived catalog entry and `delivered`
-  state; cleanup makes zero target-branch writes or package moves. Retained
-  targets have visible reasons; `delivered` MUST NOT be presented as `closed`.
+  state; cleanup makes zero target-branch writes, new state files, or package moves.
+  Landed work remains terminally `delivered`; `closed` means withdrawn/abandoned
+  without delivery, and no post-merge documentation change is needed. Retained
+  targets have reasons computed from Git/config in preview; cleanup status is
+  not persisted, and package-owned holds were declared before delivery.
 - **SC-007**: Moved to Spec 002 – two-repo brief, returns, and calibration tests.
 - **SC-008**: The migrated example and kit pass new ownership/budget checks;
   live routers contain no retired-state references. Preserved history/product
@@ -525,8 +562,9 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
   returns must cite brief revisions and consumer `tasks.md` write ownership there.
 - The goal is enforced ownership/lifecycle; no causal token or time savings
   are claimed and no general autonomous semantic audit is promised.
-- Current kit instructions remain active during review. Spec Kit is installed
-  for specification work; runtime workflow changes await accepted implementation.
-- Planning and detailed implementation tasks follow the owner-run Opus review.
-  CP1 has findings, not owner clearance. No plan, tasks, constitution, prompt,
-  script, or downstream repository changes are part of this amendment.
+- Current kit instructions remain active until slice A replaces them. Spec Kit
+  is installed for specification work; runtime changes follow the accepted plan.
+- The owner's 2026-10-11 instruction accepts dispositions and clears CP1 with
+  the recorded amendments. Planning and detailed slice A tasks are authorized;
+  implementation becomes `active` after tasks exist. CP2/CP3/CP4 stay pending,
+  and downstream repository changes remain outside this authorization.

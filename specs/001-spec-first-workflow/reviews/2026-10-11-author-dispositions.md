@@ -3,7 +3,9 @@
 Date: 2026-10-11. Branch: `feat/001-spec-first-workflow`.
 Review: [original findings and binding owner decisions](2026-10-10-opus-spec-review.md).
 Revision: [Spec 001, scope `001/spec-r2`](../spec.md).
-These are author amendments, not an independent verdict or owner clearance.
+The original author amendments below are retained as history. The owner's
+acceptance and amendments appended below supersede their prior clearance and
+closeout interpretation; this is not an independent review verdict.
 
 | Finding | Disposition |
 |---|---|
@@ -31,7 +33,7 @@ These are author amendments, not an independent verdict or owner clearance.
 No finding is rejected. M6 is deferred to the owner-designated Spec 002.
 All other findings are addressed in the specification, not implemented.
 
-## Closeout interpretation for owner acceptance
+## Historical closeout interpretation (superseded)
 
 FR-024 keeps `delivered` as the landed snapshot after physical cleanup; a later,
 separately authorized documentation change may set `closed` and update the
@@ -42,3 +44,38 @@ not require an automatic delta review or another implementation state home.
 
 CP1 remains `findings-received`. No plan, implementation, or migration is authorized
 by this document. The next action is owner acceptance of these dispositions.
+
+## Owner acceptance and amendments, 2026-10-11
+
+Source: the owner's instruction for `feat/001-spec-first-workflow`, dated
+2026-10-11. The owner accepts all author dispositions above with these amendments
+and explicitly clears CP1. The historical pending-clearance and later-`closed`
+interpretation above are superseded. This records owner instruction, not agent
+self-clearance or a new independent verdict.
+
+1. **CP1 and planning**: CP1 is `owner-cleared`; lifecycle is `ready` for
+   planning. CP2 (after A), CP3 (after B), and CP4 (after C) are `pending`.
+   No delta review is requested and CP2 must not be cleared by the implementer.
+2. **Terminal delivery and preserved proof**: `delivered` is terminal for landed
+   work; `closed` means withdrawn or abandoned without delivery. No post-merge
+   documentation change is needed. Before deleting the delivery branch, closeout
+   creates an annotated `archive/<package-id>` tag on the accepted head. Its
+   message records target, landed commit, proof method (ancestry, changed-path
+   equality, or owner confirmation), and date. This is preserved proof without
+   a target-branch write or new state file. Pushing tags requires authorization.
+   Cleanup status (retained worktrees, unknown proof, dirty state) is computed
+   from Git/config in preview and is not persisted; package-owned holds are
+   declared before delivery. FR-019/FR-020/FR-021.4/FR-024/FR-033, SC-005/SC-006,
+   and edge cases now reflect this decision.
+3. **Self-hosting compatibility**: Slice A retires root STATUS/TODO/HISTORY as
+   active owners but leaves each as a 2–3 line placeholder pointing to
+   `docs/specs.md`, protecting against installed legacy prompts. Slice C removes
+   them after the owner installs dual-mode prompts. Open TODO items move into
+   catalog candidates (maximum ten) or `ROADMAP.md`; HISTORY remains recoverable
+   in Git or moves to an on-demand archive. Nothing useful is lost. FR-006 and
+   FR-037 record this transition.
+4. **Planning/task scope**: `plan.md` covers all three slices briefly;
+   `tasks.md` details slice A only, with B and C one-line placeholders. The owner
+   authorizes lifecycle `active` after tasks exist, for slice A implementation
+   only. Work stops at CP2 with a saved review request; no slice B/C implementation,
+   shared prompt installation, push, or downstream repository changes are authorized.

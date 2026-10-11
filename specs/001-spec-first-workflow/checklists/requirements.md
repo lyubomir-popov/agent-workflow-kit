@@ -35,19 +35,26 @@
 - [x] Assumptions and the current-versus-proposed contract boundary are explicit.
 - [x] Saved request, Opus findings, source inventory, and per-finding dispositions exist.
 - [x] Slices A/B/C each stop at an owner-run checkpoint.
-- [ ] Owner-run Opus review received and blocking findings resolved.
+- [x] Owner-run Opus review received and blocking findings resolved: the owner's
+  2026-10-11 instruction accepts dispositions and clears CP1, recorded in
+  [owner acceptance and amendments](../reviews/2026-10-11-author-dispositions.md#owner-acceptance-and-amendments-2026-10-11).
 
 ## Notes
 
 This is author validation, not an independent verdict or implementation evidence.
-Opus findings are received and author-dispositioned, but the readiness item stays
-unchecked pending owner acceptance. The authoritative gate is CP1 in `spec.md`,
-still `findings-received`; this checklist cannot clear it. Planning and coding wait.
+The owner accepted dispositions with amendments on 2026-10-11 and cleared CP1.
+The authoritative gate is CP1 in `spec.md`, now `owner-cleared`; this checklist
+records that instruction. Lifecycle is `ready` for planning. Slice A execution
+is authorized after tasks exist and lifecycle becomes `active`; CP2/CP3/CP4
+remain pending, and work stops at CP2 without starting a delta review.
 
-The closeout-to-`closed` documentation timing is stated in the dispositions for
-owner acceptance. Vendor skill files, constitution, scripts, and prompts are
-unchanged by this revision.
+Landed work remains terminally `delivered`; `closed` means withdrawn/abandoned
+without delivery. Annotated archive tags preserve closeout proof; cleanup status
+is computed, and package-owned holds are declared before delivery. Slice A keeps
+2–3 line legacy placeholders until slice C follows owner-installed dual-mode
+prompts. Planning spans three slices; detailed tasks cover A only.
 
-Revision checks: kit lint has zero findings; 18 local Markdown links resolve;
+Historical author checks before owner amendments: kit lint had zero findings;
+18 local Markdown links resolved;
 FR-001–FR-037 and SC-001–SC-009 are unique and ordered; all 20 review findings
 have dispositions; no template markers remain. Authored whitespace checks pass.

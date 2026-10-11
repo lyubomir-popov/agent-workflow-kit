@@ -1,4 +1,47 @@
 # Spec-first scheduler functions; worker process primitives are in agent-loop.ps1.
+function Read-WorkflowRevisionFile {
+    param([string]$RepoPath, [string]$Revision, [string]$Path)
+    $content=@(git -C $RepoPath show "${Revision}:$Path" 2>$null)
+    if ($LASTEXITCODE) { return $null }
+    return ($content -join "`n") + "`n"
+}
+
+function Assert-WorkflowWorkerRange {
+    param([string]$RepoPath, [string]$BaseCommit, [string]$HeadCommit,
+        [string]$PackagePath, [string]$TaskId)
+    git -C $RepoPath merge-base --is-ancestor $BaseCommit $HeadCommit
+    if ($LASTEXITCODE) { throw 'worker-incomplete: worker range no longer descends from its base.' }
+    $revisions=@(git -C $RepoPath rev-list --reverse "$BaseCommit..$HeadCommit")
+    if ($LASTEXITCODE) { throw 'worker-incomplete: cannot inspect worker range.' }
+    # Inspect each revision against the base, including changes reverted later.
+    foreach ($revision in $revisions) {
+        $names=@(git -C $RepoPath diff --name-only --no-renames -z $BaseCommit $revision)
+        if ($LASTEXITCODE) { throw 'worker-incomplete: cannot inspect changed paths.' }
+        foreach ($path in (($names -join "`n") -split "`0" | Where-Object { $_ })) {
+            if ($path -notmatch '(^|/)(spec\.md|tasks\.md)$' -and $path -notmatch '(^|/)reviews/') { continue }
+            $before=Read-WorkflowRevisionFile $RepoPath $BaseCommit $path
+            $after=Read-WorkflowRevisionFile $RepoPath $revision $path
+            if ($path -match '(^|/)spec\.md$') {
+                $beforeHeader=if ($null -ne $before) { ($before -split '(?m)^##\s',2)[0] } else { $null }
+                $afterHeader=if ($null -ne $after) { ($after -split '(?m)^##\s',2)[0] } else { $null }
+                if ($beforeHeader -cne $afterHeader) { throw "worker-incomplete: owner spec block changed at $revision ($path)." }
+            }
+            if ($path -match '(^|/)reviews/' -and $after -match '(?im)^.*\bVerdict(?:\*\*)?:') {
+                throw "worker-incomplete: review verdict added or modified at $revision ($path)."
+            }
+            if ($path -match '(^|/)tasks\.md$') {
+                $completedBefore=@([regex]::Matches([string]$before,'(?m)^\s*- \[[xX]\] (T\d{3,})\b') | ForEach-Object { $_.Groups[1].Value })
+                $completedAfter=@([regex]::Matches([string]$after,'(?m)^\s*- \[[xX]\] (T\d{3,})\b') | ForEach-Object { $_.Groups[1].Value })
+                foreach ($id in $completedAfter) {
+                    if ($id -notin $completedBefore -and ($id -ne $TaskId -or $path -cne "$PackagePath/tasks.md")) {
+                        throw "worker-incomplete: unrelated task $id newly completed at $revision ($path)."
+                    }
+                }
+            }
+        }
+    }
+}
+
 function Assert-WorkflowPreflight {
     param([string]$RepoPath)
     $output = & pwsh -NoLogo -NoProfile -File "$PSScriptRoot/workflow-kit.ps1" -Command lint -RepoRoot $RepoPath -Strict -Json

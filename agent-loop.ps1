@@ -1125,6 +1125,16 @@ function Invoke-SpecKitWorkerPhase {
             return [pscustomobject]@{ Status = 'dirty-primary'; KeepWorktree = $keepWorktree; WorktreePath = $worktreePath }
         }
 
+        if (Get-WorkflowConfig $RepoPath) {
+            try {
+                Assert-WorkflowWorkerRange -RepoPath $worktreePath -BaseCommit $worktreeHeadBefore -HeadCommit $worktreeHeadAfter -PackagePath $SpecPackage.RelativePath -TaskId $Task.Id
+            } catch {
+                $keepWorktree = $true
+                Write-Host "  $($_.Exception.Message)" -ForegroundColor Red
+                return [pscustomobject]@{ Status = 'worker-incomplete'; KeepWorktree = $true; WorktreePath = $worktreePath; Reason = $_.Exception.Message }
+            }
+        }
+
         Write-Host '  Cherry-picking worker commit(s) into primary worktree...' -ForegroundColor DarkGray
         git -C $RepoPath cherry-pick "$worktreeHeadBefore..$worktreeHeadAfter" | Out-Null
         if ($LASTEXITCODE -ne 0) {

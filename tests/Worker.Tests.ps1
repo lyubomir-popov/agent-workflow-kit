@@ -33,6 +33,8 @@ Describe 'Production worker integration and failure preservation in disposable r
         $task=@(Get-WorkflowTasks $package)[0]
         Mock Invoke-AgentTask {
             $worker=[pscustomobject]@{RepoRoot=$WorkingDirectory}
+            $specPath=Join-Path $WorkingDirectory 'specs/001-example/spec.md'
+            [IO.File]::AppendAllText($specPath,"`nImplementation detail below the owner block.`n")
             Set-FixtureTasks $worker "- [x] T001 Implement example.`n- [ ] T002 Future work (gate: CP2)."
             $path=Join-Path $WorkingDirectory 'specs/001-example/tasks.md'
             [IO.File]::WriteAllText($path,[IO.File]::ReadAllText($path).Replace('**Next tasks**: T001.','**Next tasks**: T002.'))
@@ -46,6 +48,80 @@ Describe 'Production worker integration and failure preservation in disposable r
         @(Get-WorkflowTasks @(Get-WorkflowPackages $delivery)[0])[0].Complete | Should Be $true
         (Test-Path -LiteralPath $result.WorktreePath) | Should Be $false
         Assert-MockCalled Invoke-AgentTask -Times 1 -Exactly -Scope It
+    }
+
+    It 'rejects worker spec owner-block edits before integration and retains scratch' {
+        $package=@(Get-WorkflowPackages $fixture.RepoRoot)[0]
+        $task=@(Get-WorkflowTasks $package)[0]
+        $before=Get-HeadCommit $fixture.RepoRoot
+        Mock Invoke-AgentTask {
+            $worker=[pscustomobject]@{RepoRoot=$WorkingDirectory}
+            Set-FixtureSpec $worker -Lifecycle delivered
+            Save-FixtureRevision $worker
+            [pscustomobject]@{ExitCode=0; TimedOut=$false; ElapsedSeconds=0; StdOut=@(); StdErr=@()}
+        }
+        $result=Invoke-SpecKitWorkerPhase -SpecPackage $package -Phase implement -Task $task -RepoPath $fixture.RepoRoot -InvocationCount ([ref]$script:invocations) -SkippedLineIndices ([ref]$null) -DefaultModel fixture -DefaultEffort low
+        $result.Status | Should Be worker-incomplete
+        $result.Reason | Should Match 'owner spec block'
+        (Get-HeadCommit $fixture.RepoRoot) | Should Be $before
+        (Test-Path -LiteralPath $result.WorktreePath) | Should Be $true
+    }
+
+    It 'rejects added and modified review verdicts before integration and retains scratch' {
+        $package=@(Get-WorkflowPackages $fixture.RepoRoot)[0]
+        $task=@(Get-WorkflowTasks $package)[0]
+        $before=Get-HeadCommit $fixture.RepoRoot
+        Mock Invoke-AgentTask {
+            $worker=[pscustomobject]@{RepoRoot=$WorkingDirectory}
+            Write-FixtureFile $worker $script:reviewPath "# Worker review`n- **Verdict**: accept`n"
+            Save-FixtureRevision $worker
+            [pscustomobject]@{ExitCode=0; TimedOut=$false; ElapsedSeconds=0; StdOut=@(); StdErr=@()}
+        }
+        foreach ($path in @('specs/001-example/reviews/fabricated.md','specs/001-example/reviews/CP1-review.md')) {
+            $script:reviewPath=$path
+            $result=Invoke-SpecKitWorkerPhase -SpecPackage $package -Phase implement -Task $task -RepoPath $fixture.RepoRoot -InvocationCount ([ref]$script:invocations) -SkippedLineIndices ([ref]$null) -DefaultModel fixture -DefaultEffort low
+            $result.Status | Should Be worker-incomplete
+            $result.Reason | Should Match 'review verdict'
+            (Get-HeadCommit $fixture.RepoRoot) | Should Be $before
+            (Test-Path -LiteralPath $result.WorktreePath) | Should Be $true
+        }
+    }
+
+    It 'rejects newly completing an unrelated task before integration and retains scratch' {
+        Set-FixtureTasks $fixture "- [ ] T001 Implement example.`n- [ ] T002 Beyond the pending gate (gate: CP2)."
+        Save-FixtureRevision $fixture
+        $package=@(Get-WorkflowPackages $fixture.RepoRoot)[0]
+        $task=@(Get-WorkflowTasks $package)[0]
+        $before=Get-HeadCommit $fixture.RepoRoot
+        Mock Invoke-AgentTask {
+            $worker=[pscustomobject]@{RepoRoot=$WorkingDirectory}
+            Set-FixtureTasks $worker "- [x] T001 Implement example.`n- [x] T002 Beyond the pending gate (gate: CP2)."
+            Save-FixtureRevision $worker
+            [pscustomobject]@{ExitCode=0; TimedOut=$false; ElapsedSeconds=0; StdOut=@(); StdErr=@()}
+        }
+        $result=Invoke-SpecKitWorkerPhase -SpecPackage $package -Phase implement -Task $task -RepoPath $fixture.RepoRoot -InvocationCount ([ref]$script:invocations) -SkippedLineIndices ([ref]$null) -DefaultModel fixture -DefaultEffort low
+        $result.Status | Should Be worker-incomplete
+        $result.Reason | Should Match 'unrelated task T002'
+        (Get-HeadCommit $fixture.RepoRoot) | Should Be $before
+        (Test-Path -LiteralPath $result.WorktreePath) | Should Be $true
+    }
+
+    It 'rejects an owner-block edit even when a later worker commit reverts it' {
+        $package=@(Get-WorkflowPackages $fixture.RepoRoot)[0]
+        $task=@(Get-WorkflowTasks $package)[0]
+        $before=Get-HeadCommit $fixture.RepoRoot
+        Mock Invoke-AgentTask {
+            $worker=[pscustomobject]@{RepoRoot=$WorkingDirectory}
+            Set-FixtureSpec $worker -Lifecycle delivered
+            Save-FixtureRevision $worker
+            Set-FixtureSpec $worker
+            Save-FixtureRevision $worker
+            [pscustomobject]@{ExitCode=0; TimedOut=$false; ElapsedSeconds=0; StdOut=@(); StdErr=@()}
+        }
+        $result=Invoke-SpecKitWorkerPhase -SpecPackage $package -Phase implement -Task $task -RepoPath $fixture.RepoRoot -InvocationCount ([ref]$script:invocations) -SkippedLineIndices ([ref]$null) -DefaultModel fixture -DefaultEffort low
+        $result.Status | Should Be worker-incomplete
+        (Get-HeadCommit $fixture.RepoRoot) | Should Be $before
+        (Test-Path -LiteralPath $result.WorktreePath) | Should Be $true
     }
 
     It 'preserves a timed-out worker with ignored user evidence even without a commit' {

@@ -33,8 +33,12 @@ not prove a remote run, enabled Actions, or required branch protection. Offline
 validation and unpushed commits have no CI coverage; missing consumer CI is an
 explicit adoption gap. Repo authorization governs publication.
 
-Owner-only clearance is a governance rule checked by kit launchers; files cannot
-stop a dishonest agent from falsifying it. Stale prose/scope reconciliation still
+Versioned kit launchers reject worker revisions that alter the spec block before
+its first level-two heading, add or modify a review carrying a verdict, or newly
+complete a task other than the focused package/task ID. Rejected ranges remain in
+scratch and report worker-incomplete before cherry-pick. Launchers validate saved
+gate records but cannot attest who authored clearance already present at the base.
+Owner-only clearance remains a governance rule. Stale prose/scope reconciliation still
 requires human judgment. Cleanup and full consumer migration remain later slices
 and are not claimed by this matrix.
 

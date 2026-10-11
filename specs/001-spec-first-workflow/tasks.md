@@ -1,8 +1,8 @@
 # Current work
 
-**Next tasks**: T016.
-**Blockers**: Owner-run CP2 review and acceptance before slice B.
-**Checkpoint links**: [slice gates](spec.md#checkpoints); [CP2 request](reviews/2026-10-11-opus-slice-a-review-request.md).
+**Next tasks**: T019.
+**Blockers**: Owner acceptance of CP2 dispositions before slice B.
+**Checkpoint links**: [slice gates](spec.md#checkpoints); [CP2 findings](reviews/2026-10-11-opus-slice-a-review.md).
 **Entry checkpoint**: CP1
 **Validation**: [commands](quickstart.md); [author results and FR map](evidence/slice-a-validation.md).
 
@@ -51,10 +51,21 @@ vendor skills stay unchanged, legacy config still selects legacy launcher/lint.
 
 - [x] T015 Run `tests/run-tests.ps1`, lint, dry run and whitespace checks; save task/FR evidence and bounded CP2 request in `reviews/`, add one `AGENT-INBOX.md` handoff link, leave CP2 pending (FR-014–015, 037, SC-009).
 
+## CP2 remediation
+
+Owner-authorized slice A corrections, 2026-10-11. Entry gate remains CP1;
+CP2 stays pending and no delta review is authorized.
+
+- [x] T018 Reject worker changes to owner spec blocks, review verdicts and unrelated task completions; preserve rejected scratch and test each case (CPA-B1) (gate: CP1).
+- [ ] T019 Repair scratch integration proof and clean failed-run cleanup; test the legacy TODO loop with bookkeeping and record intentional FR-018 changes (CPA-B2, CPA-m6) (gate: CP1).
+- [ ] T020 Resolve archived packages from the checkout, accept target-side delivery, stop manual tasks, restore scheduler branches, and fix inventory/redundant logic (CPA-M1, CPA-M2, CPA-m1, CPA-m3, CPA-m4) (gate: CP1).
+- [ ] T021 Detect missing Spec Kit integrations, author catalog/lifecycle on creation, test create → setup-plan, and repair CI branch restoration (CPA-M3, CPA-M4) (gate: CP1).
+- [ ] T022 Save finding dispositions and validation evidence, update pending CP2/inbox links, and hand back to the owner (gate: CP1).
+
 ## Deferred slices
 
-- [ ] T016 Slice B: closeout in `workflow-kit.ps1`, detailed planning only after CP2 owner clearance (gate: CP2).
-- [ ] T017 Slice C: migration tooling and dual-mode `prompts/`, detailed planning only after CP3 owner clearance (gate: CP3).
+- [ ] T016 Slice B: closeout in `workflow-kit.ps1`, detailed planning only after CP2 owner clearance (manual) (gate: CP2).
+- [ ] T017 Slice C: migration tooling and dual-mode `prompts/`, detailed planning only after CP3 owner clearance (manual) (gate: CP3).
 
 ## Dependencies and execution strategy
 

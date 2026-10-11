@@ -101,6 +101,47 @@ scratch removal. All execution is confined to disposable fixture repositories.
 
 ## Owner follow-up
 
-Run the saved CP2 Opus request, retain its actual identity/verdict/findings, then
-accept per-finding dispositions before authorizing B. No additional product decision
-is needed to review A. Required B/C and their acceptance remain unfinished.
+Accept the saved CP2 findings and [author dispositions](../reviews/2026-10-11-cp2-author-dispositions.md)
+before clearing CP2 or authorizing manual slice B planning. Required B/C work and
+acceptance remain unfinished. No delta review has been requested or started.
+
+## CP2 remediation validation
+
+Date: 2026-10-11. Validated code revision: `d0c80af`; this handoff adds only owners,
+dispositions and evidence. The earlier 86-test record above remains historical.
+The author's fixtures and checks do not clear CP2 or establish an independent verdict.
+
+| Commit | Result | Full suite before commit |
+|---|---|---|
+| `3303e4f` | Save exactly the Opus findings and inbox | 86 passed |
+| `691b668` | Worker owner-block/verdict/task integration rejection; T018 onward | 90 passed |
+| `bc6f0f5` | Scratch changed-path proof, clean failure removal, legacy TODO bookkeeping | 94 passed |
+| `95be292` | Archived delivery, manual stops, branch restoration and host inventory | 101 passed |
+| `d0c80af` | Spec Kit sentinels/create-to-plan and CI branch restore | 106 passed |
+
+All successful commit validations ran `tests/run-tests.ps1`, strict lint,
+`agent-loop.ps1 -DryRun`, and `git diff --check`; staged whitespace and the local
+commit check also passed. Latest code run: **106 passed, 0 failed, 0 skipped**,
+Pester 3.4, 144.95 seconds. Strict lint: zero errors/warnings, one semantic-limit
+info. Dry run dispatches zero workers and stops at the manual T016 boundary.
+The handoff keeps CP2 pending and links both findings and dispositions.
+
+| Finding | Fixture/check evidence |
+|---|---|
+| CPA-B1 | Worker.Tests: owner-block rejection; added/modified verdict rejection; unrelated task rejection; reverted owner edit; successful focused task plus spec-body edit |
+| CPA-B2 | Worker.Tests: legacy TODO cherry-pick plus bookkeeping; clean zero-commit timeout/exit/no-progress removal; legacy clean failure; ignored evidence preservation. Scheduler.Tests: patch equivalence with divergent changed path preserves scratch |
+| CPA-M1 | Workflow.Tests: archive resolves after branch deletion; staged target delivery squash passes actual hook and final commit |
+| CPA-M2 | Scheduler.Tests: manual entry means incomplete/zero dispatch; next manual boundary stops. SpecKit.Tests: RequireTasks/PathsOnly also stops manual task |
+| CPA-M3 | Workflow.Tests: missing/overwritten integration in each of common/check-prerequisites/create-new-feature. SpecKit.Tests: create catalog-owned draft → setup-plan succeeds |
+| CPA-M4 | CI.Tests: actual step skips current branch sorting last; failed ref stops before a later ref |
+| CPA-m1 | Workflow.Tests: CLAUDE.md copilot-chat inventory is required |
+| CPA-m3 | Existing lifecycle/lint regressions and strict lint; redundant conjunction removed with identical active-only behavior |
+| CPA-m4 | Scheduler.Tests: original primary branch is reported/restored after failure and success |
+| CPA-m6 | Explicit legacy-mode behavior section above; legacy Worker.Tests bookkeeping/failure fixtures |
+| CPA-M5, CPA-m2, CPA-m5 | Deferred to future slice B planning; named owner Codex (Spec 001 implementer); no implementation/test completion claim |
+
+All workers are mocks and all create/plan, branch deletion, squash, bookkeeping
+and cleanup tests use isolated local Git fixtures. The CI step is exercised offline
+with synthetic remote refs; remote CI and Linux execution are unverified. No live
+worker, push, prompt installation, vendor skill edit, sibling edit, slice B/C
+implementation, tag/closeout implementation, or delta review was performed.

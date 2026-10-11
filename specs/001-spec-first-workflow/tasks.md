@@ -1,6 +1,6 @@
 # Current work
 
-**Next tasks**: T021.
+**Next tasks**: T022.
 **Blockers**: Owner acceptance of CP2 dispositions before slice B.
 **Checkpoint links**: [slice gates](spec.md#checkpoints); [CP2 findings](reviews/2026-10-11-opus-slice-a-review.md).
 **Entry checkpoint**: CP1
@@ -59,7 +59,7 @@ CP2 stays pending and no delta review is authorized.
 - [x] T018 Reject worker changes to owner spec blocks, review verdicts and unrelated task completions; preserve rejected scratch and test each case (CPA-B1) (gate: CP1).
 - [x] T019 Repair scratch integration proof and clean failed-run cleanup; test the legacy TODO loop with bookkeeping and record intentional FR-018 changes (CPA-B2, CPA-m6) (gate: CP1).
 - [x] T020 Resolve archived packages from the checkout, accept target-side delivery, stop manual tasks, restore scheduler branches, and fix inventory/redundant logic (CPA-M1, CPA-M2, CPA-m1, CPA-m3, CPA-m4) (gate: CP1).
-- [ ] T021 Detect missing Spec Kit integrations, author catalog/lifecycle on creation, test create → setup-plan, and repair CI branch restoration (CPA-M3, CPA-M4) (gate: CP1).
+- [x] T021 Detect missing Spec Kit integrations, author catalog/lifecycle on creation, test create → setup-plan, and repair CI branch restoration (CPA-M3, CPA-M4) (gate: CP1).
 - [ ] T022 Save finding dispositions and validation evidence, update pending CP2/inbox links, and hand back to the owner (gate: CP1).
 
 ## Deferred slices

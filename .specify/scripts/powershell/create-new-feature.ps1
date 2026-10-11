@@ -214,6 +214,36 @@ if ($workflowConfig) {
 
 Set-Location $repoRoot
 
+function Add-WorkflowCatalogPackage {
+    param([string]$RepoRoot, [string]$Id, [string]$Branch)
+    $catalogPath=Resolve-WorkflowRelativePath $RepoRoot 'docs/specs.md'
+    $lines=[Collections.Generic.List[string]]::new()
+    foreach ($line in ([IO.File]::ReadAllText($catalogPath) -split "`r?`n")) { $lines.Add($line) }
+    $inCurrent=$false; $headerIndex=-1; $columns=@()
+    for ($index=0; $index -lt $lines.Count; $index++) {
+        if ($lines[$index] -match '^## (.+)$') { $inCurrent=$Matches[1] -eq 'Current packages' }
+        if (-not $inCurrent -or $lines[$index] -notmatch '^\|') { continue }
+        $cells=@($lines[$index].Trim().Trim('|').Split('|') | ForEach-Object { $_.Trim() })
+        if ($cells -contains 'Spec' -and $cells -contains 'Package' -and $cells -contains 'Branch') {
+            $headerIndex=$index; $columns=$cells; break
+        }
+    }
+    if ($headerIndex -lt 0 -or $lines[$headerIndex+1] -notmatch '^\|[- :|]+\|$') { throw 'specify-workflow: Current packages needs a catalog table before creation.' }
+    $row=foreach ($column in $columns) {
+        switch ($column) {
+            'Spec' { $Id }
+            'Package' { "[$Branch](../specs/$Branch/spec.md)" }
+            'Branch' { '`'+$Branch+'`' }
+            'Lifecycle' { 'draft' }
+            default { '' }
+        }
+    }
+    $insertAt=$headerIndex+2
+    while ($insertAt -lt $lines.Count -and $lines[$insertAt] -match '^\|') { $insertAt++ }
+    $lines.Insert($insertAt,'| '+($row -join ' | ')+' |')
+    [IO.File]::WriteAllText($catalogPath,($lines -join "`n"),[Text.UTF8Encoding]::new($false))
+}
+
 $specsDir = Join-Path $repoRoot 'specs'
 if (-not $DryRun -and -not $workflowConfig) {
     New-Item -ItemType Directory -Path $specsDir -Force | Out-Null
@@ -403,12 +433,21 @@ if (-not $DryRun) {
         if ($template -and (Test-Path $template)) {
             # Read the template content and write it to the spec file with UTF-8 encoding without BOM
             $content = [System.IO.File]::ReadAllText($template)
+            if ($workflowConfig) {
+                $overridePath=Join-Path $repoRoot '.specify/templates/overrides/spec-template.md'
+                if ([IO.Path]::GetFullPath($template) -ne [IO.Path]::GetFullPath($overridePath)) { throw 'specify-workflow: versioned creation requires the project spec override template.' }
+                $intent=$featureDesc -replace '[\r\n]+',' '
+                $content=$content.Replace('[DECLARED CATALOG BRANCH]',$branchName).Replace('[PACKAGE ID]',$featureNum).Replace('[FEATURE NAME]',$intent).Replace('[DATE]',(Get-Date -Format 'yyyy-MM-dd')).Replace('[OWNER INTENT]',$intent)
+            }
             $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
             [System.IO.File]::WriteAllText($specFile, $content, $utf8NoBom)
         } else {
+            if ($workflowConfig) { throw 'specify-workflow: restore the project spec override template before creation.' }
             New-Item -ItemType File -Path $specFile -Force | Out-Null
         }
     }
+
+    if ($workflowConfig) { Add-WorkflowCatalogPackage -RepoRoot $repoRoot -Id $featureNum -Branch $branchName }
 
     # Set the SPECIFY_FEATURE environment variable for the current session
     if (-not $workflowConfig) { $env:SPECIFY_FEATURE = $branchName }

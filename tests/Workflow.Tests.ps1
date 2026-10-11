@@ -46,6 +46,24 @@ Describe 'Versioned workflow model with isolated Git owners' {
         @(Get-FixtureFindings (Invoke-FixtureLint $fixture) inventory-missing).Count | Should Be 1
     }
 
+    It 'fails versioned lint for missing or overwritten Spec Kit integration sentinels' {
+        foreach ($name in @('common.ps1','check-prerequisites.ps1','create-new-feature.ps1')) {
+            $relative=".specify/scripts/powershell/$name"
+            $original=[IO.File]::ReadAllText((Join-Path $fixture.RepoRoot $relative))
+            foreach ($mode in @('overwritten','missing')) {
+                if ($mode -eq 'missing') { Remove-Item -LiteralPath (Join-Path $fixture.RepoRoot $relative) }
+                else { Write-FixtureFile $fixture $relative '# Restored vendor script without kit integration.' }
+                $result=Invoke-FixtureLint $fixture -Strict
+                $result.ExitCode | Should Be 1
+                $finding=@(Get-FixtureFindings $result '^speckit-integration$')
+                $finding.Count | Should Be 1
+                $finding[0].path | Should Be $relative
+                Write-FixtureFile $fixture $relative $original
+            }
+        }
+        (Invoke-FixtureLint $fixture -Strict).ExitCode | Should Be 0
+    }
+
     It 'reads every declared lifecycle without treating age as activation' {
         foreach ($state in @('draft','review','ready','active','parked','delivered','closed','superseded')) {
             Set-FixtureSpec $fixture -Lifecycle $state

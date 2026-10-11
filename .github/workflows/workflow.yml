@@ -15,11 +15,16 @@ jobs:
       - name: Restore local branch inventory
         shell: pwsh
         run: |
-          git for-each-ref --format='%(refname:short)' refs/remotes/origin/ | ForEach-Object {
-            if ($_ -ne 'origin/HEAD') {
-              $branch = $_.Substring(7)
-              git branch --force $branch $_ 2>$null
-            }
+          $currentBranch = git branch --show-current
+          if ($LASTEXITCODE) { throw 'Cannot read the current branch.' }
+          $remoteRefs = @(git for-each-ref --format='%(refname:short)' refs/remotes/origin/)
+          if ($LASTEXITCODE) { throw 'Cannot read remote branch inventory.' }
+          foreach ($remoteRef in $remoteRefs) {
+            if ($remoteRef -eq 'origin/HEAD') { continue }
+            $branch = $remoteRef.Substring(7)
+            if ($branch -eq $currentBranch) { continue }
+            git branch --force $branch $remoteRef 2>$null
+            if ($LASTEXITCODE) { throw "Cannot restore local branch $branch from $remoteRef." }
           }
       - name: Lint
         shell: pwsh

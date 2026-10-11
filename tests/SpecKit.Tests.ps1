@@ -47,6 +47,13 @@ Describe 'Spec Kit ownership and reserved identities' {
         ($output -join "`n") | Should Match 'CP2 is not owner-cleared'
     }
 
+    It 'stops vendor implementation prerequisites at an owner manual task' {
+        Set-FixtureTasks $fixture '- [ ] T001 Author next slice tasks (manual).'
+        $output=& pwsh -NoLogo -NoProfile -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -PathsOnly 2>&1
+        $LASTEXITCODE | Should Be 1
+        ($output -join "`n") | Should Match 'T001 is manual'
+    }
+
     It 'reads actual Git branch despite a spoofed feature environment variable' {
         $env:SPECIFY_FEATURE = 'fake/branch'
         (Get-FeaturePathsEnv).CURRENT_BRANCH | Should Be 'feat/001-example'
@@ -131,6 +138,26 @@ Describe 'Spec Kit ownership and reserved identities' {
         ([string](Invoke-FixtureGit $fixture @('rev-parse','HEAD'))) | Should Be $baseRevision
         (Test-Path -LiteralPath $allocation.SPEC_FILE) | Should Be $true
         $env:SPECIFY_FEATURE | Should BeNullOrEmpty
+    }
+
+    It 'creates a catalog-owned draft from the override and then sets up its plan' {
+        $allocation=(& $create -Number 2 -Json -ShortName created 'Fixture create then plan') | ConvertFrom-Json
+        . (Join-Path $fixture.RepoRoot 'workflow-model.ps1')
+        $package=Select-WorkflowPackage $fixture.RepoRoot
+        $package.Id | Should Be '002'
+        $package.Branch | Should Be $allocation.BRANCH_NAME
+        $package.Lifecycle | Should Be draft
+        $package.Scope | Should Be '002/spec-r1'
+        $package.Checkpoints[0].State | Should Be pending
+        $package.SpecText | Should Match 'Fixture create then plan'
+        $package.Header | Should Not Match '\[DECLARED CATALOG BRANCH\]|\[PACKAGE ID\]'
+        $output=& pwsh -NoLogo -NoProfile -File .specify/scripts/powershell/setup-plan.ps1 -Json 2>&1
+        $LASTEXITCODE | Should Be 0
+        $plan=$output -join "`n" | ConvertFrom-Json
+        $plan.SPECS_DIR | Should Be $package.AbsolutePath
+        (Test-Path -LiteralPath $plan.IMPL_PLAN) | Should Be $true
+        [IO.File]::ReadAllText($plan.IMPL_PLAN) | Should Match 'Implementation Plan'
+        (Invoke-FixtureLint $fixture -Strict).ExitCode | Should Be 0
     }
 
     It 'retains legacy cursor and environment behavior when version is absent' {

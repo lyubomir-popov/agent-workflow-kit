@@ -94,6 +94,19 @@ function Test-SpecWorkflowRepo {
     if ($LASTEXITCODE) { Add-Finding $findings error feature-cursor '.gitignore' 'Ignore .specify/feature.json; it cannot own package selection.' }
     git -C $RepoRoot rev-parse --verify "$($Config.targetBranch)^{commit}" 2>$null | Out-Null
     if ($LASTEXITCODE) { Add-Finding $findings error target-branch '.workflow-kit.json' "Configured target $($Config.targetBranch) is unavailable locally; do not assume main." }
+    $integrations=@{
+        'common.ps1'=@('(?m)^function Get-SpecKitWorkflowConfig\s*\{','Select-WorkflowPackage')
+        'check-prerequisites.ps1'=@('if\s*\(\$RequireTasks\s+-and\s+\(Get-SpecKitWorkflowConfig','Get-WorkflowGateProblem')
+        'create-new-feature.ps1'=@('Get-SpecKitWorkflowConfig','Add-WorkflowCatalogPackage')
+    }
+    foreach ($name in $integrations.Keys) {
+        $relative=".specify/scripts/powershell/$name"
+        $path=Resolve-WorkflowRelativePath $RepoRoot $relative
+        $scriptText=if (Test-Path -LiteralPath $path -PathType Leaf) { [IO.File]::ReadAllText($path) } else { '' }
+        if (@($integrations[$name] | Where-Object { $scriptText -notmatch $_ }).Count) {
+            Add-Finding $findings error speckit-integration $relative 'Required Spec Kit integration sentinels are missing; restore the kit catalog/config/checkpoint integration after upgrade before continuing.'
+        }
+    }
     $loaded=@{}; $declared=@{}
     foreach ($file in $Config.autoLoadedFiles) {
         foreach ($hostName in $file.hosts) {

@@ -45,5 +45,8 @@ and are not claimed by this matrix.
 Worker preflight checks repository/package, branch/base, marker, task and gate;
 the focused prompt declares write scope. CLI permission modes do not provide a
 filesystem sandbox for that scope. Direct vendor/CLI invocations can bypass kit
-entry points. Spec Kit upgrades require a manual preview preserving project
-overrides/constitution; the kit does not intercept the external `specify init` CLI.
+entry points. Versioned lint fails when the common resolver, RequireTasks gate or
+feature-creation catalog integration sentinels are missing from the three Spec Kit
+scripts. This detects overwritten integrations at the next check; it does not
+attest vendor behavior or intercept the external `specify init` CLI. Upgrades still
+require a manual preview preserving project overrides/constitution.

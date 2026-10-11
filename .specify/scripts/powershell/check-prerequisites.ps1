@@ -67,6 +67,7 @@ if ($RequireTasks -and (Get-SpecKitWorkflowConfig -RepoRoot $paths.REPO_ROOT)) {
     if ($package.Lifecycle -ne 'active') { throw 'specify-checkpoint: implementation requires an active, owner-authorized package.' }
     $next = @(Get-WorkflowTasks $package | Where-Object { -not $_.Complete } | Select-Object -First 1)
     if (-not $next.Count) { throw 'specify-checkpoint: no authorized implementation task; reconcile owner exit checkpoints.' }
+    if ($next[0].Manual) { throw "specify-checkpoint: $($next[0].Id) is manual; stop for owner action." }
     $problem = Get-WorkflowGateProblem $package $next[0].Gate
     if ($problem) { throw "specify-checkpoint: $problem" }
 }

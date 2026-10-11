@@ -111,6 +111,12 @@ function New-WorkflowFixture {
     Write-FixtureFile $fixture '.gitignore' ".specify/feature.json`n"
     Write-FixtureFile $fixture '.agents/skills/.keep' ''
     Write-FixtureFile $fixture '.claude/skills/.keep' ''
+    foreach ($relative in @('workflow-model.ps1','.specify/scripts/powershell/common.ps1',
+        '.specify/scripts/powershell/check-prerequisites.ps1','.specify/scripts/powershell/create-new-feature.ps1',
+        '.specify/scripts/powershell/setup-plan.ps1','.specify/templates/overrides/spec-template.md',
+        '.specify/templates/plan-template.md')) {
+        Write-FixtureFile $fixture $relative ([IO.File]::ReadAllText((Join-Path $script:KitRoot $relative)))
+    }
     Write-FixtureFile $fixture 'INBOX.md' "# Inbox`n`nTransient user handoffs: recipient, scope, artifact, action.`n"
     Write-FixtureFile $fixture 'AGENT-INBOX.md' "# Agent Inbox`n`nTransient agent handoffs: recipient, scope, artifact, action.`n"
     Write-FixtureFile $fixture 'docs/specs.md' @'

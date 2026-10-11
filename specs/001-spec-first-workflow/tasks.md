@@ -1,10 +1,10 @@
 # Current work
 
-**Next tasks**: T015.
-**Blockers**: none within the owner-authorized slice A.
-**Checkpoint links**: [CP1 and slice gates](spec.md#checkpoints).
+**Next tasks**: T016.
+**Blockers**: Owner-run CP2 review and acceptance before slice B.
+**Checkpoint links**: [slice gates](spec.md#checkpoints); [CP2 request](reviews/2026-10-11-opus-slice-a-review-request.md).
 **Entry checkpoint**: CP1
-**Validation**: [commands and fixture scope](quickstart.md).
+**Validation**: [commands](quickstart.md); [author results and FR map](evidence/slice-a-validation.md).
 
 ## Setup and foundation
 
@@ -49,7 +49,7 @@ vendor skills stay unchanged, legacy config still selects legacy launcher/lint.
 
 ## Cross-cutting validation and handoff
 
-- [ ] T015 Run `tests/run-tests.ps1`, lint, dry run and whitespace checks; save task/FR evidence and bounded CP2 request in `reviews/`, add one `AGENT-INBOX.md` handoff link, leave CP2 pending (FR-014–015, 037, SC-009).
+- [x] T015 Run `tests/run-tests.ps1`, lint, dry run and whitespace checks; save task/FR evidence and bounded CP2 request in `reviews/`, add one `AGENT-INBOX.md` handoff link, leave CP2 pending (FR-014–015, 037, SC-009).
 
 ## Deferred slices
 

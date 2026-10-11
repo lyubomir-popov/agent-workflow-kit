@@ -1067,7 +1067,7 @@ function Invoke-SpecKitWorkerPhase {
     $prompt = Build-SpecKitPrompt -SpecPackage $SpecPackage -Phase $Phase -Task $Task -RepoPath $RepoPath
     $commitBefore = Get-HeadCommit -RepoPath $RepoPath
     $worktreePath = $null
-    $keepWorktree = $true
+    $keepWorktree = $false
 
     try {
         $worktreePath = New-TemporaryWorktree -RepoPath $RepoPath
@@ -1096,6 +1096,7 @@ function Invoke-SpecKitWorkerPhase {
             Get-CommitCountBetween -RepoPath $worktreePath -BaseCommit $worktreeHeadBefore -HeadCommit $worktreeHeadAfter
         }
 
+        $keepWorktree = Test-WorkflowScratchHasWork $worktreePath $worktreeHeadBefore
         if ($copilotResult.TimedOut) {
             Write-Host "  [x] $WorkerAgent timed out after $($copilotResult.ElapsedSeconds)s." -ForegroundColor Red
             if ($worktreeCommitCount -gt 0) { $keepWorktree = $true }
@@ -1878,7 +1879,7 @@ while ($taskCount -lt $MaxTasks) {
     $commitBefore = Get-HeadCommit -RepoPath $repoRoot
     $todoBefore = Get-TodoText
     $worktreePath = $null
-    $keepWorktree = $true
+    $keepWorktree = $false
 
     # Build the prompt. The agent sees the repo, reads the workflow files,
     # does the task, and commits.
@@ -1941,6 +1942,7 @@ After completing the task:
             Get-CommitCountBetween -RepoPath $worktreePath -BaseCommit $worktreeHeadBefore -HeadCommit $worktreeHeadAfter
         }
 
+        $keepWorktree = Test-WorkflowScratchHasWork $worktreePath $worktreeHeadBefore
         if ($copilotResult.TimedOut) {
             Write-Host "  [x] $WorkerAgent timed out after $($copilotResult.ElapsedSeconds)s. Stopping." -ForegroundColor Red
             if ($worktreeCommitCount -gt 0) {

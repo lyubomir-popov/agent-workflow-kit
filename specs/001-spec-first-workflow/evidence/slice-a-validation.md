@@ -76,6 +76,29 @@ be reserved without separately authorized network evidence. No intentional devia
 from the accepted A boundary; the first activation commit spans coupled owners/scripts
 to keep the version switch coherent, followed by a separate procedure/hook commit.
 
+## Legacy-mode behavior changes accepted for CP2 remediation
+
+The owner's 2026-10-11 CPA-B2 decision permits recording these as intentional
+FR-018 fixes for unmigrated consumers. They are exceptions to unchanged legacy
+behavior under FR-030.7, rather than a claim that legacy behavior is identical:
+
+- Legacy SpecKit review findings now live at `<package>/reviews/agent-review.md`
+  instead of `AGENT-INBOX.md`; the root inbox carries a transient link.
+- Missing saved reviews, absent accepting verdicts and unchecked findings remain
+  active findings. Failed or exhausted bounded remediation reports incomplete.
+- Legacy prompts preserve findings/dispositions in the package and update task
+  headers instead of writing an AGENTS handover or draining the root inbox.
+- Failed declared-branch checkout stops instead of falling back to another branch.
+- Scratch cleanup requires a kit marker, managed-root containment and preservation
+  proof; recursive filesystem deletion is removed. Failed runs retain commits,
+  dirty files and protected ignored/untracked evidence; clean zero-commit runs
+  are removed. Ancestry, or patch equivalence plus scratch-changed-path equality,
+  permits unrelated integration bookkeeping without requiring whole-tree equality.
+
+The production legacy TODO-loop fixture uses a mocked worker, cherry-picks its
+commit and adds the scheduler's separate TODO bookkeeping commit, then verifies
+scratch removal. All execution is confined to disposable fixture repositories.
+
 ## Owner follow-up
 
 Run the saved CP2 Opus request, retain its actual identity/verdict/findings, then

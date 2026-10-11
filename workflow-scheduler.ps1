@@ -148,6 +148,22 @@ function Test-WorkflowDisposablePath {
     return $false
 }
 
+function Test-WorkflowScratchHasWork {
+    param([string]$RepoPath, [string]$BaseCommit)
+    if ((Get-HeadCommit $RepoPath) -ne $BaseCommit) { return $true }
+    $trackedChanges=@(git -C $RepoPath status --porcelain --untracked-files=no)
+    if ($LASTEXITCODE -or $trackedChanges.Count) { return $true }
+    $extras=@(git -C $RepoPath ls-files --others --exclude-standard)
+    if ($LASTEXITCODE) { return $true }
+    $extras+=@(git -C $RepoPath ls-files --others --ignored --exclude-standard)
+    if ($LASTEXITCODE) { return $true }
+    $config=Get-WorkflowConfig $RepoPath
+    foreach ($relative in $extras) {
+        if ($relative -match '(^|/)(specs|reviews|evidence)(/|$)' -or -not (Test-WorkflowDisposablePath $relative $config)) { return $true }
+    }
+    return $false
+}
+
 function New-WorkflowScratch {
     param([string]$RepoPath)
     $config=Get-WorkflowConfig $RepoPath
@@ -191,16 +207,20 @@ function Remove-WorkflowScratch {
         Assert-WorkflowNoLinks (Join-Path $normalized $relative)
     }
     $head=Get-HeadCommit $normalized
-    # Cherry-picked commits have different IDs; prove every produced patch exists on
-    # the explicit integration branch, plus exact tree equality at successful head.
+    # Cherry-picked commits may have different IDs. Unrelated bookkeeping at the
+    # integration tip is allowed, but every scratch patch and changed path must match.
     git -C $RepoPath merge-base --is-ancestor $head $marker.integrationBranch
     $ancestry=$LASTEXITCODE -eq 0
     if (-not $ancestry) {
         $cherries=@(git -C $RepoPath cherry $marker.integrationBranch $head $marker.base)
         if ($LASTEXITCODE -or @($cherries | Where-Object { $_ -match '^\+' }).Count) { throw 'scratch-preserved: unpublished commits remain.' }
-        $scratchTree=git -C $normalized rev-parse 'HEAD^{tree}'
-        $integratedTree=git -C $RepoPath rev-parse "$($marker.integrationBranch)^{tree}"
-        if ($scratchTree -ne $integratedTree) { throw 'scratch-preserved: integration tree equality is unknown.' }
+        $names=@(git -C $RepoPath diff --name-only --no-renames -z $marker.base $head)
+        if ($LASTEXITCODE) { throw 'scratch-preserved: changed-path proof is unknown.' }
+        $paths=@(($names -join "`n") -split "`0" | Where-Object { $_ })
+        if ($paths.Count) {
+            git --literal-pathspecs -C $RepoPath diff --quiet $head $marker.integrationBranch -- @paths
+            if ($LASTEXITCODE) { throw 'scratch-preserved: integration differs on scratch-changed paths.' }
+        }
     }
     # Revalidate containment/links and marker immediately before Git's mutation.
     $null=Resolve-WorkflowRelativePath $root ([IO.Path]::GetRelativePath($root,$normalized))

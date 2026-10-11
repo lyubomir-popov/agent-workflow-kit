@@ -222,6 +222,21 @@ Describe 'Contained scratch preservation' {
         (Test-Path -LiteralPath $scratch) | Should Be $true
     }
 
+    It 'preserves patch-equivalent scratch when an integrated changed path diverges' {
+        Write-FixtureFile $fixture 'bookkeeping.txt' 'Unrelated integration state.'
+        Save-FixtureRevision $fixture
+        $scratchFixture=[pscustomobject]@{RepoRoot=$scratch}
+        Write-FixtureFile $scratchFixture 'output.txt' 'Worker output.'
+        Save-FixtureRevision $scratchFixture
+        $workerHead=Get-HeadCommit $scratch
+        $null=Invoke-FixtureGit $fixture @('cherry-pick',$workerHead)
+        Write-FixtureFile $fixture 'output.txt' 'Different integration output.'
+        Save-FixtureRevision $fixture
+        (git -C $fixture.RepoRoot cherry 'feat/001-example' $workerHead) | Should Match '^-'
+        (Test-FixtureThrows { Remove-WorkflowScratch $fixture.RepoRoot $scratch }) | Should Be $true
+        (Test-Path -LiteralPath $scratch) | Should Be $true
+    }
+
     It 'preserves a scratch worktree whose marker is missing' {
         $admin = [string](git -C $scratch rev-parse --absolute-git-dir)
         Remove-Item -LiteralPath (Join-Path $admin 'workflow-kit-scratch.json')

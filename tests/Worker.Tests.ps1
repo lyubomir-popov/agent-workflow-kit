@@ -8,6 +8,17 @@ if ($errors) { throw $errors }
 foreach ($definition in $ast.FindAll({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst]},$true)) {
     Invoke-Expression $definition.Extent.Text
 }
+# Execute the production TODO loop with fixture-only variables and mocked workers.
+$script:legacyTodoLoop=@($ast.EndBlock.Statements | Where-Object {
+    $_ -is [Management.Automation.Language.WhileStatementAst] -and $_.Condition.Extent.Text -match '\$taskCount -lt \$MaxTasks'
+})[0].Extent.Text
+function Invoke-FixtureLegacyTodoLoop {
+    $repoRoot=$script:fixture.RepoRoot
+    if (Get-WorkflowConfig $repoRoot) { throw 'Fixture must be in legacy mode.' }
+    $taskCount=0; $MaxTasks=1; $TaskSection='## Tasks'; $skippedLineIndices=@()
+    $Model='fixture'; $ReasoningEffort='low'
+    Invoke-Expression $script:legacyTodoLoop
+}
 
 Describe 'Production worker integration and failure preservation in disposable repositories' {
     BeforeEach {
@@ -138,6 +149,66 @@ Describe 'Production worker integration and failure preservation in disposable r
         $result.Status | Should Be failed-stop
         $result.KeepWorktree | Should Be $true
         [IO.File]::ReadAllText((Join-Path $script:timedOutScratch 'private-evidence.txt')) | Should Be 'Recover this evidence.'
+        Assert-MockCalled Invoke-AgentTask -Times 1 -Exactly -Scope It
+    }
+
+    It 'removes clean zero-commit scratch after timeout process failure or missing progress' {
+        $package=@(Get-WorkflowPackages $fixture.RepoRoot)[0]
+        $task=@(Get-WorkflowTasks $package)[0]
+        $before=Get-HeadCommit $fixture.RepoRoot
+        Mock Invoke-AgentTask {
+            [pscustomobject]@{ExitCode=$script:failureCode; TimedOut=$script:failureTimeout; ElapsedSeconds=0; StdOut=@(); StdErr=@()}
+        }
+        foreach ($mode in @('timeout','exit','no-commit')) {
+            $script:failureTimeout=$mode -eq 'timeout'
+            $script:failureCode=if ($mode -eq 'exit') { 1 } else { 0 }
+            $result=Invoke-SpecKitWorkerPhase -SpecPackage $package -Phase implement -Task $task -RepoPath $fixture.RepoRoot -InvocationCount ([ref]$script:invocations) -SkippedLineIndices ([ref]$null) -DefaultModel fixture -DefaultEffort low
+            $result.Status | Should Be failed-stop
+            $result.KeepWorktree | Should Be $false
+            (Test-Path -LiteralPath $result.WorktreePath) | Should Be $false
+            (Get-HeadCommit $fixture.RepoRoot) | Should Be $before
+        }
+    }
+
+    It 'removes legacy TODO scratch after cherry-pick and a separate bookkeeping commit' {
+        Remove-Item -LiteralPath (Join-Path $fixture.RepoRoot '.workflow-kit.json')
+        Write-FixtureFile $fixture 'TODO.md' "# TODO`n`n## Tasks`n`n- [ ] Write fixture output.`n"
+        Save-FixtureRevision $fixture
+        $before=Get-HeadCommit $fixture.RepoRoot
+        Mock Get-WorkflowScratchRoot { Join-Path $script:fixture.TempRoot 'scratch' }
+        Mock Invoke-AgentTask {
+            $script:legacyScratch=$WorkingDirectory
+            Write-FixtureFile ([pscustomobject]@{RepoRoot=$WorkingDirectory}) 'output.txt' 'Completed fixture task.'
+            git -C $WorkingDirectory add -- output.txt
+            git -C $WorkingDirectory -c 'user.name=Fixture scratch worker' commit --quiet -m 'Fixture worker change'
+            if ($LASTEXITCODE) { throw 'Fixture worker commit failed.' }
+            $script:legacyWorkerHead=Get-HeadCommit $WorkingDirectory
+            [pscustomobject]@{ExitCode=0; TimedOut=$false; ElapsedSeconds=0; StdOut=@(); StdErr=@()}
+        }
+        Invoke-FixtureLegacyTodoLoop
+        (git -C $fixture.RepoRoot rev-list --count "$before..HEAD") | Should Be 2
+        (git -C $fixture.RepoRoot log -1 --format=%s) | Should Be 'chore: mark TODO task done'
+        (git -C $fixture.RepoRoot rev-parse 'HEAD~1') | Should Not Be $script:legacyWorkerHead
+        (Get-TodoText) | Should Match '\[x\] Write fixture output'
+        (Test-Path -LiteralPath $script:legacyScratch) | Should Be $false
+        @(git -C $fixture.RepoRoot worktree list --porcelain | Where-Object { $_ -match '^worktree ' }).Count | Should Be 1
+        Assert-MockCalled Invoke-AgentTask -Times 1 -Exactly -Scope It
+    }
+
+    It 'removes clean failed legacy TODO scratch without a bookkeeping commit' {
+        Remove-Item -LiteralPath (Join-Path $fixture.RepoRoot '.workflow-kit.json')
+        Write-FixtureFile $fixture 'TODO.md' "# TODO`n`n## Tasks`n`n- [ ] Write fixture output.`n"
+        Save-FixtureRevision $fixture
+        $before=Get-HeadCommit $fixture.RepoRoot
+        Mock Get-WorkflowScratchRoot { Join-Path $script:fixture.TempRoot 'scratch' }
+        Mock Invoke-AgentTask {
+            $script:legacyScratch=$WorkingDirectory
+            [pscustomobject]@{ExitCode=1; TimedOut=$false; ElapsedSeconds=0; StdOut=@(); StdErr=@()}
+        }
+        Invoke-FixtureLegacyTodoLoop
+        (Get-HeadCommit $fixture.RepoRoot) | Should Be $before
+        (Get-TodoText) | Should Match '\[ \] Write fixture output'
+        (Test-Path -LiteralPath $script:legacyScratch) | Should Be $false
         Assert-MockCalled Invoke-AgentTask -Times 1 -Exactly -Scope It
     }
 }

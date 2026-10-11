@@ -44,3 +44,5 @@ is implied by this catalog.
 
 Delivered packages stay at their original `specs/` paths and retain their numbers.
 Move their catalog rows here at delivery; do not copy lifecycle into this catalog.
+Archived rows resolve from the current checkout; Branch retains the original
+delivery branch name as metadata even after that branch is deleted.

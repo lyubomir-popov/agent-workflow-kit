@@ -6,7 +6,7 @@ before dispatch. Local/read-only checks do not establish semantic freshness.
 
 | Host | Instruction/loading inventory | Actual automatic trigger | Manual trigger | Gaps |
 |---|---|---|---|---|
-| VS Code Copilot Chat | Copilot adapter routes to AGENTS; prompt files are invocation assets | Kit launcher preflight when launcher is used | Session lint, /run-validation, scheduler dry run | Chat can skip checks; adapter links may require explicit loading; host context loading beyond declared files is unknown |
+| VS Code Copilot Chat | AGENTS, CLAUDE and Copilot adapter are declared loaded; prompt files are invocation assets | Kit launcher preflight when launcher is used | Session lint, /run-validation, scheduler dry run | Chat can skip checks; adapter links may require explicit loading; host context loading beyond declared files is unknown |
 | Copilot CLI | AGENTS plus declared Copilot adapter, depending on host support | Kit launcher preflight when dispatched | Session lint and explicit dry run | Direct CLI bypasses launcher; no claim every turn checks gates |
 | Codex | AGENTS; vendor skills on demand | Kit launcher preflight when dispatched | Session lint and explicit dry run | Direct chats/CLI can skip checks; user/global instructions are outside repo enforcement |
 | Claude Code | CLAUDE imports AGENTS; skills on demand | Kit launcher preflight when used | Session lint and explicit dry run | Direct chat can skip checks; user/global context loading is unknown |

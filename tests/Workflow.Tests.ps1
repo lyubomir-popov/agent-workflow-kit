@@ -37,6 +37,15 @@ Describe 'Versioned workflow model with isolated Git owners' {
         (Test-FixtureThrows { Get-WorkflowConfig $fixture.RepoRoot }) | Should Be $true
     }
 
+    It 'requires CLAUDE.md in the copilot-chat loading inventory' {
+        $config=Get-FixtureConfig $fixture
+        $adapter=@($config.autoLoadedFiles | Where-Object path -eq 'CLAUDE.md')[0]
+        ($adapter.hosts -contains 'copilot-chat') | Should Be $true
+        $adapter.hosts=@($adapter.hosts | Where-Object { $_ -ne 'copilot-chat' })
+        Set-FixtureConfig $fixture $config
+        @(Get-FixtureFindings (Invoke-FixtureLint $fixture) inventory-missing).Count | Should Be 1
+    }
+
     It 'reads every declared lifecycle without treating age as activation' {
         foreach ($state in @('draft','review','ready','active','parked','delivered','closed','superseded')) {
             Set-FixtureSpec $fixture -Lifecycle $state
@@ -69,6 +78,37 @@ Describe 'Versioned workflow model with isolated Git owners' {
     It 'rejects explicit package edits from a different branch' {
         $null = Invoke-FixtureGit $fixture @('switch','--quiet','master')
         (Test-FixtureThrows { Select-WorkflowPackage $fixture.RepoRoot 'specs/001-example' }) | Should Be $true
+    }
+
+    It 'resolves an archived package from the current checkout after its branch is deleted' {
+        Set-FixtureArchivedPackage $fixture
+        Save-FixtureRevision $fixture
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        $null=Invoke-FixtureGit $fixture @('merge','--quiet','--ff-only','feat/001-example')
+        $null=Invoke-FixtureGit $fixture @('branch','-d','feat/001-example')
+        $package=@(Get-WorkflowPackages $fixture.RepoRoot)[0]
+        $package.Archived | Should Be $true
+        $package.Local | Should Be $true
+        $package.WorktreeRoot | Should Be $fixture.RepoRoot
+        $package.Lifecycle | Should Be delivered
+        (Invoke-FixtureLint $fixture -Strict).ExitCode | Should Be 0
+    }
+
+    It 'accepts a staged delivery squash and its final commit on the configured target' {
+        Set-FixtureArchivedPackage $fixture
+        Save-FixtureRevision $fixture
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        $null=Invoke-FixtureGit $fixture @('merge','--squash','feat/001-example')
+        $output=& pwsh -NoLogo -NoProfile -File (Join-Path $script:KitRoot 'workflow-hook.ps1') -RepoRoot $fixture.RepoRoot 2>&1
+        $LASTEXITCODE | Should Be 0
+        (Invoke-FixtureLint $fixture -Strict).ExitCode | Should Be 0
+        $null=Invoke-FixtureGit $fixture @('commit','--quiet','-m','Fixture delivery squash')
+        git -C $fixture.RepoRoot merge-base --is-ancestor 'feat/001-example' master
+        $LASTEXITCODE | Should Be 1
+        $package=@(Get-WorkflowPackages $fixture.RepoRoot)[0]
+        $package.Archived | Should Be $true
+        $package.Lifecycle | Should Be delivered
+        (Invoke-FixtureLint $fixture -Strict).ExitCode | Should Be 0
     }
 
     It 'ignores a stale local cursor when selecting the current declared package' {

@@ -146,6 +146,32 @@ None.
     return $fixture
 }
 
+function Set-FixtureArchivedPackage {
+    param($Fixture)
+    Set-FixtureSpec $Fixture -Lifecycle delivered
+    Set-FixtureTasks $Fixture '- [x] T001 Implement example.'
+    $tasksPath=Join-Path $Fixture.RepoRoot 'specs/001-example/tasks.md'
+    [IO.File]::WriteAllText($tasksPath,[IO.File]::ReadAllText($tasksPath).Replace('**Next tasks**: T001.','**Next tasks**: none.'))
+    Write-FixtureFile $Fixture 'docs/specs.md' @'
+# Spec catalog
+
+## Current packages
+
+| Spec | Package | Branch |
+|---|---|---|
+
+## Archive
+
+| Spec | Package | Branch |
+|---|---|---|
+| 001 | [Example](../specs/001-example/spec.md) | `feat/001-example` |
+
+## Candidates
+
+None.
+'@
+}
+
 function Remove-WorkflowFixture {
     param($Fixture)
     if (-not $Fixture) { return }

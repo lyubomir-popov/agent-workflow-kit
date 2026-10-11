@@ -167,7 +167,7 @@ function Get-WorkflowPackages {
     $packages = @()
     foreach ($entry in @(Get-WorkflowCatalog $RepoRoot)) {
         $local = @($worktrees | Where-Object Branch -eq $entry.Branch | Select-Object -First 1)
-        $localRoot = if ($current -eq $entry.Branch -or ($marker -and $marker.integrationBranch -eq $entry.Branch)) { $RepoRoot }
+        $localRoot = if ($entry.Archived -or $current -eq $entry.Branch -or ($marker -and $marker.integrationBranch -eq $entry.Branch)) { $RepoRoot }
             elseif ($local.Count) { $local[0].Path } else { $null }
         $package = [pscustomobject]@{
             Id=$entry.Id; RelativePath=$entry.RelativePath; Branch=$entry.Branch; Archived=$entry.Archived
@@ -176,7 +176,10 @@ function Get-WorkflowPackages {
             Lifecycle=$null; Scope=$null; SupersededScopes=@(); SupersededTasks=@(); Checkpoints=@(); SpecText=$null; Header=$null
         }
         $spec = Read-WorkflowPackageFile $package 'spec.md'
-        if (-not $spec) { throw "package-owner: $($entry.RelativePath)/spec.md missing on declared branch $($entry.Branch)." }
+        if (-not $spec) {
+            $source=if ($entry.Archived) { 'current checkout (archived package)' } else { "declared branch $($entry.Branch)" }
+            throw "package-owner: $($entry.RelativePath)/spec.md missing on $source."
+        }
         $header = ($spec -split '(?m)^##\s', 2)[0]
         $lifecycle = [regex]::Matches($spec, '(?m)^\*\*Lifecycle\*\*:\s*([a-z-]+)\s*$')
         if ($lifecycle.Count -ne 1 -or $lifecycle[0].Groups[1].Value -notin @('draft','review','ready','active','parked','delivered','closed','superseded')) { throw "lifecycle-block: invalid/duplicate lifecycle in $($entry.RelativePath)." }
@@ -219,7 +222,7 @@ function Get-WorkflowTasks {
             $seen[$id]=$true
             $gate=if ($description -match '\(gate: (CP\d+)\)') { $Matches[1] } else { $defaultGate }
             if ($gate -notin @($Package.Checkpoints.Id)) { throw "task-gate: unknown $gate for $id." }
-            $tasks += [pscustomobject]@{Id=$id; Text="$id $description"; Complete=$done; Gate=$gate; LineIndex=$index; SpecPackage=$Package; Kind='spec-checkbox'}
+            $tasks += [pscustomobject]@{Id=$id; Text="$id $description"; Complete=$done; Gate=$gate; Manual=($description -match '\(manual\)'); LineIndex=$index; SpecPackage=$Package; Kind='spec-checkbox'}
         } elseif ($line -match '^\s*- \[[ xX]\]') { throw "task-identity: checklist needs a stable Tnnn ID in $($Package.RelativePath)." }
         $index++
     }

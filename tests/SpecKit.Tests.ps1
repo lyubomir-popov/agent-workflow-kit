@@ -85,7 +85,7 @@ Describe 'Spec Kit ownership and reserved identities' {
         Write-FixtureFile $fixture 'specs/011-closed/spec.md' '**Lifecycle**: closed'
         Write-FixtureFile $fixture 'specs/20261011-123456-legacy/spec.md' 'Legacy timestamp'
         $catalog = Get-Content -LiteralPath (Join-Path $fixture.RepoRoot 'docs/specs.md') -Raw
-        $catalog = $catalog.Replace('## Candidates', '| 008 | [Delivered](../specs/008-delivered/spec.md) | `archive/eight` |' + "`n`n## Candidates")
+        $catalog = $catalog.Replace('## Candidates', '| 008 | [Delivered](../specs/008-delivered/spec.md) | `feat/008-delivered` |' + "`n`n## Candidates")
         Write-FixtureFile $fixture 'docs/specs.md' $catalog
         $null = Invoke-FixtureGit $fixture @('branch','feat/015-reserved')
         $null = Invoke-FixtureGit $fixture @('update-ref','refs/remotes/origin/feat/018-reserved','HEAD')

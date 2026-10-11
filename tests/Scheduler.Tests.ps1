@@ -58,6 +58,63 @@ Describe 'Scheduler authorization and bounded failure paths' {
         Assert-MockCalled Invoke-SpecKitWorkerPhase -Times 0 -Exactly -Scope It
     }
 
+    It 'reports incomplete at a manual task despite a cleared gate and dispatches no worker' {
+        Set-FixtureTasks $fixture '- [ ] T001 Author the next slice plan (manual).'
+        Save-FixtureRevision $fixture
+        $message=$null
+        try { Start-WorkflowScheduler $fixture.RepoRoot $config } catch { $message=$_.Exception.Message }
+        $message | Should Match 'scheduler-incomplete: T001 is manual'
+        Assert-MockCalled Invoke-SpecKitWorkerPhase -Times 0 -Exactly -Scope It
+        $script:DryRun=$true
+        $preview=Start-WorkflowScheduler $fixture.RepoRoot $config 6>&1 | Out-String
+        $preview | Should Match 'Incomplete: T001 is manual'
+        Assert-MockCalled Invoke-SpecKitWorkerPhase -Times 0 -Exactly -Scope It
+    }
+
+    It 'stops at a manual boundary after completing only the preceding authorized task' {
+        Set-FixtureTasks $fixture "- [ ] T001 Authorized work.`n- [ ] T002 Author next plan (manual)."
+        Save-FixtureRevision $fixture
+        Mock Invoke-SpecKitWorkerPhase {
+            Set-FixtureTasks $script:fixture "- [x] T001 Authorized work.`n- [ ] T002 Author next plan (manual)."
+            Save-FixtureRevision $script:fixture
+            [pscustomobject]@{Status='ok'; WorktreePath='fixture-only'}
+        }
+        $message=$null
+        try { Start-WorkflowScheduler $fixture.RepoRoot $config } catch { $message=$_.Exception.Message }
+        $message | Should Match 'scheduler-incomplete: T002 is manual'
+        Assert-MockCalled Invoke-SpecKitWorkerPhase -Times 1 -Exactly -Scope It
+    }
+
+    It 'reports and restores the original primary branch after a non-local worker fails' {
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        $before=Get-HeadCommit $fixture.RepoRoot
+        Mock Invoke-SpecKitWorkerPhase { [pscustomobject]@{Status='failed-stop'; WorktreePath='fixture-retained'} }
+        $script:branchReport=@()
+        Mock Write-Host { $script:branchReport+=[string]$Object }
+        (Test-FixtureThrows { Start-WorkflowScheduler $fixture.RepoRoot $config }) | Should Be $true
+        (Get-WorkflowBranch $fixture.RepoRoot) | Should Be master
+        (Get-HeadCommit $fixture.RepoRoot) | Should Be $before
+        ($script:branchReport -join "`n") | Should Match 'master -> feat/001-example'
+        ($script:branchReport -join "`n") | Should Match 'Restored original checkout.*master'
+        Assert-MockCalled Invoke-SpecKitWorkerPhase -Times 1 -Exactly -Scope It
+    }
+
+    It 'restores the original primary branch after authorized non-local tasks complete' {
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        $before=Get-HeadCommit $fixture.RepoRoot
+        Mock Invoke-SpecKitWorkerPhase {
+            Set-FixtureTasks $script:fixture '- [x] T001 Implement example.'
+            Save-FixtureRevision $script:fixture
+            [pscustomobject]@{Status='ok'; WorktreePath='fixture-only'}
+        }
+        Start-WorkflowScheduler $fixture.RepoRoot $config
+        (Get-WorkflowBranch $fixture.RepoRoot) | Should Be master
+        (Get-HeadCommit $fixture.RepoRoot) | Should Be $before
+        $package=@(Get-WorkflowPackages $fixture.RepoRoot)[0]
+        @(Get-WorkflowTasks $package)[0].Complete | Should Be $true
+        Assert-MockCalled Invoke-SpecKitWorkerPhase -Times 1 -Exactly -Scope It
+    }
+
     It 'stops before dispatch for missing blocking superseded and obsolete verdicts' {
         foreach ($verdict in @('blocking','superseded')) {
             Set-FixtureReview $fixture -Verdict $verdict

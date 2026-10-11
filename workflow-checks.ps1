@@ -116,7 +116,7 @@ function Test-SpecWorkflowRepo {
     # Every supported host must inventory its actual root instruction/adapter surface.
     $requiredInventory=@{
         'codex'=@('AGENTS.md'); 'claude-code'=@('AGENTS.md','CLAUDE.md')
-        'copilot-chat'=@('AGENTS.md','.github/copilot-instructions.md'); 'copilot-cli'=@('AGENTS.md','.github/copilot-instructions.md')
+        'copilot-chat'=@('AGENTS.md','CLAUDE.md','.github/copilot-instructions.md'); 'copilot-cli'=@('AGENTS.md','.github/copilot-instructions.md')
     }
     foreach ($hostName in $requiredInventory.Keys) {
         foreach ($relative in $requiredInventory[$hostName]) {
@@ -148,9 +148,9 @@ function Test-SpecWorkflowRepo {
         $identities[$package.Id]=$true
         if ($package.DerivedLifecycle -and $package.DerivedLifecycle -ne $package.Lifecycle) { Add-Finding $findings error catalog-lifecycle 'docs/specs.md' "Lifecycle view disagrees with $($package.RelativePath)/spec.md on $($package.Branch)." }
         if ($package.Lifecycle -eq 'delivered' -and -not $package.Archived) { Add-Finding $findings error catalog-archive 'docs/specs.md' "Move delivered $($package.Id) to Archive without moving its package." }
-        if (@($changed | Where-Object { $_.StartsWith($package.RelativePath+'/') }).Count -and $effective -ne $package.Branch) { Add-Finding $findings error package-branch $package.RelativePath "Package edits on $effective are forbidden; checkout declared $($package.Branch)." }
+        if (-not $package.Archived -and @($changed | Where-Object { $_.StartsWith($package.RelativePath+'/') }).Count -and $effective -ne $package.Branch) { Add-Finding $findings error package-branch $package.RelativePath "Package edits on $effective are forbidden; checkout declared $($package.Branch)." }
         $tasksText=Read-WorkflowPackageFile $package 'tasks.md'
-        if ($package.Lifecycle -in @('active','ready') -and $package.Lifecycle -eq 'active' -and -not $tasksText) { Add-Finding $findings error task-owner $package.RelativePath 'Active package needs tasks.md.' }
+        if ($package.Lifecycle -eq 'active' -and -not $tasksText) { Add-Finding $findings error task-owner $package.RelativePath 'Active package needs tasks.md.' }
         $tasks=@()
         if ($tasksText) {
             $header=($tasksText -split '(?m)^##\s',2)[0]

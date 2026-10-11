@@ -66,6 +66,7 @@ function Assert-WorkflowWorkerScope {
     $next=@(Get-WorkflowTasks $Package | Where-Object { -not $_.Complete } | Select-Object -First 1)
     if ($Package.Lifecycle -ne 'active') { throw 'worker-scope: package is not active.' }
     if ($next.Count) {
+        if ($next[0].Manual) { throw "scheduler-incomplete: $($next[0].Id) is manual; stop for owner action." }
         $problem=Get-WorkflowGateProblem $Package $next[0].Gate
         if ($problem) { throw "checkpoint-incomplete: $problem" }
     }
@@ -92,35 +93,51 @@ function Start-WorkflowScheduler {
         $problem=Get-WorkflowGateProblem $package $tasks[0].Gate
         if ($DryRun) {
             Write-Host "Dry run: $($package.RelativePath) branch=$($package.Branch) target=$($Config.targetBranch) worktree=$($package.WorktreeRoot)"
+            if ($tasks[0].Manual) { Write-Host "Incomplete: $($tasks[0].Id) is manual; stop for owner action."; continue }
             if ($problem) { Write-Host "Stopped: $problem"; continue }
             foreach ($task in $tasks) {
+                if ($task.Manual) { Write-Host "Incomplete before $($task.Id): manual task; stop for owner action."; break }
                 $gateProblem=Get-WorkflowGateProblem $package $task.Gate
                 if ($gateProblem) { Write-Host "Stopped before $($task.Id): $gateProblem"; break }
                 Write-Host "  $($task.Text)"
             }
             continue
         }
+        if ($tasks[0].Manual) { throw "scheduler-incomplete: $($tasks[0].Id) is manual; stop for owner action." }
         if ($problem) { throw "checkpoint-incomplete: $problem" }
         $executionRoot=if ($package.Local) { $package.WorktreeRoot } else { $RepoPath }
-        Switch-WorkflowBranch $executionRoot $package.Branch
-        while ($true) {
-            $null=Assert-WorkflowPreflight $executionRoot
-            $fresh=@(Get-WorkflowPackages $executionRoot | Where-Object Id -eq $package.Id)
-            if ($fresh.Count -ne 1) { throw 'package-incomplete: package ownership changed.' }
-            $package=$fresh[0]
-            Assert-WorkflowWorkerScope $executionRoot $package $Config
-            $remaining=@(Get-WorkflowTasks $package | Where-Object { -not $_.Complete })
-            if (-not $remaining.Count) { Write-Host "Implementation tasks complete for $($package.Id); stop for declared owner checkpoints. No review started."; break }
-            if ($MaxTasks -gt 0 -and $invocations -ge $MaxTasks) { throw 'scheduler-incomplete: invocation cap reached with required tasks remaining.' }
-            $task=$remaining[0]
-            $before=Read-WorkflowPackageFile $package 'tasks.md'
-            $invocations++
-            $result=Invoke-SpecKitWorkerPhase -SpecPackage $package -Phase implement -Task $task -RepoPath $executionRoot -InvocationCount ([ref]$invocations) -SkippedLineIndices ([ref]$null) -DefaultModel $Model -DefaultEffort $ReasoningEffort
-            if ($result.Status -ne 'ok') { throw "worker-incomplete: $($result.Status); recoverable work retained at $($result.WorktreePath)." }
-            $afterPackage=@(Get-WorkflowPackages $executionRoot | Where-Object Id -eq $package.Id)[0]
-            $afterTasks=@(Get-WorkflowTasks $afterPackage)
-            if (@($afterTasks | Where-Object { $_.Id -eq $task.Id -and -not $_.Complete }).Count -or (Read-WorkflowPackageFile $afterPackage 'tasks.md') -eq $before) {
-                throw "scheduler-incomplete: $($task.Id) made no task progress; refusing unchanged retry."
+        $originalBranch=Get-WorkflowBranch $executionRoot
+        $originalHead=if ($originalBranch -eq 'HEAD') { Get-HeadCommit $executionRoot } else { $null }
+        try {
+            if ($originalBranch -ne $package.Branch) { Write-Host "Scheduler checkout at ${executionRoot}: $originalBranch -> $($package.Branch); original checkout will be restored." }
+            Switch-WorkflowBranch $executionRoot $package.Branch
+            while ($true) {
+                $null=Assert-WorkflowPreflight $executionRoot
+                $fresh=@(Get-WorkflowPackages $executionRoot | Where-Object Id -eq $package.Id)
+                if ($fresh.Count -ne 1) { throw 'package-incomplete: package ownership changed.' }
+                $package=$fresh[0]
+                Assert-WorkflowWorkerScope $executionRoot $package $Config
+                $remaining=@(Get-WorkflowTasks $package | Where-Object { -not $_.Complete })
+                if (-not $remaining.Count) { Write-Host "Implementation tasks complete for $($package.Id); stop for declared owner checkpoints. No review started."; break }
+                if ($MaxTasks -gt 0 -and $invocations -ge $MaxTasks) { throw 'scheduler-incomplete: invocation cap reached with required tasks remaining.' }
+                $task=$remaining[0]
+                $before=Read-WorkflowPackageFile $package 'tasks.md'
+                $invocations++
+                $result=Invoke-SpecKitWorkerPhase -SpecPackage $package -Phase implement -Task $task -RepoPath $executionRoot -InvocationCount ([ref]$invocations) -SkippedLineIndices ([ref]$null) -DefaultModel $Model -DefaultEffort $ReasoningEffort
+                if ($result.Status -ne 'ok') { throw "worker-incomplete: $($result.Status); recoverable work retained at $($result.WorktreePath)." }
+                $afterPackage=@(Get-WorkflowPackages $executionRoot | Where-Object Id -eq $package.Id)[0]
+                $afterTasks=@(Get-WorkflowTasks $afterPackage)
+                if (@($afterTasks | Where-Object { $_.Id -eq $task.Id -and -not $_.Complete }).Count -or (Read-WorkflowPackageFile $afterPackage 'tasks.md') -eq $before) {
+                    throw "scheduler-incomplete: $($task.Id) made no task progress; refusing unchanged retry."
+                }
+            }
+        } finally {
+            if ((Get-WorkflowBranch $executionRoot) -ne $originalBranch) {
+                if ($originalBranch -eq 'HEAD') {
+                    git -C $executionRoot checkout --detach $originalHead 2>$null | Out-Null
+                    if ($LASTEXITCODE -or (Get-HeadCommit $executionRoot) -ne $originalHead) { throw "checkout-incomplete: cannot restore detached original $originalHead at $executionRoot." }
+                } else { Switch-WorkflowBranch $executionRoot $originalBranch }
+                Write-Host "Restored original checkout at ${executionRoot}: $originalBranch $(if ($originalHead) { $originalHead })"
             }
         }
     }

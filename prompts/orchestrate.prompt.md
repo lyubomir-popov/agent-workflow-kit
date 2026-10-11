@@ -1,121 +1,70 @@
 ---
-description: "Heavy-tier orchestrator: triage TODO.md by complexity, then dispatch [S]/[L] work to cheaper subagents while keeping [H] decisions on the orchestrator."
+description: "Complexity routing: plan bounded work, delegate mechanical tasks, validate returns, and honor owner gates."
 mode: agent
 model: claude-opus-4.7
 ---
 
 # Orchestrate
 
-You are running on the **heavy tier** (`claude-opus-4.7` or fallback `gpt-5.4 --effort xhigh`). Your job is to act as an **orchestrator**, not an implementer. Plan, sequence, dispatch bounded work to cheaper subagents, validate what they return, and keep architectural decisions on this thread.
+Read the repository's AGENTS and owning work record before dispatch. If root
+STATUS/TODO/HISTORY are 2–3 line retirement placeholders pointing to docs/specs.md,
+their procedures are retired: follow AGENTS and the package owners; never
+recreate them. Shared full dual-mode conversion/installation remains later work.
 
-This command implements the **Model tier routing and subagent orchestration** section of `.github/copilot-instructions.md`. Read that section first if it exists in the current repo; treat its rules as authoritative.
+## Complexity and model ownership
 
-## Tier conventions (recap)
+| Tag | Work |
+|---|---|
+| [H] | Architectural choices, cross-file invariants, planning the next batch |
+| [S] | Contained implementations following a written pattern |
+| [L] | Mechanical text/data changes and bounded inbox triage |
+| [X] | Read-only research or pass/fail validation commands |
 
-| Tag | Tier | Model preference | Use for |
-|-----|------|------------------|---------|
-| `[H]` | Heavy | `claude-opus-4.7` (this thread) | Cross-file refactors, invariant-bearing changes, architectural decisions, picking the next batch. |
-| `[S]` | Standard | `gpt-5.4` (with `--effort high` for nontrivial) | Contained implementations following an established pattern. |
-| `[L]` | Light | `gpt-5.4-mini` or `claude-haiku-4.5` | Mechanical text / data shuffling, housekeeping, INBOX triage. |
-| `[X]` | Subagent / no model | `Explore` subagent or validation commands | Read-only research or pass/fail checks. |
+Concrete model preferences have one owner: agent-loop.ps1's TierDispatchMap.
+Read it when selecting a dispatch model; do not maintain another preference table.
+Prefer the least-cost capable tier. Keep architectural decisions on the heavy
+orchestrator; delegate bounded mechanical work with a written recipe.
+Standard/light sessions execute their assigned tier directly and escalate heavy
+decisions rather than dispatching a new orchestration tree.
 
-**Hard rules**:
-- Prefer the lowest-cost model that is likely to succeed. Older 1x-tier models (`claude-sonnet-4.5/4.6`, `gpt-4.1`, `gpt-4o`) are allowed when they are the cheapest workable option or when you want model-diverse review.
-- `[H]` work stays on this orchestrator thread. Do not delegate architectural decisions.
-- Each subagent invocation is stateless. Its prompt must include the goal, the recipe, validation steps, and exactly what to report back.
+## Triage and plan
 
-## Step 1 — Triage
+Resolve the current work from its canonical owner. Inspect inboxes; preserve
+unread/unresolved items and transfer durable facts before removing links.
+Tag/decompose authorized open tasks into focused bursts. Check lifecycle,
+entry/task checkpoints and write scope before selecting a batch. Candidate ideas
+are not an implementation queue; age and task checkboxes do not clear gates.
 
-1. Read `STATUS.md`, `TODO.md`, and `docs/specs.md` (if present).
-2. Drain `INBOX.md` and `AGENT-INBOX.md` into the canonical files.
-3. For every open TODO item without a tier tag, **add one** using these rules:
-   - "Reads multiple files and decides what shape the change should take" → `[H]`
-   - "Matches an existing pattern + preserves established invariants" → `[S]`
-   - "Mostly moves text/data without design decisions" → `[L]`
-   - "Just runs and reports pass/fail" → `[X]`
-4. Where an item is too large for one focused burst, decompose it inline before dispatching.
-5. Commit the triage with a message like `docs: triage TODO with tier tags` — no implementation yet.
+Order independent work in parallel and dependent work sequentially. Write heavy
+decisions first so dependent tasks have a concrete recipe. Owner authorization
+persists within scope; ask only when a real missing decision prevents safe work.
 
-## Step 2 — Plan the batch
+## Dispatch contract
 
-Pick the next 1–5 items to attempt this session. Order them so:
+Every subagent call carries everything needed:
+- Goal, repository, package/branch/worktree and exact allowed files.
+- Task IDs, write scope, checkpoint constraints and integration target.
+- Exact recipe/pattern, invariants and validation commands.
+- Commit/push authorization if any; no implicit publishing permission.
+- Required report: changes, validation, findings, recovery paths and deviations.
 
-- Independent items can run in parallel.
-- Dependent items run sequentially, with the orchestrator validating each before queueing the next.
-- An `[H]` design pass that unblocks several `[S]` items happens **first**, on this thread, so the recipe is written down before subagents pick it up.
+Read-only research can use an Explore-style worker; validation can use commands
+without a model. Do not give multiple workers overlapping write ownership.
+Do not assume stateless workers remember prior chat. Consumer/coordinator links
+identify owners; cross-repository orchestration implementation remains separate.
 
-Report the batch back to the user as a short numbered list before dispatching. Wait for the user's go-ahead **only if a `[H]` decision in the batch is risky or ambiguous**; otherwise proceed under the autonomous-continuation rule.
+## Validate and continue
 
-## Step 3 — Dispatch
+Inspect actual diffs and substantive checks before accepting a return. Repair
+or sharpen a failed recipe; do not repeatedly dispatch the unchanged failure.
+Update only the owning task record/header and save durable findings in package
+reviews. Preserve failed/unpublished work; exhausted remediation is incomplete.
+Do not launch an automatic delta review or clear owner checkpoints.
 
-For each `[S]`, `[L]`, or `[X]` item, use the `runSubagent` tool. The subagent's prompt must contain everything it needs because the call is stateless.
+With explicit autonomous authorization, continue focused batches until the
+authorized scope completes or a real blocker/gate stops work. Re-read tasks and
+checkpoints after each substantive chunk, make small validated commits when
+authorized, and leave a bounded next action for fresh context. Prefer sequential
+single-repo sessions to accumulating cross-repo context.
 
-### `[S]` dispatch template (gpt-5.4)
-
-```
-Subagent: agent  (per-repo)
-Model: gpt-5.4                  # or higher --effort if nontrivial
-
-Goal: <one sentence>
-
-Recipe:
-1. Read these files: <exact paths>
-2. Apply this change: <exact pattern + invariants to preserve>
-3. Validate by running: <exact command from STATUS / copilot-instructions Validation section>
-4. Commit with message: <prefix>: <verb> <noun>
-5. Push to origin/<branch>.
-
-What to report back: pass/fail of validation, the commit hash, and any deviation from the recipe.
-```
-
-### `[L]` dispatch template (gpt-5.4-mini)
-
-```
-Subagent: agent
-Model: gpt-5.4-mini  (or claude-haiku-4.5)
-
-Goal: <mechanical task in one sentence>
-
-Recipe:
-1. <exact files and exact transformation>
-2. Validate: <a single check, e.g. workflow-kit lint>
-3. Commit + push.
-
-What to report back: commit hash and pass/fail.
-```
-
-### `[X]` dispatch template (Explore subagent)
-
-```
-Subagent: Explore
-Thoroughness: quick | medium | thorough
-
-Question: <what you need to know>
-Return: <the exact shape of the answer you want>
-```
-
-Run independent dispatches **in parallel** in a single tool-call block. Run dependent ones sequentially.
-
-## Step 4 — Validate each return
-
-When a subagent returns:
-
-1. Inspect the actual diff (do not trust the subagent's self-description).
-2. Re-run the validation command yourself if the change touched anything load-bearing.
-3. If the result deviates from intent, **fix it on this thread** rather than re-dispatching. Re-dispatching the same item rarely converges.
-4. Record substantive completions in `HISTORY.md`. Update `STATUS.md` if the current-state paragraph is now stale.
-
-## Step 5 — Continue or hand off
-
-After the batch:
-
-- If the user asked to proceed autonomously, re-read `TODO.md` and start a new batch from Step 2.
-- Otherwise report back: items shipped (with commit hashes), items still queued, and the recommended next `[H]` decision.
-
-## Anti-patterns (do not do these)
-
-- Doing `[L]` work directly on this thread. Dispatch instead — token cost matters.
-- Letting a subagent run without a written recipe. Stateless calls fail when underspecified.
-- Holding multi-repo context on the orchestrator thread. Use one orchestrator per repo; cross-repo notes go through `AGENT-INBOX.md`.
-- Re-dispatching a failed item with the same prompt. Either fix on this thread or sharpen the recipe first.
-- Silently using a 1x-tier legacy model because it was the picker default. The frontmatter pin on this prompt overrides it; new dispatches must cite a current-generation model.
+Report completed task IDs, validation, remaining work, gate/blocker and deviations.

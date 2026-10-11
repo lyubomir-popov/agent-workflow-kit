@@ -6,6 +6,15 @@ model: claude-opus-4.7
 
 # Competing audit — two subagents, one synthesis
 
+## Retired root-state guard
+
+Before this legacy procedure, read the repository's AGENTS.md. If STATUS.md,
+TODO.md, or HISTORY.md is a 2–3 line retirement placeholder pointing to
+`docs/specs.md`, stop the legacy procedure and follow AGENTS/catalog/package
+owners instead. Never recreate or expand retired files, drain unread handoffs,
+write feature handovers into instructions, or bypass an owner checkpoint.
+Full shared dual-mode conversion and installation remain a later authorized step.
+
 Run a high-stakes review of a single target artifact (a talk script, a spec, a design proposal, an architectural decision, a feature plan, anything where one perspective is not enough) by **dispatching two heavy-tier subagents in parallel on different model families**, collecting their independent reports, and synthesising the result into a triaged, deduplicated, prioritised action plan.
 
 The point is not to ask the same model twice. It's to weaponise the disagreement between two strong models that fail in different ways.
@@ -15,7 +24,7 @@ The point is not to ask the same model twice. It's to weaponise the disagreement
 - The artifact is high-stakes (CEO-facing talk, foundational spec, architectural pivot, public-facing copy).
 - A single review pass would not be trusted by the user.
 - The cost of getting it wrong is materially higher than the cost of two heavy-tier runs.
-- You have at least two heavy-tier models available (e.g. `claude-opus-4.7` and `gpt-5.5`, or `claude-opus-4.7` and `gpt-5.4 --effort xhigh`).
+- You have at least two heavy-tier models available; use agent-loop.ps1's TierDispatchMap as the preference owner and choose distinct model families when available.
 
 If only one heavy model is available, run this prompt as a single-subagent audit instead and note it in the synthesis. Don't run two copies of the same model — the divergence is the value.
 
@@ -25,7 +34,7 @@ If only one heavy model is available, run this prompt as a single-subagent audit
 2. **Identify the supporting context.** Which sibling files (planning notes, prior drafts, audience notes, source material, sibling-repo references) the subagents must read to do an *informed* audit, not a surface one. List them with absolute paths.
 3. **Identify the verifiable surface.** Any concrete claims in the artifact that can be checked against the actual codebase, repo, or external source. Tell the subagents to spot-check.
 4. **Decide the report shape.** What sections you need from each subagent — at minimum: things to fix (priority-tagged), things to add, things to cut, open questions for the user, and a one-line verdict. Add domain-specific sections as needed.
-5. **Choose the two models.** Default pairing: `claude-opus-4.7` + `gpt-5.5`. CLI fallback: `claude-opus-4.7` + `gpt-5.4 --effort xhigh`. Note the pairing in the synthesis.
+5. **Choose the two models.** Read agent-loop.ps1's TierDispatchMap; select capable heavy-tier reviewers from distinct families where available. Record the actual pairing in the synthesis.
 6. **Decide where the synthesis lands.** A new dated file under `docs/` or equivalent, or appended to an existing planning doc. Don't let the subagent reports themselves become the plan — they are inputs to a synthesis the orchestrator writes.
 
 ## Dispatch — two parallel subagent calls

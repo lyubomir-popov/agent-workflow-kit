@@ -6,6 +6,15 @@ model: gpt-5.4
 
 # plan-sweep
 
+## Retired root-state guard
+
+Before this legacy procedure, read the repository's AGENTS.md. If STATUS.md,
+TODO.md, or HISTORY.md is a 2–3 line retirement placeholder pointing to
+`docs/specs.md`, stop the legacy procedure and follow AGENTS/catalog/package
+owners instead. Never recreate or expand retired files, drain unread handoffs,
+write feature handovers into instructions, or bypass an owner checkpoint.
+Full shared dual-mode conversion and installation remain a later authorized step.
+
 Take the existing plan from the current chat context and turn it into a tighter execution plan document.
 
 This prompt is for the period after planning has started but before implementation begins. Stay in planning mode. Do not implement, edit files other than the plan and checklist, commit, or push. Do not delete or modify the existing plan document.

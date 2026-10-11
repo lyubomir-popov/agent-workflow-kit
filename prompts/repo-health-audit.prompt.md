@@ -6,6 +6,15 @@ model: claude-opus-4.7
 
 # Repo health audit
 
+## Retired root-state guard
+
+Before this legacy procedure, read the repository's AGENTS.md. If STATUS.md,
+TODO.md, or HISTORY.md is a 2–3 line retirement placeholder pointing to
+`docs/specs.md`, stop the legacy procedure and follow AGENTS/catalog/package
+owners instead. Never recreate or expand retired files, drain unread handoffs,
+write feature handovers into instructions, or bypass an owner checkpoint.
+Full shared dual-mode conversion and installation remain a later authorized step.
+
 Produce a strategic, high-level health audit of the current repo as if you were seeing it for the first time, wearing **two hats simultaneously**:
 
 1. **The domain expert** — the practitioner this tool exists to serve (e.g. horticulture professor, frontend architect, ML researcher, accountant, game designer). Infer the right domain from `README.md`, `STATUS.md`, `docs/specs.md`, and `docs/vision/` if present.
@@ -13,19 +22,11 @@ Produce a strategic, high-level health audit of the current repo as if you were 
 
 Focus on **high-level usefulness, vision alignment, and architectural drift**, not glitches or line-level bugs.
 
-## Model tier guidance
+## Model ownership
 
-This prompt does serious analysis. Run it on a heavy-tier model when possible:
-
-- **Preferred**: `claude-opus-4.7` or `gpt-5.5`
-- **Fallback**: `gpt-5.4` with `--effort high` or `xhigh`
-- **Do not run on** `gpt-5.4-mini`, `claude-haiku-4.5`, or any 0.33x-tier model — the synthesis quality drops sharply.
-
-For the *follow-up housekeeping* (the TODO/ROADMAP edits and the commit), defer to the standard tier:
-
-- **Preferred for routing**: `gpt-5.4` (or `gpt-5.4-mini` if the edits are purely mechanical bullet additions with no judgement calls).
-
-If running this as a subagent dispatch from a heavy orchestrator, dispatch the audit itself on the heavy tier, then dispatch the TODO/ROADMAP edits as a separate `[L]` or `[S]` follow-up.
+Use the heavy tier for synthesis and the standard/light tier for mechanical
+follow-up. Concrete preferences live in agent-loop.ps1's TierDispatchMap.
+Read that owner when selecting models; do not copy a preference table here.
 
 ## Pre-flight
 

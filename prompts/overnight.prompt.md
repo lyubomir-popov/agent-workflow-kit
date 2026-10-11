@@ -6,9 +6,24 @@ model: gpt-5.4-mini
 
 # Overnight run (spec-kit)
 
+## Retired root-state guard
+
+Before this legacy procedure, read the repository's AGENTS.md. If STATUS.md,
+TODO.md, or HISTORY.md is a 2–3 line retirement placeholder pointing to
+`docs/specs.md`, stop the legacy procedure and follow AGENTS/catalog/package
+owners instead. Never recreate or expand retired files, drain unread handoffs,
+write feature handovers into instructions, or bypass an owner checkpoint.
+Full shared dual-mode conversion and installation remain a later authorized step.
+
 Launch the `agent-loop.ps1` scheduler in **SpecKit** mode. This is meant to run for hours unattended: implement the current spec package until `tasks.md` is complete, run an adversarial review, address findings, then move to the next **In Progress** spec from `docs/specs.md` until the queue is exhausted.
 
 This replaces the legacy TODO.md one-commit-per-task loop.
+
+Read docs/operations.md when available for terminal hygiene, authentication,
+and bounded autonomy. For legacy consumers retain those safeguards: foreground
+integrated terminals, a small reused terminal set, stop on unauthenticated CLI
+output, interactive copilot /login, and no repeated unattended auth retries.
+Authorization to continue never clears an owner gate or starts a delta review.
 
 ## Pre-flight
 
@@ -38,7 +53,6 @@ pwsh -NoLogo -NoProfile -File "<path-to-agent-workflow-kit>/agent-loop.ps1" `
   -MaxContinues 25 `
   -MaxAddressRounds 3 `
   -OnFailure skip `
-  -Model gpt-5.4 `
   -ReasoningEffort medium
 ```
 
@@ -65,7 +79,7 @@ The user may specify:
 | `-MaxAddressRounds N` | `3` | Address-review rounds per spec after adversarial review |
 | `-OnFailure skip\|stop` | `skip` | Continue to next invocation/spec vs halt |
 | `-Agent Auto\|Codex\|Copilot` | `Auto` | Worker CLI. `Auto` uses Codex when launched from Codex, otherwise Copilot. |
-| `-Model <name>` | `gpt-5.4` | Worker model. Copilot receives this directly; Codex ignores Copilot-style `gpt-5.4` aliases and uses its configured default unless a Codex-compatible model is passed. |
+| `-Model <name>` | Script default / owner override | Concrete preferences are owned by agent-loop.ps1's TierDispatchMap; pass explicit user overrides without duplicating a model table. |
 | `-ReasoningEffort low\|medium\|high\|xhigh` | `medium` | Reasoning level. Copilot receives `--effort`; Codex currently uses its configured reasoning behavior. |
 | `-UseTierDispatch` | off | Optional `[H]`/`[S]`/`[L]` routing from task text |
 

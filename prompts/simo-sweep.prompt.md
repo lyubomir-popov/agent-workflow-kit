@@ -6,6 +6,15 @@ model: claude-opus-4.7
 
 # sweep
 
+## Retired root-state guard
+
+Before this legacy procedure, read the repository's AGENTS.md. If STATUS.md,
+TODO.md, or HISTORY.md is a 2–3 line retirement placeholder pointing to
+`docs/specs.md`, stop the legacy procedure and follow AGENTS/catalog/package
+owners instead. Never recreate or expand retired files, drain unread handoffs,
+write feature handovers into instructions, or bypass an owner checkpoint.
+Full shared dual-mode conversion and installation remain a later authorized step.
+
 Perform a broader and deeper post-change sweep over the latest task done in the current workspace.
 Not linting and testing (these are still called for if you find issues and make changes), but real deep analysis of logic, edge cases, etc.
 Take your time, deep think and analyze.

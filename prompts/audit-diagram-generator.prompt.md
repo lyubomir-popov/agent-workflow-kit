@@ -6,6 +6,15 @@ model: claude-opus-4.7
 
 # diagram-generator repo audit
 
+## Retired root-state guard
+
+Before this legacy procedure, read the repository's AGENTS.md. If STATUS.md,
+TODO.md, or HISTORY.md is a 2–3 line retirement placeholder pointing to
+`docs/specs.md`, stop the legacy procedure and follow AGENTS/catalog/package
+owners instead. Never recreate or expand retired files, drain unread handoffs,
+write feature handovers into instructions, or bypass an owner checkpoint.
+Full shared dual-mode conversion and installation remain a later authorized step.
+
 Perform a **read-only** audit of the **diagram-generator** repo (the workspace must be that repo, or a multi-root workspace that includes it). Another agent or human may be working in parallel — do **not** modify, commit, or fix anything unless the user explicitly asks you to persist the report.
 
 ## Intended architecture (benchmark)
@@ -19,11 +28,11 @@ The user's mental model for this repo:
 
 Audit against this benchmark and against `.github/copilot-instructions.md` (TS-first mandate).
 
-## Model tier guidance
+## Model ownership
 
-- **Preferred**: `claude-opus-4.7` or `gpt-5.5`
-- **Fallback**: `gpt-5.4` with `--effort high`
-- **Do not run on** light-tier models — synthesis quality matters.
+Use the heavy tier for synthesis and the standard/light tier for mechanical
+follow-up. Concrete preferences live in agent-loop.ps1's TierDispatchMap.
+Read that owner when selecting models; do not copy a preference table here.
 
 ## Pre-flight
 

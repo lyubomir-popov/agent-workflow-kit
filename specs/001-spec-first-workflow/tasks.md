@@ -1,6 +1,6 @@
 # Current work
 
-**Next tasks**: T009, T014, T015.
+**Next tasks**: T015.
 **Blockers**: none within the owner-authorized slice A.
 **Checkpoint links**: [CP1 and slice gates](spec.md#checkpoints).
 **Entry checkpoint**: CP1
@@ -28,7 +28,7 @@ injection fail at the next check; unread valid handoffs remain untouched.
 
 - [x] T007 [US2] Add read-only versioned lint, stable human/JSON findings, owners/links/router checks and per-file/host/header/request budgets to `workflow-kit.ps1` (FR-008–013, 034–035).
 - [x] T008 [US2] Test budgets, exceptions, inventory, marker injection, catalog consistency and non-destructive inboxes in `tests/Workflow.Tests.ps1` (FR-005, 008–013, SC-002/003).
-- [ ] T009 [US2] Compose local commit checking in `.githooks/pre-commit`, add `.github/workflows/workflow.yml`, and record per-host triggers/gaps in `docs/enforcement.md` (FR-008.1–6).
+- [x] T009 [US2] Compose local commit checking in `.githooks/pre-commit`, add `.github/workflows/workflow.yml`, and record per-host triggers/gaps in `docs/enforcement.md` (FR-008.1–6).
 
 ## US3: Binding reviews and unattended safety
 
@@ -45,7 +45,7 @@ Independent test: cursor cannot select work, reserved package numbers survive,
 vendor skills stay unchanged, legacy config still selects legacy launcher/lint.
 
 - [x] T013 [US5] Ignore/untrack `.specify/feature.json`, align `.specify/scripts/powershell/common.ps1` and `create-new-feature.ps1`, and keep `.specify/memory/constitution.md` principles-only (FR-034).
-- [ ] T014 [US5] Move FR-036 procedures into `prompts/` sources and `docs/operations.md`, update `README.md`, link script-owned model preferences, and test legacy/external compatibility in `tests/Workflow.Tests.ps1` (FR-007, 032, 034–037).
+- [x] T014 [US5] Move FR-036 procedures into `prompts/` sources and `docs/operations.md`, update `README.md`, link script-owned model preferences, and test legacy/external compatibility in `tests/Workflow.Tests.ps1` (FR-007, 032, 034–037).
 
 ## Cross-cutting validation and handoff
 

@@ -6,6 +6,15 @@ model: gpt-5.4-mini
 
 # Freshen status
 
+## Retired root-state guard
+
+Before this legacy procedure, read the repository's AGENTS.md. If STATUS.md,
+TODO.md, or HISTORY.md is a 2–3 line retirement placeholder pointing to
+`docs/specs.md`, stop the legacy procedure and follow AGENTS/catalog/package
+owners instead. Never recreate or expand retired files, drain unread handoffs,
+write feature handovers into instructions, or bypass an owner checkpoint.
+Full shared dual-mode conversion and installation remain a later authorized step.
+
 Refresh `STATUS.md` from actual repo state.
 
 1. Read `.github/copilot-instructions.md`, `STATUS.md`, `TODO.md`, `HISTORY.md`, and `docs/specs.md`.

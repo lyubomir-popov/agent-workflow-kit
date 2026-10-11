@@ -8,7 +8,7 @@ Describe 'Spec Kit ownership and reserved identities' {
         $previousDirectory = $env:SPECIFY_FEATURE_DIRECTORY
         $env:SPECIFY_FEATURE = $null
         $env:SPECIFY_FEATURE_DIRECTORY = $null
-        foreach ($relative in @('workflow-model.ps1', '.specify/scripts/powershell/common.ps1', '.specify/scripts/powershell/create-new-feature.ps1')) {
+        foreach ($relative in @('workflow-model.ps1', '.specify/scripts/powershell/common.ps1', '.specify/scripts/powershell/create-new-feature.ps1', '.specify/scripts/powershell/check-prerequisites.ps1')) {
             Write-FixtureFile $fixture $relative ([IO.File]::ReadAllText((Join-Path $script:KitRoot $relative)))
         }
         Save-FixtureRevision $fixture
@@ -22,6 +22,29 @@ Describe 'Spec Kit ownership and reserved identities' {
         $env:SPECIFY_FEATURE = $previousFeature
         $env:SPECIFY_FEATURE_DIRECTORY = $previousDirectory
         Remove-WorkflowFixture $fixture
+    }
+
+    It 'allows implementation prerequisites only for the authorized entry task' {
+        $output=& pwsh -NoLogo -NoProfile -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks 2>&1
+        $LASTEXITCODE | Should Be 0
+        ($output -join "`n" | ConvertFrom-Json).FEATURE_DIR | Should Be (Join-Path $fixture.RepoRoot 'specs/001-example')
+    }
+
+    It 'prevents a completed checklist or paths-only switch bypassing an uncleared implementation gate' {
+        Set-FixtureSpec $fixture -State pending
+        Write-FixtureFile $fixture 'specs/001-example/checklists/requirements.md' '- [x] Every author check complete.'
+        foreach ($extra in @(@(),@('-PathsOnly'))) {
+            $output=& pwsh -NoLogo -NoProfile -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks @extra 2>&1
+            $LASTEXITCODE | Should Be 1
+            ($output -join "`n") | Should Match 'not owner-cleared'
+        }
+    }
+
+    It 'stops vendor implementation prerequisites at a later slice task gate' {
+        Set-FixtureTasks $fixture "- [x] T001 Completed A.`n- [ ] T002 Deferred B (gate: CP2)."
+        $output=& pwsh -NoLogo -NoProfile -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks 2>&1
+        $LASTEXITCODE | Should Be 1
+        ($output -join "`n") | Should Match 'CP2 is not owner-cleared'
     }
 
     It 'reads actual Git branch despite a spoofed feature environment variable' {

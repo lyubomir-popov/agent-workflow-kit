@@ -37,3 +37,9 @@ Owner-only clearance is a governance rule checked by kit launchers; files cannot
 stop a dishonest agent from falsifying it. Stale prose/scope reconciliation still
 requires human judgment. Cleanup and full consumer migration remain later slices
 and are not claimed by this matrix.
+
+Worker preflight checks repository/package, branch/base, marker, task and gate;
+the focused prompt declares write scope. CLI permission modes do not provide a
+filesystem sandbox for that scope. Direct vendor/CLI invocations can bypass kit
+entry points. Spec Kit upgrades require a manual preview preserving project
+overrides/constitution; the kit does not intercept the external `specify init` CLI.

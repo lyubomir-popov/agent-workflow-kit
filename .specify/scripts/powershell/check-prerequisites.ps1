@@ -59,6 +59,18 @@ EXAMPLES:
 # Get feature paths
 $paths = Get-FeaturePathsEnv
 
+# Vendor implementation/analyze workflows use RequireTasks. That flag cannot
+# turn checklist completion or a local cursor into checkpoint authorization.
+if ($RequireTasks -and (Get-SpecKitWorkflowConfig -RepoRoot $paths.REPO_ROOT)) {
+    . (Join-Path $paths.REPO_ROOT 'workflow-model.ps1')
+    $package = Select-WorkflowPackage -RepoRoot $paths.REPO_ROOT -Selection $env:SPECIFY_FEATURE_DIRECTORY
+    if ($package.Lifecycle -ne 'active') { throw 'specify-checkpoint: implementation requires an active, owner-authorized package.' }
+    $next = @(Get-WorkflowTasks $package | Where-Object { -not $_.Complete } | Select-Object -First 1)
+    if (-not $next.Count) { throw 'specify-checkpoint: no authorized implementation task; reconcile owner exit checkpoints.' }
+    $problem = Get-WorkflowGateProblem $package $next[0].Gate
+    if ($problem) { throw "specify-checkpoint: $problem" }
+}
+
 # If paths-only mode, output paths and exit (no validation)
 if ($PathsOnly) {
     if ($Json) {

@@ -1,0 +1,41 @@
+name: Workflow contract
+on:
+  push:
+  pull_request:
+jobs:
+  validate:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore local branch inventory
+        shell: pwsh
+        run: |
+          git for-each-ref --format='%(refname:short)' refs/remotes/origin/ | ForEach-Object {
+            if ($_ -ne 'origin/HEAD') {
+              $branch = $_.Substring(7)
+              git branch --force $branch $_ 2>$null
+            }
+          }
+      - name: Lint
+        shell: pwsh
+        run: pwsh -NoLogo -NoProfile -File ./workflow-kit.ps1 -Command lint -RepoRoot . -Strict
+      - name: Preview scheduler
+        shell: pwsh
+        run: pwsh -NoLogo -NoProfile -File ./agent-loop.ps1 -DryRun -RepoRoot .
+      - name: Install Pester when unavailable
+        shell: pwsh
+        run: |
+          if (-not (Get-Module -ListAvailable Pester | Where-Object { $_.Version -ge [version]'3.4' -and $_.Version.Major -lt 5 })) {
+            Install-Module Pester -RequiredVersion 4.10.1 -Scope CurrentUser -Force -SkipPublisherCheck
+          }
+      - name: Fixture acceptance tests
+        shell: pwsh
+        run: pwsh -NoLogo -NoProfile -File ./tests/run-tests.ps1
+      - name: Whitespace
+        shell: pwsh
+        run: git diff --check

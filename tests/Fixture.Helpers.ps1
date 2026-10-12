@@ -58,8 +58,8 @@ Exercise fixture behavior.
 }
 
 function Set-FixtureReview {
-    param($Fixture, [string]$Verdict = 'accept', [string]$Scope = '001/spec-r1')
-    Write-FixtureFile $Fixture 'specs/001-example/reviews/CP1-review.md' @"
+    param($Fixture, [string]$Verdict = 'accept', [string]$Scope = '001/spec-r1', [switch]$List)
+    $text=@"
 # Saved review
 
 **Checkpoint**: CP1
@@ -72,6 +72,8 @@ function Set-FixtureReview {
 
 No blocking findings.
 "@
+    if ($List) { $text=[regex]::Replace($text,'(?m)^(\*\*(Checkpoint|Scope|Reviewed revision|Reviewer|Verdict)\*\*:)', '- $1') }
+    Write-FixtureFile $Fixture 'specs/001-example/reviews/CP1-review.md' $text
 }
 
 function Set-FixtureTasks {

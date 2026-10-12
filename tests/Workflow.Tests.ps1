@@ -177,6 +177,47 @@ Describe 'Versioned workflow model with isolated Git owners' {
         Set-FixtureSpec $fixture -Scope '001/spec-r2' -SupersededScope '001/spec-r1'
         (Get-WorkflowGateProblem @(Get-WorkflowPackages $fixture.RepoRoot)[0] CP1) | Should Match 'obsolete|scope'
     }
+
+    It 'rejects wrong checkpoints in plain emphasized and bold list-style reviews' {
+        foreach ($style in @('plain','single','bold')) {
+            Set-FixtureReview $fixture -List
+            $path=Join-Path $fixture.RepoRoot 'specs/001-example/reviews/CP1-review.md'
+            $text=[IO.File]::ReadAllText($path).Replace('**Checkpoint**: CP1','**Checkpoint**: CP9')
+            if ($style -eq 'plain') { $text=$text.Replace('**','') }
+            if ($style -eq 'single') { $text=$text.Replace('**','*') }
+            Write-FixtureFile $fixture 'specs/001-example/reviews/CP1-review.md' $text
+            (Get-WorkflowGateProblem @(Get-WorkflowPackages $fixture.RepoRoot)[0] CP1) | Should Match 'different checkpoint'
+        }
+    }
+
+    It 'rejects obsolete scopes in list-style reviews including backticks and context' {
+        Set-FixtureReview $fixture -Scope '001/spec-r0' -List
+        $path=Join-Path $fixture.RepoRoot 'specs/001-example/reviews/CP1-review.md'
+        Write-FixtureFile $fixture 'specs/001-example/reviews/CP1-review.md' ([IO.File]::ReadAllText($path).Replace('`001/spec-r0`','`001/spec-r0`, earlier author round'))
+        (Get-WorkflowGateProblem @(Get-WorkflowPackages $fixture.RepoRoot)[0] CP1) | Should Match 'scope is obsolete'
+    }
+
+    It 'recognizes list-style accepted scope only when it matches the current package' {
+        Set-FixtureReview $fixture -Scope '001/spec-r0' -List
+        Set-FixtureSpec $fixture -VerdictLink '[review](reviews/CP1-review.md); [owner acceptance](reviews/acceptance.md)'
+        foreach ($style in @('plain','single','bold')) {
+            $label=switch ($style) { plain { 'Accepted scope' }; single { '*Accepted scope*' }; bold { '**Accepted scope**' } }
+            Write-FixtureFile $fixture 'specs/001-example/reviews/acceptance.md' "- ${label}: ``001/spec-r0```n"
+            (Get-WorkflowGateProblem @(Get-WorkflowPackages $fixture.RepoRoot)[0] CP1) | Should Match 'scope is obsolete'
+            Write-FixtureFile $fixture 'specs/001-example/reviews/acceptance.md' "- ${label}: ``001/spec-r1``, owner acceptance`n"
+            (Get-WorkflowGateProblem @(Get-WorkflowPackages $fixture.RepoRoot)[0] CP1) | Should BeNullOrEmpty
+        }
+    }
+
+    It 'requires list-style reviewer and reviewed revision through the shared label reader' {
+        foreach ($field in @('Reviewer','Reviewed revision')) {
+            Set-FixtureReview $fixture -List
+            $path=Join-Path $fixture.RepoRoot 'specs/001-example/reviews/CP1-review.md'
+            $text=[regex]::Replace([IO.File]::ReadAllText($path),'(?m)^- \*\*'+[regex]::Escape($field)+'\*\*:[^\r\n]*','')
+            Write-FixtureFile $fixture 'specs/001-example/reviews/CP1-review.md' $text
+            (Get-WorkflowGateProblem @(Get-WorkflowPackages $fixture.RepoRoot)[0] CP1) | Should Match 'lacks actual reviewer or reviewed revision'
+        }
+    }
 }
 
 Describe 'Read-only workflow lint detects mechanical drift' {

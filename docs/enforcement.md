@@ -36,8 +36,9 @@ explicit adoption gap. Repo authorization governs publication.
 Versioned kit launchers reject worker revisions that alter the spec block before
 its first level-two heading, change `.workflow-kit.json`, alter the task entry
 checkpoint or existing gate/manual annotations, add/remove/reorder task IDs,
-add or modify a review carrying a recognized plain/single-emphasis/bold verdict
-label, or newly complete a task other than
+modify or delete an existing file under `reviews/`, add a new review carrying
+any recognized gate label (Verdict, Accepted scope, Checkpoint, Scope, Reviewer,
+Reviewed revision), or newly complete a task other than
 the focused package/task ID. Task descriptions and current-work header fields
 other than the entry checkpoint remain editable. Rejected ranges remain in
 scratch and report worker-incomplete before cherry-pick. Launchers validate saved
@@ -46,7 +47,10 @@ Owner-only clearance remains a governance rule. Stale prose/scope reconciliation
 requires human judgment. Cleanup and full consumer migration remain later slices
 and are not claimed by this matrix.
 
-Gate validation and worker-range rejection share the verdict label parser.
+Gate validation and worker-range rejection share one parser for every gate
+label, supporting plain, single-emphasis and bold labels with an optional list
+prefix. Newly added unlabelled worker notes are allowed; existing records are
+immutable during worker integration. Owner sessions can still author records.
 During self-hosting, preflight child processes load the scripts in the current
 checkout. A worker's edits to checking/scheduling code can change subsequent
 preflight behavior; the launcher does not pin preflight code to the starting

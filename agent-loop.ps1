@@ -947,9 +947,12 @@ Implement only the focused task. Update its checkbox/current-work header after
 validation and commit with an area prefix. No unrelated tasks or automatic reviews.
 Preserve .workflow-kit.json, the task entry checkpoint, task IDs/order, and every
 gate/manual annotation. These are owner declarations; task descriptions may change.
-Saved review requests/findings/dispositions belong in $specDir/reviews/, naming
-checkpoint, scope, reviewed revision, actual known reviewer and verdict. Preserve
-findings; transfer only a recipient/scope/artifact/action link through the inbox.
+Existing files under reviews/ are owner records: do not modify, delete or rename
+them. New worker notes may be unlabelled observations, but must not carry gate
+labels: Verdict, Accepted scope, Checkpoint, Scope, Reviewer or Reviewed revision.
+Owner-requested review requests/findings/dispositions belong in $specDir/reviews/;
+workers cannot author their acceptance metadata. Preserve findings; transfer only
+a recipient/scope/artifact/action link through the inbox.
 No AGENTS handover or lifecycle edits, no SPECKIT markers, no root state files,
 no network/push/installer/cross-repo operations without explicit owner instruction.
 On incomplete work record the blocker in the task header and preserve all work.

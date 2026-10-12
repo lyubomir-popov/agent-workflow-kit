@@ -255,12 +255,23 @@ function Get-WorkflowTasks {
     return $tasks
 }
 
+function Get-WorkflowReviewLabels {
+    param([AllowEmptyString()][string]$Text)
+    # All gate fields use the same plain/emphasized/list syntax.
+    foreach ($match in [regex]::Matches($Text,'(?im)^[ \t]*(?:[-*][ \t]+)?\*{0,2}(?<label>Reviewed revision|Accepted scope|Checkpoint|Reviewer|Verdict|Scope)\*{0,2}:[ \t]*\*{0,2}(?<value>[^\r\n]*)')) {
+        [pscustomobject]@{Label=$match.Groups['label'].Value; Value=$match.Groups['value'].Value.Trim()}
+    }
+}
+
 function Get-WorkflowReviewVerdicts {
     param([AllowEmptyString()][string]$Text)
-    # Gate validation and worker integration recognize the same Markdown labels.
-    foreach ($match in [regex]::Matches($Text,'(?im)^[ \t]*(?:[-*][ \t]+)?\*{0,2}Verdict\*{0,2}:[ \t]*\*{0,2}(?<value>[^\r\n]*)')) {
-        $match.Groups['value'].Value.Trim()
-    }
+    Get-WorkflowReviewLabels $Text | Where-Object Label -eq 'Verdict' | ForEach-Object Value
+}
+
+function Get-WorkflowReviewIdentity {
+    param([string]$Value)
+    # Scope/checkpoint identities may be backtick-wrapped and followed by context.
+    return [regex]::Match($Value,'^`?([^`\s,;]+)').Groups[1].Value
 }
 
 function Get-WorkflowGateProblem {
@@ -275,15 +286,23 @@ function Get-WorkflowGateProblem {
         if (-not $name.StartsWith('reviews/') -or $name -match '\.\.') { return "$Gate review link must stay in package reviews/." }
         $review=Read-WorkflowPackageFile $Package $name
         if (-not $review) { return "$Gate saved review is missing: $name." }
-        if ($review -match '(?m)^\*\*Checkpoint\*\*:\s*(CP\d+)\s*$' -and $Matches[1] -ne $Gate) { return "$Gate verdict names a different checkpoint: $name." }
-        $verdicts=@(Get-WorkflowReviewVerdicts $review)
+        $labels=@(Get-WorkflowReviewLabels $review)
+        foreach ($field in $labels | Where-Object Label -eq 'Checkpoint') {
+            if ((Get-WorkflowReviewIdentity $field.Value) -ne $Gate) { return "$Gate verdict names a different checkpoint: $name." }
+        }
+        $verdicts=@($labels | Where-Object Label -eq 'Verdict' | ForEach-Object Value)
         if (@($verdicts | Where-Object { $_ -match '^(reject|blocking|superseded)\b' }).Count) { return "$Gate verdict is blocking or superseded: $name." }
         if (@($verdicts | Where-Object { $_ -match '^accept\b' }).Count) {
-            if ($review -notmatch '(?im)^[-* ]*\*?\*?Reviewer\*?\*?:\s*\S' -or $review -notmatch '(?im)^[-* ]*\*?\*?Reviewed revision\*?\*?:\s*\S') { return "$Gate verdict lacks actual reviewer or reviewed revision: $name." }
+            if (-not @($labels | Where-Object { $_.Label -eq 'Reviewer' -and $_.Value -match '\S' }).Count -or
+                -not @($labels | Where-Object { $_.Label -eq 'Reviewed revision' -and $_.Value -match '\S' }).Count) { return "$Gate verdict lacks actual reviewer or reviewed revision: $name." }
             $accepted=$true
         }
-        if ($review -match '(?m)^\*\*Scope\*\*:\s*`?([^`\r\n]+)') { if ($Matches[1].Trim() -ne $Package.Scope) { $scopeMismatch=$true } }
-        if ($review -match '(?m)^\*\*Accepted scope\*\*:\s*`?([^`\r\n]+)') { if ($Matches[1].Trim() -eq $Package.Scope) { $acceptedScope=$true } }
+        foreach ($field in $labels | Where-Object Label -eq 'Scope') {
+            if ((Get-WorkflowReviewIdentity $field.Value) -ne $Package.Scope) { $scopeMismatch=$true }
+        }
+        foreach ($field in $labels | Where-Object Label -eq 'Accepted scope') {
+            if ((Get-WorkflowReviewIdentity $field.Value) -eq $Package.Scope) { $acceptedScope=$true }
+        }
     }
     if (-not $accepted) { return "$Gate lacks an accepted saved verdict." }
     if ($scopeMismatch -and -not $acceptedScope) { return "$Gate verdict scope is obsolete; owner acceptance for $($Package.Scope) is required." }

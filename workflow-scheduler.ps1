@@ -27,8 +27,11 @@ function Assert-WorkflowWorkerRange {
                 $afterHeader=if ($null -ne $after) { ($after -split '(?m)^##\s',2)[0] } else { $null }
                 if ($beforeHeader -cne $afterHeader) { throw "worker-incomplete: owner spec block changed at $revision ($path)." }
             }
-            if ($path -match '(^|/)reviews/' -and @(Get-WorkflowReviewVerdicts ([string]$after)).Count) {
-                throw "worker-incomplete: review verdict added or modified at $revision ($path)."
+            if ($path -match '(^|/)reviews/') {
+                if ($null -ne $before) { throw "worker-incomplete: existing review record changed or deleted at $revision ($path)." }
+                if (@(Get-WorkflowReviewLabels ([string]$after)).Count) {
+                    throw "worker-incomplete: new review gate metadata added at $revision ($path)."
+                }
             }
             if ($path -match '(^|/)tasks\.md$') {
                 $beforeTasks=Get-WorkflowTaskDeclarations ([string]$before) $path

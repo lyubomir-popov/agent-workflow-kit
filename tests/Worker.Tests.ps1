@@ -108,7 +108,7 @@ Describe 'Production worker integration and failure preservation in disposable r
             $script:reviewPath=$path
             $result=Invoke-SpecKitWorkerPhase -SpecPackage $package -Phase implement -Task $task -RepoPath $fixture.RepoRoot -InvocationCount ([ref]$script:invocations) -SkippedLineIndices ([ref]$null) -DefaultModel fixture -DefaultEffort low
             $result.Status | Should Be worker-incomplete
-            $result.Reason | Should Match 'review verdict'
+            $result.Reason | Should Match 'review (record|gate metadata)'
             (Get-HeadCommit $fixture.RepoRoot) | Should Be $before
             (Test-Path -LiteralPath $result.WorktreePath) | Should Be $true
         }
@@ -121,7 +121,89 @@ Describe 'Production worker integration and failure preservation in disposable r
             Save-FixtureRevision $worker
             [pscustomobject]@{ExitCode=0; TimedOut=$false; ElapsedSeconds=0; StdOut=@(); StdErr=@()}
         }
-        Assert-FixtureWorkerRejected 'review verdict added or modified'
+        Assert-FixtureWorkerRejected 'new review gate metadata'
+    }
+
+    It 'rejects removing a superseded verdict from an existing review' {
+        Write-FixtureFile $fixture 'specs/001-example/reviews/older.md' "# Earlier review`n**Verdict**: superseded`n"
+        Save-FixtureRevision $fixture
+        Mock Invoke-AgentTask {
+            $worker=[pscustomobject]@{RepoRoot=$WorkingDirectory}
+            Write-FixtureFile $worker 'specs/001-example/reviews/older.md' "# Earlier review`n"
+            Save-FixtureRevision $worker
+            [pscustomobject]@{ExitCode=0; TimedOut=$false; ElapsedSeconds=0; StdOut=@(); StdErr=@()}
+        }
+        Assert-FixtureWorkerRejected 'existing review record changed or deleted'
+    }
+
+    It 'rejects deleting an existing review even if it has no verdict' {
+        Write-FixtureFile $fixture 'specs/001-example/reviews/dispositions.md' "# Author dispositions`nAwaiting owner acceptance.`n"
+        Save-FixtureRevision $fixture
+        Mock Invoke-AgentTask {
+            $worker=[pscustomobject]@{RepoRoot=$WorkingDirectory}
+            Remove-Item -LiteralPath (Join-Path $WorkingDirectory 'specs/001-example/reviews/dispositions.md')
+            Save-FixtureRevision $worker
+            [pscustomobject]@{ExitCode=0; TimedOut=$false; ElapsedSeconds=0; StdOut=@(); StdErr=@()}
+        }
+        Assert-FixtureWorkerRejected 'existing review record changed or deleted'
+    }
+
+    It 'rejects injecting accepted scope into an existing verdict-less dispositions file' {
+        Write-FixtureFile $fixture 'specs/001-example/reviews/dispositions.md' "# Author dispositions`nAwaiting owner acceptance.`n"
+        Save-FixtureRevision $fixture
+        Mock Invoke-AgentTask {
+            $worker=[pscustomobject]@{RepoRoot=$WorkingDirectory}
+            Write-FixtureFile $worker 'specs/001-example/reviews/dispositions.md' "# Author dispositions`n- **Accepted scope**: ``001/spec-r1```n"
+            Save-FixtureRevision $worker
+            [pscustomobject]@{ExitCode=0; TimedOut=$false; ElapsedSeconds=0; StdOut=@(); StdErr=@()}
+        }
+        Assert-FixtureWorkerRejected 'existing review record changed or deleted'
+    }
+
+    It 'rejects each gate label in newly added review files' {
+        Mock Invoke-AgentTask {
+            $worker=[pscustomobject]@{RepoRoot=$WorkingDirectory}
+            Write-FixtureFile $worker 'specs/001-example/reviews/new-record.md' $script:newReviewLabel
+            Save-FixtureRevision $worker
+            [pscustomobject]@{ExitCode=0; TimedOut=$false; ElapsedSeconds=0; StdOut=@(); StdErr=@()}
+        }
+        foreach ($label in @('Verdict','Accepted scope','Checkpoint','Scope','Reviewer','Reviewed revision')) {
+            $script:newReviewLabel="- **${label}**: fixture-value`n"
+            Assert-FixtureWorkerRejected 'new review gate metadata'
+        }
+        Assert-MockCalled Invoke-AgentTask -Times 6 -Exactly -Scope It
+    }
+
+    It 'rejects an existing review edit even when a later worker commit restores it' {
+        Write-FixtureFile $fixture 'specs/001-example/reviews/notes.md' "# Saved owner notes`nOriginal evidence.`n"
+        Save-FixtureRevision $fixture
+        Mock Invoke-AgentTask {
+            $worker=[pscustomobject]@{RepoRoot=$WorkingDirectory}
+            Write-FixtureFile $worker 'specs/001-example/reviews/notes.md' "# Saved owner notes`nRewritten evidence.`n"
+            Save-FixtureRevision $worker
+            Write-FixtureFile $worker 'specs/001-example/reviews/notes.md' "# Saved owner notes`nOriginal evidence.`n"
+            Save-FixtureRevision $worker
+            [pscustomobject]@{ExitCode=0; TimedOut=$false; ElapsedSeconds=0; StdOut=@(); StdErr=@()}
+        }
+        Assert-FixtureWorkerRejected 'existing review record changed or deleted'
+    }
+
+    It 'permits new unlabelled worker notes alongside focused task completion' {
+        $package=@(Get-WorkflowPackages $fixture.RepoRoot)[0]
+        $task=@(Get-WorkflowTasks $package)[0]
+        Mock Invoke-AgentTask {
+            $worker=[pscustomobject]@{RepoRoot=$WorkingDirectory}
+            Write-FixtureFile $worker 'specs/001-example/reviews/worker-notes.md' "# Implementation observations`nFixture evidence only.`n"
+            Set-FixtureTasks $worker '- [x] T001 Implement example.'
+            $path=Join-Path $WorkingDirectory 'specs/001-example/tasks.md'
+            Write-FixtureFile $worker 'specs/001-example/tasks.md' ([IO.File]::ReadAllText($path).Replace('**Next tasks**: T001.','**Next tasks**: none.'))
+            Save-FixtureRevision $worker
+            [pscustomobject]@{ExitCode=0; TimedOut=$false; ElapsedSeconds=0; StdOut=@(); StdErr=@()}
+        }
+        $result=Invoke-SpecKitWorkerPhase -SpecPackage $package -Phase implement -Task $task -RepoPath $fixture.RepoRoot -InvocationCount ([ref]$script:invocations) -SkippedLineIndices ([ref]$null) -DefaultModel fixture -DefaultEffort low
+        $result.Status | Should Be ok
+        (Test-Path -LiteralPath (Join-Path $fixture.RepoRoot 'specs/001-example/reviews/worker-notes.md')) | Should Be $true
+        (Invoke-FixtureLint $fixture -Strict).ExitCode | Should Be 0
     }
 
     It 'rejects newly completing an unrelated task before integration and retains scratch' {

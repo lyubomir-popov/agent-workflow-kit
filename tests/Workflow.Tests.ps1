@@ -218,6 +218,18 @@ Describe 'Versioned workflow model with isolated Git owners' {
             (Get-WorkflowGateProblem @(Get-WorkflowPackages $fixture.RepoRoot)[0] CP1) | Should Match 'lacks actual reviewer or reviewed revision'
         }
     }
+
+    It 'reads encoded review identities identically from the filesystem and declared branch blobs' {
+        Set-FixtureReview $fixture -List
+        $path=Join-Path $fixture.RepoRoot 'specs/001-example/reviews/CP1-review.md'
+        $text=[IO.File]::ReadAllText($path).Replace('**Checkpoint**: CP1','**Checkpoint**: CP9')
+        [IO.File]::WriteAllText($path,$text,[Text.Encoding]::Unicode)
+        $localProblem=Get-WorkflowGateProblem @(Get-WorkflowPackages $fixture.RepoRoot)[0] CP1
+        $localProblem | Should Match 'different checkpoint'
+        Save-FixtureRevision $fixture
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        (Get-WorkflowGateProblem @(Get-WorkflowPackages $fixture.RepoRoot)[0] CP1) | Should Be $localProblem
+    }
 }
 
 Describe 'Read-only workflow lint detects mechanical drift' {

@@ -174,6 +174,20 @@ Describe 'Production worker integration and failure preservation in disposable r
         Assert-MockCalled Invoke-AgentTask -Times 6 -Exactly -Scope It
     }
 
+    It 'rejects gate metadata in BOM-encoded new reviews just as the filesystem reader does' {
+        Mock Invoke-AgentTask {
+            $worker=[pscustomobject]@{RepoRoot=$WorkingDirectory}
+            [IO.File]::WriteAllText((Join-Path $WorkingDirectory 'specs/001-example/reviews/encoded.md'),"- **Accepted scope**: ``001/spec-r1```n",$script:reviewEncoding)
+            Save-FixtureRevision $worker
+            [pscustomobject]@{ExitCode=0; TimedOut=$false; ElapsedSeconds=0; StdOut=@(); StdErr=@()}
+        }
+        foreach ($encoding in @([Text.Encoding]::Unicode,[Text.Encoding]::BigEndianUnicode,[Text.Encoding]::UTF32)) {
+            $script:reviewEncoding=$encoding
+            Assert-FixtureWorkerRejected 'new review gate metadata'
+        }
+        Assert-MockCalled Invoke-AgentTask -Times 3 -Exactly -Scope It
+    }
+
     It 'rejects an existing review edit even when a later worker commit restores it' {
         Write-FixtureFile $fixture 'specs/001-example/reviews/notes.md' "# Saved owner notes`nOriginal evidence.`n"
         Save-FixtureRevision $fixture

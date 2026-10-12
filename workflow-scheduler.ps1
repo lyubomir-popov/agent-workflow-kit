@@ -1,9 +1,7 @@
 # Spec-first scheduler functions; worker process primitives are in agent-loop.ps1.
 function Read-WorkflowRevisionFile {
     param([string]$RepoPath, [string]$Revision, [string]$Path)
-    $content=@(git -C $RepoPath show "${Revision}:$Path" 2>$null)
-    if ($LASTEXITCODE) { return $null }
-    return ($content -join "`n") + "`n"
+    return Read-WorkflowGitFile $RepoPath $Revision $Path
 }
 
 function Assert-WorkflowWorkerRange {

@@ -155,14 +155,39 @@ function Test-WorkflowCatalogRegistration {
     if ($Entry.DerivedLifecycle -and $Entry.DerivedLifecycle -ne 'draft') { return $false }
     $staged=@(git -C $RepoRoot diff --cached --name-only)
     if ($LASTEXITCODE -or $staged.Count -ne 1 -or $staged[0] -ne 'docs/specs.md') { return $false }
-    $indexText=@(git -C $RepoRoot show ':docs/specs.md' 2>$null)
-    if ($LASTEXITCODE) { return $false }
-    $indexEntries=@(Get-WorkflowCatalog $RepoRoot -Text ($indexText -join "`n"))
+    $indexText=Read-WorkflowGitFile $RepoRoot '' 'docs/specs.md'
+    if ($null -eq $indexText) { return $false }
+    $indexEntries=@(Get-WorkflowCatalog $RepoRoot -Text $indexText)
     if (-not @($indexEntries | Where-Object { $_.Id -eq $Entry.Id -and $_.Branch -eq $Entry.Branch -and $_.RelativePath -eq $Entry.RelativePath }).Count) { return $false }
-    $headText=@(git -C $RepoRoot show 'HEAD:docs/specs.md' 2>$null)
-    if ($LASTEXITCODE) { return $false }
-    $headEntries=@(Get-WorkflowCatalog $RepoRoot -Text ($headText -join "`n"))
+    $headText=Read-WorkflowGitFile $RepoRoot HEAD 'docs/specs.md'
+    if ($null -eq $headText) { return $false }
+    $headEntries=@(Get-WorkflowCatalog $RepoRoot -Text $headText)
     return $Entry.Id -notin @($headEntries | ForEach-Object Id)
+}
+
+function Read-WorkflowGitFile {
+    param([string]$RepoRoot, [AllowEmptyString()][string]$Revision, [string]$Path)
+    # Native stdout text decoding differs from ReadAllText for BOM encodings.
+    # Read raw blob bytes, then use the same UTF-8 default/BOM detection as disk.
+    $gitProcess=[Diagnostics.Process]::new()
+    $blobStream=[IO.MemoryStream]::new(); $reader=$null
+    try {
+        $gitProcess.StartInfo.FileName=(Get-Command git -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+        $gitProcess.StartInfo.UseShellExecute=$false; $gitProcess.StartInfo.CreateNoWindow=$true
+        $gitProcess.StartInfo.RedirectStandardOutput=$true; $gitProcess.StartInfo.RedirectStandardError=$true
+        foreach ($argument in @('--no-pager','-C',$RepoRoot,'show',("${Revision}:$Path"))) { $gitProcess.StartInfo.ArgumentList.Add($argument) }
+        if (-not $gitProcess.Start()) { throw 'workflow-git: cannot start blob reader.' }
+        $errorRead=$gitProcess.StandardError.ReadToEndAsync()
+        $gitProcess.StandardOutput.BaseStream.CopyTo($blobStream)
+        $gitProcess.WaitForExit(); $null=$errorRead.GetAwaiter().GetResult()
+        if ($gitProcess.ExitCode) { return $null }
+        $blobStream.Position=0
+        $reader=[IO.StreamReader]::new($blobStream,[Text.Encoding]::UTF8,$true)
+        return $reader.ReadToEnd()
+    } finally {
+        if ($reader) { $reader.Dispose() }
+        $blobStream.Dispose(); $gitProcess.Dispose()
+    }
 }
 
 function Read-WorkflowPackageFile {
@@ -172,9 +197,7 @@ function Read-WorkflowPackageFile {
         if (Test-Path -LiteralPath $path -PathType Leaf) { return [IO.File]::ReadAllText($path) }
         return $null
     }
-    $text = git -C $Package.RepoRoot show "refs/heads/$($Package.Branch):$($Package.RelativePath)/$Name" 2>$null
-    if ($LASTEXITCODE) { return $null }
-    return ($text -join "`n") + "`n"
+    return Read-WorkflowGitFile $Package.RepoRoot "refs/heads/$($Package.Branch)" "$($Package.RelativePath)/$Name"
 }
 
 function Get-WorkflowPackages {

@@ -194,3 +194,48 @@ Target amendment pre-commit validation: `Passed: 115 Failed: 0 Skipped: 0 Pendin
 0 Inconclusive: 0` (206.52s). Strict lint: 0 errors/0 warnings; dry run reports
 `target=main`, no workers, and the slice B manual stop. Diff check and main-to-feature
 ancestry pass.
+
+## Owner delta implementation validation, 2026-10-12
+
+The complete owner scope selected main and CPA-R3 target registration, authorized
+CPA-r1/r2, and deferred CPA-r4 to the slice B plan (Spec 001 implementer owns it).
+This supersedes the earlier pending choice/triage statements above. CP2 remains
+pending and both review rounds plus updated dispositions remain linked in spec.md.
+
+| Commit | Change | Pester summary before commit | Seconds |
+|---|---|---|---|
+| `207ddb4` | Main configuration, owner amendments and CP1-gated delta tasks | Passed: 115 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0 | 206.52 |
+| `fb8fec4` | Shared verdict parser and combined worker/restore failure report | Passed: 118 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0 | 229.07 |
+| `09a0c1f` | Target catalog registration and unavailable-local-branch diagnostics | Passed: 124 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0 | 298.5 |
+
+The CPA-R3 focused suite passed 23/23 in 39.39 seconds. Fixture runs were
+sequential; no live worker was invoked. An initial minors run found a Pester 3
+restore-denial mock leaking into the next fixture (117 passed, 1 failed); resetting
+the mock to the production function before each fixture resolved it, followed by
+the clean 118/118 full run above.
+
+| Finding/decision | Acceptance fixture or check |
+|---|---|
+| Target main | Verified origin/main ancestor of master, master ancestor of feature; created main at master without rewriting master; rechecked main ancestor of feature; root strict lint/dry run report target=main |
+| CPA-R1/R2 | Worker.Tests: task entry/gate/manual/ID protection and config edit/delete/revert rejection; retained from fcca278 |
+| CPA-R3 target visibility | SpecKit.Tests: configured target gets the catalog-only registration commit; feature inherits it; create → setup-plan writes draft lifecycle/scope/checkpoints and strict lint passes on feature and target |
+| CPA-R3 missing local branch | SpecKit.Tests: fresh local clone has only remote package refs and reports info fetch hints with strict exit 0; non-target missing ref still errors; target-side package edits remain forbidden |
+| CPA-R3 safe creation | SpecKit.Tests: real commit hook passes before feature ref exists; dirty target and target checked out elsewhere stop incomplete without registration or package creation |
+| CPA-r1 | Worker.Tests: rejects *Verdict*: accept and retains scratch; Scheduler.Tests: accepts single-emphasis saved gate verdict through the same parser |
+| CPA-r2 | Scheduler.Tests: combined worker/restore failure includes both messages and both exceptions; successful restoration and partial-work preservation continue passing |
+| CPA-r4 | Owner deferred to slice B plan, owned by Codex (Spec 001 implementer); no archive behavior change |
+
+Strict lint, agent-loop -DryRun and git diff --check passed before each commit.
+Root lint reports 0 errors, 0 warnings and the semantic-limit info. Dry run reports
+target=main and zero worker invocations, stopping at the next manual boundary.
+Local main and untouched master both point to 864cad5; remote refs/default are
+unchanged. Owner remote steps: push main, switch default to main, retire master.
+Legacy behavior changes remain documented in the earlier validation section;
+new registration/fetch handling is versioned-only. No slice B/C implementation,
+push, prompt installation, vendor skill edit or additional review occurred.
+
+Final metadata handoff repeated the full suite before commit (300.89 seconds):
+`Passed: 124 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0`.
+Strict lint, dry run and whitespace checks passed again; dry run stops at T016
+(manual), reports target=main and launches zero workers. Main remains an ancestor
+of the feature branch and master remains unchanged at 864cad5.

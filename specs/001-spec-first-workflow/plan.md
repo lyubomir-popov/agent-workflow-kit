@@ -77,6 +77,9 @@ Target lint reports unavailable local package branches as info with a fetch hint
 This kit now targets main; generic fixtures retain master to test configuration.
 CPA-r1/r2 are authorized corrections; CPA-r4 archive edit restrictions are deferred
 to the slice B plan, owned by Codex (Spec 001 implementer).
+T026–T029 implement and record that owner scope; the next task is the manual
+slice B planning boundary, subject to CP2 owner clearance in spec.md. No further
+review or slice B/C implementation is part of this remediation.
 
 Fixture tests cover resume, lifecycle states, declared worktrees/branch mismatch,
 gates and verdicts, fourteen drift updates, lines/bytes/aggregate budgets, markers,

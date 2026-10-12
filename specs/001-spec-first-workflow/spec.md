@@ -155,7 +155,8 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
 
 ### Edge cases
 
-- Both `main` and `master` exist; only the configured target branch governs delivery.
+- Both `main` and `master` exist; this kit's configured target is `main` by owner
+  decision (2026-10-12). Other repositories use their configured target.
 - Newer decisions live on the package's declared branch in an active worktree;
   primary-checkout copies are snapshots, not competing owners.
 - A branch is missing, checkout fails, or a scratch worker is intentionally detached.
@@ -203,8 +204,12 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
   the resume pointer. Lifecycle is owned only by `spec.md`; if displayed in
   the catalog it MUST be derived and lint-checked for equality, not separately
   authored. Delivered entries move to an archive section in the same catalog;
-  packages do not move. A bounded
-  candidate section may retain unpromoted ideas, with at most ten entries;
+  packages do not move.
+  Versioned creation MUST first commit the draft package's catalog row on the
+  configured target, then create its declared branch from that commit. On the
+  target, a non-archived row with no local declared branch yields an informational
+  "fetch the declared branch" finding, not an error; package edit rules remain.
+  A bounded candidate section may retain unpromoted ideas, with at most ten entries;
   overflow moves to on-demand product direction, not another execution queue.
 - **FR-005**: Inbox entries MUST name recipient/scope, artifact link, and
   requested action. Remove entries only after receipt and resolution or
@@ -437,6 +442,10 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
      `main` fallback, nor an unchecked local cursor authorizes package work.
   3. Packages remain at their original `specs/` paths after delivery/closeout;
      numbering includes all packages, reserving closed/superseded identities.
+     Versioned creation registers the catalog row on the configured target before
+     branching and writes draft lifecycle/scope/checkpoints from the override.
+     A dirty target checkout or failure to switch to it stops creation incomplete.
+     Creation never pushes.
   4. Upgrades MUST preview and preserve kit-customized templates and constitution;
      rerunning `specify init --here` must not silently overwrite them.
   5. The constitution owns durable principles, linked from static AGENTS; it
@@ -448,7 +457,8 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
 
 - **FR-035**: `.workflow-kit.json` MUST be the one per-repo workflow config,
   preserving existing external-mirror settings. It declares `workflowModelVersion`,
-  target branch, disposable patterns, managed scratch root, budget exceptions
+  target branch (this kit uses `main`, owner decision 2026-10-12), disposable
+  patterns, managed scratch root, budget exceptions
   (authorization/reason/expiry), and automatically loaded files with host/budget.
   Absence of the new version selects legacy mode; a valid new version selects
   spec-first mode. Holds and merge proof remain package-owned. This config and

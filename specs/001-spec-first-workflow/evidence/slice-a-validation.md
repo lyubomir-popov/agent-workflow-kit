@@ -181,3 +181,16 @@ The metadata handoff repeated the full suite: **115 passed, 0 failed, 0 skipped*
 No actual worker process ran. No target write, push, prompt installation, vendor
 skill edit, sibling-repository edit, slice B/C implementation or further Opus
 review was performed. Original CPA-M5/CPA-m2/CPA-m5 deferrals remain unchanged.
+
+## Owner target amendment, 2026-10-12
+
+Local main was created at unchanged master `864cad5`, after proving origin/main
+is an ancestor of master and master is an ancestor of the feature branch.
+The kit config selects main. Generic fixture targets remain master deliberately.
+Historical results above describe their original revisions; new validation below
+will use main. No push, default-branch change or branch deletion was performed.
+
+Target amendment pre-commit validation: `Passed: 115 Failed: 0 Skipped: 0 Pending:
+0 Inconclusive: 0` (206.52s). Strict lint: 0 errors/0 warnings; dry run reports
+`target=main`, no workers, and the slice B manual stop. Diff check and main-to-feature
+ancestry pass.

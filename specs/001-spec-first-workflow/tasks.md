@@ -1,14 +1,14 @@
 # Current work
 
-**Next tasks**: T025 (manual).
-**Blockers**: Owner decision on CPA-R3 and CP2 acceptance before slice B planning.
+**Next tasks**: T027, T028, T029.
+**Blockers**: CP2 owner acceptance before slice B planning.
 **Checkpoint links**: [slice gates](spec.md#checkpoints); [CP2 delta findings](reviews/2026-10-11-opus-slice-a-delta-review.md); [delta dispositions](reviews/2026-10-12-cp2-delta-author-dispositions.md).
 **Entry checkpoint**: CP1
 **Validation**: [commands](quickstart.md); [author results and FR map](evidence/slice-a-validation.md).
 
 ## Setup and foundation
 
-- [x] T001 Declare version, target master, scratch/disposable policies and host inventory in `.workflow-kit.json` (FR-035).
+- [x] T001 Declare version, configured target, scratch/disposable policies and host inventory in `.workflow-kit.json` (FR-035); owner amended this kit's target to main on 2026-10-12.
 - [x] T002 Build shared config/catalog/worktree/spec/task/checkpoint parsing in `workflow-model.ps1` (FR-002–004, 010, 015–017, 033).
 - [x] T003 Add compatible Pester fixture runner in `tests/run-tests.ps1` and fixture helpers under `tests/` (FR-013, 018).
 
@@ -62,14 +62,25 @@ this round fixes CPA-R1/R2 under the existing slice A entry gate.
 - [x] T020 Resolve archived packages from the checkout, accept target-side delivery, stop manual tasks, restore scheduler branches, and fix inventory/redundant logic (CPA-M1, CPA-M2, CPA-m1, CPA-m3, CPA-m4) (gate: CP1).
 - [x] T021 Detect missing Spec Kit integrations, author catalog/lifecycle on creation, test create → setup-plan, and repair CI branch restoration (CPA-M3, CPA-M4) (gate: CP1).
 - [x] T022 Save finding dispositions and validation evidence, update pending CP2/inbox links, and hand back to the owner (gate: CP1).
+## CP2 delta remediation
+
+Owner-authorized slice A corrections, 2026-10-12; entry gate remains CP1.
+CP2 stays pending. Target registration is the owner's selected CPA-R3 design.
+
 - [x] T023 Reject worker changes to task entry checkpoints, gate/manual declarations and task ID structure; reject all worker changes to `.workflow-kit.json`; test rejected ranges and allowed description/header edits (CPA-R1, CPA-R2) (gate: CP1).
 - [x] T024 Record delta dispositions/evidence, retain CPA-R3 for the owner's decision and update the pending CP2/inbox handoff (gate: CP1).
-- [ ] T025 Owner decision: select the CPA-R3 target-registration or worktree-resume option and scope its implementation; reconcile remaining delta minors before CP2 acceptance (manual) (gate: CP1).
+- [x] T025 Owner selected target registration, main, fixes for CPA-r1/r2, and slice B deferral for CPA-r4 on 2026-10-12 (manual) (gate: CP1).
+- [x] T026 Verify ancestry, create local main at master's commit without moving master, configure main and amend the governing creation contract (gate: CP1).
+- [ ] T027 Share verdict parsing between gate and range checks, report simultaneous worker/restore failures, and add fixtures (CPA-r1, CPA-r2) (gate: CP1).
+- [ ] T028 Register new draft catalog rows on the configured target before branching; handle unavailable local branches as target info findings; test creation, both checkouts and a fresh clone (CPA-R3) (gate: CP1).
+- [ ] T029 Record validation/dispositions, update pending CP2/inbox links, and report remaining owner remote steps (gate: CP1).
 
 ## Deferred slices
 
 CPA-M5, CPA-m2 and CPA-m5 are inputs to the future slice B plan. Named owner:
 Codex (Spec 001 implementer). See [dispositions](reviews/2026-10-11-cp2-author-dispositions.md).
+CPA-r4 archive edit restrictions are also deferred to that plan, owned by
+Codex (Spec 001 implementer); see the delta dispositions.
 
 - [ ] T016 Slice B: closeout in `workflow-kit.ps1`, detailed planning only after CP2 owner clearance (manual) (gate: CP2).
 - [ ] T017 Slice C: migration tooling and dual-mode `prompts/`, detailed planning only after CP3 owner clearance (manual) (gate: CP3).

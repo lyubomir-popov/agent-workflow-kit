@@ -3,6 +3,10 @@
 Start with the first current package below, resolved on its declared branch.
 Its `spec.md` owns lifecycle/checkpoints; its `tasks.md` owns execution state.
 Catalog order is the resume pointer, not unattended-work authorization.
+This kit's configured target is `main`. Versioned creation registers a draft's
+row on the configured target before creating its declared branch. A target
+session without that local branch reports "fetch the declared branch"; fetch
+and package-branch checkout remain operator steps.
 
 ## Current packages
 

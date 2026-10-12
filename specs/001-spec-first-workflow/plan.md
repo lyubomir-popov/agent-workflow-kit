@@ -70,9 +70,13 @@ CPA-m2 staged hook package scoping, and CPA-m5 hook/mirror coverage for the late
 rollout. Named owner: Codex (Spec 001 implementer), after CP2 owner clearance.
 The [initial CP2 dispositions](reviews/2026-10-11-cp2-author-dispositions.md) and
 [delta dispositions](reviews/2026-10-12-cp2-delta-author-dispositions.md) record scope
-and evidence; T018–T024 are the CP1-gated slice A remediation tasks. T025 is the
-manual owner decision on CPA-R3 and remaining minor triage. Target registration
-versus worktree resume is unresolved; neither design is selected by the implementer.
+and evidence; CP2 delta remediation remains CP1-gated. The owner selected target
+registration on 2026-10-12: switch to a clean configured target, commit only the
+new catalog row there, then branch and write the draft spec from the override.
+Target lint reports unavailable local package branches as info with a fetch hint.
+This kit now targets main; generic fixtures retain master to test configuration.
+CPA-r1/r2 are authorized corrections; CPA-r4 archive edit restrictions are deferred
+to the slice B plan, owned by Codex (Spec 001 implementer).
 
 Fixture tests cover resume, lifecycle states, declared worktrees/branch mismatch,
 gates and verdicts, fourteen drift updates, lines/bytes/aggregate budgets, markers,

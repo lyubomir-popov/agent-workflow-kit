@@ -103,6 +103,8 @@ function New-WorkflowFixture {
     $null = Invoke-FixtureGit $fixture @('config', 'core.hooksPath', (Join-Path $tempRoot 'no-hooks'))
     # Use the committed config schema, including every declared host/adapter.
     $config = Get-Content -LiteralPath (Join-Path $script:KitRoot '.workflow-kit.json') -Raw | ConvertFrom-Json
+    # Deliberately retain a non-main target to test configured-target behavior.
+    $config.targetBranch = 'master'
     Set-FixtureConfig $fixture $config
     Write-FixtureFile $fixture 'AGENTS.md' "# Agent invariants`n`nRead [the catalog](docs/specs.md) at session start/end and scope changes.`nCheck workflow-kit lint before work.`n"
     Write-FixtureFile $fixture 'CLAUDE.md' "@AGENTS.md`n"

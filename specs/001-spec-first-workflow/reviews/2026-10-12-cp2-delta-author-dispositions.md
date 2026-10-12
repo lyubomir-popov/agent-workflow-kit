@@ -24,3 +24,22 @@ Validation: [delta evidence](../evidence/slice-a-validation.md#cp2-delta-remedia
 The full code-validation run passed **115 tests, 0 failed, 0 skipped**, Pester 3.4,
 391.02 seconds; the focused worker run passed 18/18. Strict lint and dry run pass;
 dry run starts zero workers and stops for manual owner action.
+
+## Owner amendment, 2026-10-12
+
+This complete scope supersedes the earlier pending triage above.
+
+1. Target is main. Verified origin/main is an ancestor of master and master is an
+   ancestor of the feature branch. Local main was created at master's unchanged
+   commit `864cad5`; config now selects main. No remote was changed. Owner steps:
+   push main, switch the remote default branch, then retire master.
+2. CPA-R3: owner selected option (a), target registration. First commit the draft
+   row on the configured target, then create the declared branch from that commit.
+   Dirty target or failed checkout stops incomplete; never push. Missing local
+   declared branches on the target give an info fetch finding. FR-004/034 amended;
+   implementation and creation/clone fixtures are tracked by T028.
+3. CPA-r1: authorized shared verdict parser and single-emphasis range fixture (T027).
+4. CPA-r2: authorized reporting of both worker and restore failures (T027).
+5. CPA-r4: deferred to the slice B plan, owner: Codex (Spec 001 implementer).
+
+CP2 remains pending; these owner decisions do not clear it.

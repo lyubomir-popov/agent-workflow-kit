@@ -1,6 +1,6 @@
 {
   "workflowModelVersion": 1,
-  "targetBranch": "master",
+  "targetBranch": "main",
   "managedScratchRoot": "{temp}/agent-workflow-kit",
   "disposablePatterns": ["node_modules/", ".venv/", ".pytest_cache/", "__pycache__/", "coverage/"],
   "autoLoadedFiles": [

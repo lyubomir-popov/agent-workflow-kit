@@ -5,8 +5,9 @@ Its `spec.md` owns lifecycle/checkpoints; its `tasks.md` owns execution state.
 Catalog order is the resume pointer, not unattended-work authorization.
 This kit's configured target is `main`. Versioned creation registers a draft's
 row on the configured target before creating its declared branch. A target
-session without that local branch reports "fetch the declared branch"; fetch
-and package-branch checkout remain operator steps.
+session with only a cached remote ref reports "fetch the declared branch"; fetch
+and package-branch checkout remain operator steps. Missing refs are errors when
+the available inventory lacks the branch; uncached remote inventory is unknown.
 
 ## Current packages
 

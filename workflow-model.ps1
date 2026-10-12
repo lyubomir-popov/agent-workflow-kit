@@ -115,11 +115,15 @@ function Get-WorkflowScratchMarker {
 }
 
 function Get-WorkflowCatalog {
-    param([string]$RepoRoot)
+    param([string]$RepoRoot, [AllowEmptyString()][string]$Text)
     $path = Join-Path $RepoRoot 'docs/specs.md'
-    if (-not (Test-Path -LiteralPath $path)) { throw 'catalog-owner: missing docs/specs.md.' }
+    if ($PSBoundParameters.ContainsKey('Text')) { $lines=$Text -split "`r?`n" }
+    else {
+        if (-not (Test-Path -LiteralPath $path)) { throw 'catalog-owner: missing docs/specs.md.' }
+        $lines=Get-Content -LiteralPath $path
+    }
     $section = ''; $columns = @(); $entries = @()
-    foreach ($line in Get-Content -LiteralPath $path) {
+    foreach ($line in $lines) {
         if ($line -match '^##\s+(.+)$') { $section = $Matches[1].Trim(); $columns = @(); continue }
         if ($section -notin @('Current packages','Archive') -or $line -notmatch '^\|') { continue }
         $cells = @($line.Trim().Trim('|').Split('|') | ForEach-Object { $_.Trim() })
@@ -140,6 +144,25 @@ function Get-WorkflowCatalog {
         $entries += [pscustomobject]@{ Id=$id; RelativePath=$relativePath; Branch=$branch; Archived=($section -eq 'Archive'); DerivedLifecycle=$derived }
     }
     return $entries
+}
+
+function Test-WorkflowCatalogRegistration {
+    param([string]$RepoRoot, $Entry)
+    # Only git -c during this commit may carry the transient registration hint.
+    # A persisted repo/global setting cannot suppress ordinary orphan findings.
+    $setting=[string](git -C $RepoRoot config --get --show-scope workflow-kit.registeringBranch)
+    if ($LASTEXITCODE -or $setting -cne ("command`t"+$Entry.Branch)) { return $false }
+    if ($Entry.DerivedLifecycle -and $Entry.DerivedLifecycle -ne 'draft') { return $false }
+    $staged=@(git -C $RepoRoot diff --cached --name-only)
+    if ($LASTEXITCODE -or $staged.Count -ne 1 -or $staged[0] -ne 'docs/specs.md') { return $false }
+    $indexText=@(git -C $RepoRoot show ':docs/specs.md' 2>$null)
+    if ($LASTEXITCODE) { return $false }
+    $indexEntries=@(Get-WorkflowCatalog $RepoRoot -Text ($indexText -join "`n"))
+    if (-not @($indexEntries | Where-Object { $_.Id -eq $Entry.Id -and $_.Branch -eq $Entry.Branch -and $_.RelativePath -eq $Entry.RelativePath }).Count) { return $false }
+    $headText=@(git -C $RepoRoot show 'HEAD:docs/specs.md' 2>$null)
+    if ($LASTEXITCODE) { return $false }
+    $headEntries=@(Get-WorkflowCatalog $RepoRoot -Text ($headText -join "`n"))
+    return $Entry.Id -notin @($headEntries | ForEach-Object Id)
 }
 
 function Read-WorkflowPackageFile {
@@ -165,7 +188,7 @@ function Get-WorkflowPackages {
     $current = Get-WorkflowBranch $RepoRoot
     $config = Get-WorkflowConfig $RepoRoot
     $marker = if ($current -eq 'HEAD') { Get-WorkflowScratchMarker $RepoRoot } else { $null }
-    $packages = @()
+    $packages = @(); $remoteRefs=$null; $remoteNames=@()
     foreach ($entry in @(Get-WorkflowCatalog $RepoRoot)) {
         $local = @($worktrees | Where-Object Branch -eq $entry.Branch | Select-Object -First 1)
         $localRoot = if ($entry.Archived -or $current -eq $entry.Branch -or ($marker -and $marker.integrationBranch -eq $entry.Branch)) { $RepoRoot }
@@ -174,13 +197,23 @@ function Get-WorkflowPackages {
             Id=$entry.Id; RelativePath=$entry.RelativePath; Branch=$entry.Branch; Archived=$entry.Archived
             DerivedLifecycle=$entry.DerivedLifecycle; RepoRoot=$RepoRoot; Local=[bool]$localRoot
             WorktreeRoot=$localRoot; AbsolutePath=if ($localRoot) { Resolve-WorkflowRelativePath $localRoot $entry.RelativePath } else { $null }
-            Available=$true; Lifecycle=$null; Scope=$null; SupersededScopes=@(); SupersededTasks=@(); Checkpoints=@(); SpecText=$null; Header=$null
+            Available=$true; MissingBranchState=$null; Lifecycle=$null; Scope=$null; SupersededScopes=@(); SupersededTasks=@(); Checkpoints=@(); SpecText=$null; Header=$null
         }
         if (-not $entry.Archived -and $config -and $current -eq $config.targetBranch) {
             git -C $RepoRoot show-ref --verify --quiet "refs/heads/$($entry.Branch)"
             if ($LASTEXITCODE -eq 1) {
-                # Registration precedes branch creation; a clone may have only a remote ref.
+                if ($null -eq $remoteRefs) {
+                    $remoteRefs=@(git -C $RepoRoot for-each-ref --format='%(refname)' refs/remotes/)
+                    if ($LASTEXITCODE) { throw 'workflow-git: cannot read cached remote refs.' }
+                    $remoteNames=@(git -C $RepoRoot remote)
+                    if ($LASTEXITCODE) { throw 'workflow-git: cannot read remote names.' }
+                }
+                $cachedBranch=@($remoteNames | Where-Object { ('refs/remotes/'+$_+'/'+$entry.Branch) -cin $remoteRefs })
                 $package.Available=$false
+                $package.MissingBranchState=if ($cachedBranch.Count) { 'fetch' }
+                    elseif (Test-WorkflowCatalogRegistration $RepoRoot $entry) { 'registering' }
+                    elseif ($remoteNames.Count -and -not $remoteRefs.Count) { 'unknown' }
+                    else { 'orphan' }
                 $packages += $package
                 continue
             }

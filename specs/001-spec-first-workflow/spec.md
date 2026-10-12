@@ -207,8 +207,13 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
   packages do not move.
   Versioned creation MUST first commit the draft package's catalog row on the
   configured target, then create its declared branch from that commit. On the
-  target, a non-archived row with no local declared branch yields an informational
-  "fetch the declared branch" finding, not an error; package edit rules remain.
+  target, a non-archived row with no local declared branch but a cached remote ref
+  yields an informational "fetch the declared branch" finding. An absent branch
+  in the available local/cached inventory is an error; configured remotes with no
+  cached inventory are explicitly unknown, without network queries. Creation's
+  catalog-only commit may carry a transient command-scoped registration hint,
+  valid only for its new staged row, before the branch is created. This cannot
+  excuse an existing orphan or persist as policy. Package edit rules remain.
   A bounded candidate section may retain unpromoted ideas, with at most ten entries;
   overflow moves to on-demand product direction, not another execution queue.
 - **FR-005**: Inbox entries MUST name recipient/scope, artifact link, and

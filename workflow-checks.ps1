@@ -172,7 +172,12 @@ function Test-SpecWorkflowRepo {
         $identities[$package.Id]=$true
         if (-not $package.Archived -and @($changed | Where-Object { $_.StartsWith($package.RelativePath+'/') }).Count -and $effective -ne $package.Branch) { Add-Finding $findings error package-branch $package.RelativePath "Package edits on $effective are forbidden; checkout declared $($package.Branch)." }
         if (-not $package.Available) {
-            Add-Finding $findings info package-fetch $package.RelativePath "Local branch $($package.Branch) is unavailable; fetch the declared branch, then check it out to read package lifecycle and tasks."
+            switch ($package.MissingBranchState) {
+                fetch { Add-Finding $findings info package-fetch $package.RelativePath "Local branch $($package.Branch) is unavailable but has a cached remote ref; fetch the declared branch, then check it out to read lifecycle and tasks." }
+                registering { Add-Finding $findings info package-register $package.RelativePath "New draft registration for $($package.Branch) is staged in the creation commit; the declared local branch is created immediately afterward." }
+                unknown { Add-Finding $findings info package-fetch $package.RelativePath "Local branch $($package.Branch) is unavailable; remote inventory is unknown because no remote refs are cached. Fetch the declared branch or update the inventory; no network lookup was performed." }
+                default { Add-Finding $findings error package-orphan $package.RelativePath "Declared branch $($package.Branch) is absent from local and available cached remote refs; restore/fetch the branch, update the inventory or correct the catalog. No network lookup was performed." }
+            }
             continue
         }
         if ($package.DerivedLifecycle -and $package.DerivedLifecycle -ne $package.Lifecycle) { Add-Finding $findings error catalog-lifecycle 'docs/specs.md' "Lifecycle view disagrees with $($package.RelativePath)/spec.md on $($package.Branch)." }

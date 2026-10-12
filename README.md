@@ -107,8 +107,12 @@ Versioned Spec Kit creation switches to a clean configured target, commits only
 the draft package's catalog row there, then creates the feature branch from that
 commit and writes its draft spec from the project override. A dirty checkout or
 failed target switch stops incomplete; creation never pushes. On the target,
-missing local package branches produce an informational "fetch the declared
-branch" finding. Package edits still require their declared branch. This kit's
+missing local package branches with cached remote refs produce an informational
+"fetch the declared branch" finding. An orphan in the available ref inventory is
+an error; configured remotes without cached inventory are explicitly unknown.
+The catalog-only registration commit carries a transient Git command setting for
+its new staged row, which does not excuse an existing orphan or persist as policy.
+Package edits still require their declared branch. This kit's
 target is `main`; consumers use their own configured target.
 On failure, creation restores the original branch (or detached head), retains
 registration and partial artifacts, and reports any restoration failure alongside

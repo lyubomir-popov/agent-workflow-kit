@@ -203,6 +203,8 @@ Describe 'Spec Kit ownership and reserved identities' {
         $allocation.BRANCH_NAME | Should Be '002-hooked'
         ([string](Invoke-FixtureGit $fixture @('rev-parse','HEAD'))) | Should Be ([string](Invoke-FixtureGit $fixture @('rev-parse','master')))
         (Invoke-FixtureGit $fixture @('show','master:docs/specs.md') | Out-String) | Should Match '002-hooked'
+        git -C $fixture.RepoRoot config --get workflow-kit.registeringBranch
+        $LASTEXITCODE | Should Be 1
     }
 
     It 'stops incomplete on a dirty target without changing its catalog or head' {
@@ -328,7 +330,115 @@ Describe 'Spec Kit ownership and reserved identities' {
         $result=Invoke-FixtureLint $fixture -Strict
         $result.ExitCode | Should Be 1
         @(Get-FixtureFindings $result 'package-branch').Count | Should Be 1
-        @(Get-FixtureFindings $result 'package-fetch' | Where-Object path -eq 'specs/002-guarded').Count | Should Be 1
+        @(Get-FixtureFindings $result 'package-orphan' | Where-Object path -eq 'specs/002-guarded').Count | Should Be 1
+    }
+
+    It 'fails a target orphan against cached remote inventory without a network lookup' {
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        $null=Invoke-FixtureGit $fixture @('remote','add','origin',$fixture.RepoRoot)
+        $null=Invoke-FixtureGit $fixture @('update-ref','refs/remotes/origin/master','master')
+        $catalogPath=Join-Path $fixture.RepoRoot 'docs/specs.md'
+        Write-FixtureFile $fixture 'docs/specs.md' ([IO.File]::ReadAllText($catalogPath).Replace('## Archive',"| 002 | [Orphan](../specs/002-orphan/spec.md) | ``002-orphan`` |`n`n## Archive"))
+        Save-FixtureRevision $fixture
+        $result=Invoke-FixtureLint $fixture -Strict
+        $result.ExitCode | Should Be 1
+        $finding=@(Get-FixtureFindings $result 'package-orphan')
+        $finding.Count | Should Be 1
+        $finding[0].severity | Should Be error
+        $finding[0].message | Should Match 'cached remote refs.*No network lookup'
+    }
+
+    It 'fails a local-only orphan when no remotes are configured' {
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        $catalogPath=Join-Path $fixture.RepoRoot 'docs/specs.md'
+        Write-FixtureFile $fixture 'docs/specs.md' ([IO.File]::ReadAllText($catalogPath).Replace('## Archive',"| 002 | [Orphan](../specs/002-orphan/spec.md) | ``002-orphan`` |`n`n## Archive"))
+        Save-FixtureRevision $fixture
+        $result=Invoke-FixtureLint $fixture -Strict
+        $result.ExitCode | Should Be 1
+        @(Get-FixtureFindings $result 'package-orphan').Count | Should Be 1
+        @(Get-FixtureFindings $result 'package-fetch').Count | Should Be 0
+    }
+
+    It 'reports unknown remote inventory explicitly when a configured remote has no cached refs' {
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        $null=Invoke-FixtureGit $fixture @('remote','add','origin',$fixture.RepoRoot)
+        $catalogPath=Join-Path $fixture.RepoRoot 'docs/specs.md'
+        Write-FixtureFile $fixture 'docs/specs.md' ([IO.File]::ReadAllText($catalogPath).Replace('## Archive',"| 002 | [Unfetched](../specs/002-unfetched/spec.md) | ``002-unfetched`` |`n`n## Archive"))
+        Save-FixtureRevision $fixture
+        $result=Invoke-FixtureLint $fixture -Strict
+        $result.ExitCode | Should Be 0
+        $finding=@(Get-FixtureFindings $result 'package-fetch')
+        $finding.Count | Should Be 1
+        $finding[0].severity | Should Be info
+        $finding[0].message | Should Match 'remote inventory is unknown.*no network lookup'
+    }
+
+    It 'rejects a newly staged orphan without the creation command context' {
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        $catalogPath=Join-Path $fixture.RepoRoot 'docs/specs.md'
+        Write-FixtureFile $fixture 'docs/specs.md' ([IO.File]::ReadAllText($catalogPath).Replace('## Archive',"| 002 | [Staged](../specs/002-staged/spec.md) | ``002-staged`` |`n`n## Archive"))
+        $null=Invoke-FixtureGit $fixture @('add','--','docs/specs.md')
+        (Invoke-FixtureLint $fixture -Strict).ExitCode | Should Be 1
+        $null=Invoke-FixtureGit $fixture @('config','workflow-kit.registeringBranch','002-staged')
+        $result=Invoke-FixtureLint $fixture -Strict
+        $result.ExitCode | Should Be 1
+        @(Get-FixtureFindings $result 'package-orphan').Count | Should Be 1
+    }
+
+    It 'does not excuse an already committed orphan with a matching command-scoped hint' {
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        $catalogPath=Join-Path $fixture.RepoRoot 'docs/specs.md'
+        Write-FixtureFile $fixture 'docs/specs.md' ([IO.File]::ReadAllText($catalogPath).Replace('## Archive',"| 002 | [Older](../specs/002-older/spec.md) | ``002-older`` |`n`n## Archive"))
+        Save-FixtureRevision $fixture
+        $before=[string](Invoke-FixtureGit $fixture @('rev-parse','HEAD'))
+        Write-FixtureFile $fixture 'docs/specs.md' ([IO.File]::ReadAllText($catalogPath)+"`nRegistration probe.`n")
+        $null=Invoke-FixtureGit $fixture @('add','--','docs/specs.md')
+        $hooksRoot=Join-Path $fixture.TempRoot 'orphan-hook'
+        $null=New-Item -ItemType Directory -Path $hooksRoot
+        $hookScript=(Join-Path $script:KitRoot 'workflow-hook.ps1') -replace '\\','/'
+        [IO.File]::WriteAllText((Join-Path $hooksRoot 'pre-commit'),"#!/bin/sh`nexec pwsh -NoLogo -NoProfile -File '$hookScript' -RepoRoot .`n",[Text.UTF8Encoding]::new($false))
+        $null=Invoke-FixtureGit $fixture @('config','core.hooksPath',$hooksRoot)
+        $output=git -c workflow-kit.registeringBranch=002-older -C $fixture.RepoRoot commit --quiet -m 'Must fail' 2>&1
+        $LASTEXITCODE | Should Not Be 0
+        ($output -join "`n") | Should Match 'package-orphan'
+        ([string](Invoke-FixtureGit $fixture @('rev-parse','HEAD'))) | Should Be $before
+        git -C $fixture.RepoRoot config --get workflow-kit.registeringBranch
+        $LASTEXITCODE | Should Be 1
+    }
+
+    It 'does not let new registration hide a different already committed orphan' {
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        $catalogPath=Join-Path $fixture.RepoRoot 'docs/specs.md'
+        Write-FixtureFile $fixture 'docs/specs.md' ([IO.File]::ReadAllText($catalogPath).Replace('## Archive',"| 002 | [Older](../specs/002-older/spec.md) | ``002-older`` |`n`n## Archive"))
+        Save-FixtureRevision $fixture
+        $before=[string](Invoke-FixtureGit $fixture @('rev-parse','HEAD'))
+        $hooksRoot=Join-Path $fixture.TempRoot 'existing-orphan-hook'
+        $null=New-Item -ItemType Directory -Path $hooksRoot
+        $hookScript=(Join-Path $script:KitRoot 'workflow-hook.ps1') -replace '\\','/'
+        [IO.File]::WriteAllText((Join-Path $hooksRoot 'pre-commit'),"#!/bin/sh`nexec pwsh -NoLogo -NoProfile -File '$hookScript' -RepoRoot .`n",[Text.UTF8Encoding]::new($false))
+        $null=Invoke-FixtureGit $fixture @('config','core.hooksPath',$hooksRoot)
+        $failure=$null
+        try { & $create -Number 3 -ShortName new 'Fixture blocked registration' } catch { $failure=$_ }
+        $failure.Exception.Message | Should Match 'catalog registration commit failed'
+        $failure.Exception.Message | Should Match 'package-orphan'
+        ([string](Invoke-FixtureGit $fixture @('rev-parse','HEAD'))) | Should Be $before
+        (Test-Path -LiteralPath (Join-Path $fixture.RepoRoot 'specs/003-new')) | Should Be $false
+    }
+
+    It 'registers the first catalog row through the real hook when HEAD has an empty catalog' {
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        $null=Invoke-FixtureGit $fixture @('rm','--quiet','-r','--','specs/001-example')
+        Write-FixtureFile $fixture 'docs/specs.md' "# Spec catalog`n`n## Current packages`n`n| Spec | Package | Branch |`n|---|---|---|`n`n## Archive`n"
+        Save-FixtureRevision $fixture
+        $hooksRoot=Join-Path $fixture.TempRoot 'empty-catalog-hook'
+        $null=New-Item -ItemType Directory -Path $hooksRoot
+        $hookScript=(Join-Path $script:KitRoot 'workflow-hook.ps1') -replace '\\','/'
+        [IO.File]::WriteAllText((Join-Path $hooksRoot 'pre-commit'),"#!/bin/sh`nexec pwsh -NoLogo -NoProfile -File '$hookScript' -RepoRoot .`n",[Text.UTF8Encoding]::new($false))
+        $null=Invoke-FixtureGit $fixture @('config','core.hooksPath',$hooksRoot)
+        $allocation=(& $create -Number 2 -Json -ShortName first 'Fixture first catalog row') | ConvertFrom-Json
+        $allocation.BRANCH_NAME | Should Be '002-first'
+        (Invoke-FixtureGit $fixture @('show','master:docs/specs.md') | Out-String) | Should Match '002-first'
+        (Invoke-FixtureLint $fixture -Strict).ExitCode | Should Be 0
     }
 
     It 'retains legacy cursor and environment behavior when version is absent' {

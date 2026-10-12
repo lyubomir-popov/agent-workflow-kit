@@ -391,7 +391,7 @@ if (-not $DryRun) {
         Add-WorkflowCatalogPackage -RepoRoot $repoRoot -Id $featureNum -Branch $branchName
         git -C $repoRoot add -- docs/specs.md
         if ($LASTEXITCODE) { throw 'specify-incomplete: cannot stage catalog registration; preserve the target checkout for recovery.' }
-        $registrationOutput=git -C $repoRoot commit --quiet -m "specs: register draft package $featureNum" 2>&1 | Out-String
+        $registrationOutput=git -c "workflow-kit.registeringBranch=$branchName" -C $repoRoot commit --quiet -m "specs: register draft package $featureNum" 2>&1 | Out-String
         if ($LASTEXITCODE) { throw "specify-incomplete: catalog registration commit failed; preserve the target checkout for recovery. $($registrationOutput.Trim())" }
         # The row is now durable on the target even if feature checkout later fails.
         # Never push or rewind registration as part of creation.

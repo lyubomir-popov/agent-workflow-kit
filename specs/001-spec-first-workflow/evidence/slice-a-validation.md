@@ -301,3 +301,28 @@ documentation commit the full suite passed in 472.88 seconds:
 `Passed: 148 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0`.
 Strict lint, dry run, worktree/index and `53fc575..HEAD` whitespace checks passed;
 target remains main, T016 remains manual, zero workers were dispatched.
+
+## CP2 planning clearance validation
+
+Date: 2026-10-12. Starting accepted revision: `75ddc89`. The owner explicitly
+accepted ADV-1–4 and cleared CP2 for slice B planning only, reporting 148/148
+tests (430 seconds) and successful original probes at that revision. The saved
+[owner acceptance](../reviews/2026-10-12-cp2-owner-planning-acceptance.md) names the
+reviewer, reviewed revision, checkpoint, scope and planning limitation. Earlier
+pending-CP2 statements above describe the historical correction rounds.
+
+This documentation change records the owner-cleared CP2 row, completes manual
+planning task T016, adds manual owner approval T036, and proposes the slice B
+approach in plan.md. It includes CPA-M5/CPA-m2/CPA-m5/CPA-r4 and ADV-5 ranged CI
+checks with named ownership and proposed acceptance fixtures. No implementation
+tasks are enqueued. No code, CI, hook, vendor skill, prompt installation, live
+worker, branch/tag/worktree cleanup, merge, push or sibling repository is changed.
+New packages still wait for slice A on main, and remote CI remains unverified.
+
+Author pre-commit full suite: 389.95 seconds,
+`Passed: 148 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0`.
+Strict lint: zero errors/warnings and one semantic-limit info. The shared gate
+reader resolves CP2's saved owner acceptance and still blocks CP3. The next
+incomplete task is manual T036; dry run reports target=main and zero worker
+invocations. Worktree, staged and `53fc575..HEAD` whitespace checks pass.
+Main/master remain unchanged at 864cad5; main remains an ancestor of the feature.

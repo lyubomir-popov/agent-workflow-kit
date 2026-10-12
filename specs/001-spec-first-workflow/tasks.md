@@ -1,8 +1,8 @@
 # Current work
 
-**Next tasks**: T016 (manual).
-**Blockers**: CP2 owner acceptance before slice B planning. New package creation requires slice A on main.
-**Checkpoint links**: [slice gates](spec.md#checkpoints); [adversarial findings](reviews/2026-10-12-cp2-adversarial-delta-review.md); [adversarial dispositions](reviews/2026-10-12-cp2-adversarial-author-dispositions.md).
+**Next tasks**: T036 (manual).
+**Blockers**: Owner approval of the slice B plan before implementation, unattended runs, merging or pushing. New package creation requires slice A on main.
+**Checkpoint links**: [slice gates](spec.md#checkpoints); [planning-only acceptance](reviews/2026-10-12-cp2-owner-planning-acceptance.md); [proposed slice B plan](plan.md#slice-b-plan-for-owner-approval).
 **Entry checkpoint**: CP1
 **Validation**: [commands](quickstart.md); [author results and FR map](evidence/slice-a-validation.md).
 
@@ -88,16 +88,21 @@ early main merge or slice B/C work is part of the current remediation.
 - [x] T034 Record per-finding dispositions, meaningful ranged whitespace evidence and validation, update CP2/inbox links, and stop at the owner boundary (ADV-5) (manual) (gate: CP1).
 - [x] T035 Record the owner's confirmation of the three correction choices in dispositions and the handoff; retain CP2 pending and the existing slice B/C boundary (manual) (gate: CP1).
 
-## Deferred slices
+## Slice B planning
 
-CPA-M5, CPA-m2 and CPA-m5 are inputs to the future slice B plan. Named owner:
+- [x] T016 Prepare the slice B closeout plan, including CPA-M5/CPA-m2/CPA-m5/CPA-r4/ADV-5, under the owner's planning-only acceptance of 75ddc89; implementation remains unapproved (manual) (gate: CP2).
+- [ ] T036 Owner approves the proposed slice B plan and explicitly authorizes its implementation scope; retain this manual stop and do not enqueue implementation tasks until approval (manual) (gate: CP2).
+
+## Carryovers and later slices
+
+CPA-M5, CPA-m2 and CPA-m5 are included in the proposed slice B plan. Named owner:
 Codex (Spec 001 implementer). See [dispositions](reviews/2026-10-11-cp2-author-dispositions.md).
-CPA-r4 archive edit restrictions are also deferred to that plan, owned by
+CPA-r4 archive edit restrictions are included in that plan, owned by
 Codex (Spec 001 implementer); see the delta dispositions.
-ADV-5 ranged CI checking and the older vendor/integration whitespace baseline
-are deferred kit maintenance, owned by Codex (Spec 001 implementer).
+ADV-5 ranged CI checking is included in that plan. The older vendor/integration
+whitespace baseline remains separate maintenance, owned by Codex (Spec 001
+implementer); vendor skill edits remain outside scope.
 
-- [ ] T016 Slice B: closeout in `workflow-kit.ps1`, detailed planning only after CP2 owner clearance (manual) (gate: CP2).
 - [ ] T017 Slice C: migration tooling and dual-mode `prompts/`, detailed planning only after CP3 owner clearance (manual) (gate: CP3).
 
 ## Dependencies and execution strategy

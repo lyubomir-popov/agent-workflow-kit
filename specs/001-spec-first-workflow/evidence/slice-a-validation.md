@@ -292,3 +292,12 @@ Final metadata validation repeated the full suite before the handoff commit:
 `Passed: 148 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0` (381.51 seconds).
 Strict lint, dry run, worktree/index whitespace checks and 53fc575..HEAD passed.
 Dry run stops at T016 (manual), target=main, zero workers. CP2 stays pending.
+
+Owner-confirmation handoff, 2026-10-12: the owner confirmed fixing ADV-1/2 in
+slice A, waiting for slice A delivery while restoring failed creation, and orphan
+errors with remote-ref evidence. The dispositions, T031/T035 and inbox now record
+that confirmation. This does not clear CP2 or authorize slice B/C. Before this
+documentation commit the full suite passed in 472.88 seconds:
+`Passed: 148 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0`.
+Strict lint, dry run, worktree/index and `53fc575..HEAD` whitespace checks passed;
+target remains main, T016 remains manual, zero workers were dispatched.

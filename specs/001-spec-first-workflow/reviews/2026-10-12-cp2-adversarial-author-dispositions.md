@@ -7,13 +7,19 @@ This is author evidence. CP2 remains pending; only the owner clears it.
 
 ## Bounded correction choices
 
-The implementer selected corrections in slice A, rather than attended slice B,
-and retained the existing delivery boundary: no early merge into main. New
-packages, including Spec 002, remain unavailable until main has slice A's config,
-owners and overrides. Creation now restores the original checkout on failure.
-Orphan rows in available local/cached refs are errors. Configured remotes without
-cached inventory are explicitly unknown, without a network query. Owner review
-of these corrections and choices is still required for CP2; no clearance is inferred.
+The owner confirmed the correction choices on 2026-10-12:
+
+- ADV-1/2: "Fix now in slice A."
+- ADV-3: "Wait for slice A delivery; fix restoration now."
+- ADV-4: "Error with remote-ref evidence."
+
+The committed fixes follow those decisions. New packages, including Spec 002,
+remain unavailable until main has slice A's config, owners and overrides; no early
+merge is authorized. Creation restores the original checkout on failure. Orphan
+rows in available local/cached refs are errors. Configured remotes without cached
+inventory are explicitly unknown, without a network query. These decisions
+authorize corrections; acceptance of the completed corrections and CP2 clearance
+remain owner actions. No gate clearance or slice B/C authorization is inferred.
 
 ## Findings
 

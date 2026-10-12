@@ -364,6 +364,13 @@ if ($branchName.Length -gt $maxBranchLength) {
 $featureDir = Join-Path $specsDir $branchName
 $specFile = Join-Path $featureDir 'spec.md'
 
+$originalBranch=$null; $originalHead=$null
+if ($workflowConfig -and -not $DryRun) {
+    $originalBranch=Get-WorkflowBranch $repoRoot
+    $originalHead=[string](git -C $repoRoot rev-parse HEAD)
+    if ($LASTEXITCODE) { throw 'specify-incomplete: cannot record the original checkout.' }
+}
+try {
 if (-not $DryRun) {
     if ($workflowConfig) {
         $target=$workflowConfig.targetBranch
@@ -473,6 +480,33 @@ if (-not $DryRun) {
 
     # Set the SPECIFY_FEATURE environment variable for the current session
     if (-not $workflowConfig) { $env:SPECIFY_FEATURE = $branchName }
+}
+} catch {
+    $creationFailure=$_
+    if ($originalBranch) {
+        try {
+            $currentBranch=Get-WorkflowBranch $repoRoot
+            $restoreNeeded=$currentBranch -ne $originalBranch
+            if ($originalBranch -eq 'HEAD') {
+                $restoreNeeded=$restoreNeeded -or ([string](git -C $repoRoot rev-parse HEAD)) -ne $originalHead
+            }
+            if ($restoreNeeded) {
+                $restoreOutput=if ($originalBranch -eq 'HEAD') {
+                    git -C $repoRoot checkout --quiet --detach $originalHead 2>&1 | Out-String
+                } else { git -C $repoRoot checkout --quiet $originalBranch 2>&1 | Out-String }
+                if ($LASTEXITCODE -or (Get-WorkflowBranch $repoRoot) -ne $originalBranch -or
+                    ($originalBranch -eq 'HEAD' -and ([string](git -C $repoRoot rev-parse HEAD)) -ne $originalHead)) {
+                    throw "checkout-incomplete: cannot restore original $originalBranch at $repoRoot. $($restoreOutput.Trim())"
+                }
+                Write-Warning "Restored original checkout: $originalBranch. Registration and partial artifacts are retained for recovery."
+            }
+        } catch {
+            throw [InvalidOperationException]::new(
+                "specify-incomplete: $($creationFailure.Exception.Message); restoration-incomplete: $($_.Exception.Message)",
+                [AggregateException]::new([Exception[]]@($creationFailure.Exception,$_.Exception)))
+        }
+    }
+    throw $creationFailure
 }
 
 if ($Json) {

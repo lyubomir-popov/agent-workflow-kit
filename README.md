@@ -110,6 +110,12 @@ failed target switch stops incomplete; creation never pushes. On the target,
 missing local package branches produce an informational "fetch the declared
 branch" finding. Package edits still require their declared branch. This kit's
 target is `main`; consumers use their own configured target.
+On failure, creation restores the original branch (or detached head), retains
+registration and partial artifacts, and reports any restoration failure alongside
+the creation failure. The target must already contain the versioned config and
+project overrides. This kit's main at `864cad5` predates slice A, so new packages,
+including Spec 002, cannot be created until slice A is delivered to main. CP2
+remains the owner boundary; this remediation does not merge slice A early.
 
 `agent-loop.ps1` dispatches isolated workers. `-Agent Auto` chooses Codex from
 a Codex environment and Copilot otherwise. In spec-first mode, discovery reads

@@ -231,6 +231,81 @@ Describe 'Spec Kit ownership and reserved identities' {
         (Test-Path -LiteralPath (Join-Path $fixture.RepoRoot 'specs/002-blocked')) | Should Be $false
     }
 
+    It 'restores the feature branch when the target lacks slice A owners and config' {
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        $null=Invoke-FixtureGit $fixture @('rm','--quiet','--','.workflow-kit.json','AGENTS.md','workflow-model.ps1')
+        Save-FixtureRevision $fixture
+        $targetBefore=[string](Invoke-FixtureGit $fixture @('rev-parse','master'))
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','feat/001-example')
+        $failure=$null
+        try { & $create -Number 2 -ShortName legacy 'Fixture unmigrated target' } catch { $failure=$_ }
+        $failure.Exception.Message | Should Match 'matching versioned workflow config'
+        (Get-CurrentBranch) | Should Be 'feat/001-example'
+        (Test-Path -LiteralPath (Join-Path $fixture.RepoRoot 'AGENTS.md')) | Should Be $true
+        ([string](Invoke-FixtureGit $fixture @('rev-parse','master'))) | Should Be $targetBefore
+        (Test-Path -LiteralPath (Join-Path $fixture.RepoRoot 'specs/002-legacy')) | Should Be $false
+    }
+
+    It 'restores a detached original head after a post-switch creation failure' {
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        $null=Invoke-FixtureGit $fixture @('rm','--quiet','--','.specify/templates/overrides/spec-template.md')
+        Save-FixtureRevision $fixture
+        $original=[string](Invoke-FixtureGit $fixture @('rev-parse','feat/001-example'))
+        $null=Invoke-FixtureGit $fixture @('checkout','--quiet','--detach',$original)
+        $failure=$null
+        try { & $create -Number 2 -ShortName detached 'Fixture detached failure' } catch { $failure=$_ }
+        $failure.Exception.Message | Should Match 'override template before registration'
+        (Get-CurrentBranch) | Should Be HEAD
+        ([string](Invoke-FixtureGit $fixture @('rev-parse','HEAD'))) | Should Be $original
+    }
+
+    It 'restores the original branch while retaining staged registration after a commit failure' {
+        $hooksRoot=Join-Path $fixture.TempRoot 'reject-registration'
+        $null=New-Item -ItemType Directory -Path $hooksRoot
+        [IO.File]::WriteAllText((Join-Path $hooksRoot 'pre-commit'),"#!/bin/sh`nexit 94`n",[Text.UTF8Encoding]::new($false))
+        $null=Invoke-FixtureGit $fixture @('config','core.hooksPath',$hooksRoot)
+        $targetBefore=[string](Invoke-FixtureGit $fixture @('rev-parse','master'))
+        $failure=$null
+        try { & $create -Number 2 -ShortName rejected 'Fixture rejected registration' } catch { $failure=$_ }
+        $failure.Exception.Message | Should Match 'catalog registration commit failed'
+        (Get-CurrentBranch) | Should Be 'feat/001-example'
+        ([string](Invoke-FixtureGit $fixture @('rev-parse','master'))) | Should Be $targetBefore
+        (Invoke-FixtureGit $fixture @('show',':docs/specs.md') | Out-String) | Should Match '002-rejected'
+        (Test-Path -LiteralPath (Join-Path $fixture.RepoRoot 'specs/002-rejected')) | Should Be $false
+    }
+
+    It 'reports both creation and restoration failures without discarding registration' {
+        $hooksRoot=Join-Path $fixture.TempRoot 'hold-original'
+        $heldRoot=(Join-Path $fixture.TempRoot 'held-original') -replace '\\','/'
+        $null=New-Item -ItemType Directory -Path $hooksRoot
+        $hookText="#!/bin/sh`nunset GIT_INDEX_FILE GIT_DIR GIT_WORK_TREE`ngit worktree add --quiet '$heldRoot' feat/001-example || exit 95`nexit 94`n"
+        [IO.File]::WriteAllText((Join-Path $hooksRoot 'pre-commit'),$hookText,[Text.UTF8Encoding]::new($false))
+        $null=Invoke-FixtureGit $fixture @('config','core.hooksPath',$hooksRoot)
+        $failure=$null
+        try { & $create -Number 2 -ShortName held 'Fixture held original' } catch { $failure=$_ }
+        $failure.Exception.Message | Should Match 'catalog registration commit failed'
+        $failure.Exception.Message | Should Match 'restoration-incomplete: checkout-incomplete: cannot restore original feat/001-example'
+        $failure.Exception.InnerException.InnerExceptions.Count | Should Be 2
+        (Get-CurrentBranch) | Should Be master
+        (Invoke-FixtureGit $fixture @('show',':docs/specs.md') | Out-String) | Should Match '002-held'
+        (Test-Path -LiteralPath $heldRoot) | Should Be $true
+    }
+
+    It 'restores the original branch after feature checkout failure and retains committed target registration' {
+        $hooksRoot=Join-Path $fixture.TempRoot 'collide-feature'
+        $null=New-Item -ItemType Directory -Path $hooksRoot
+        [IO.File]::WriteAllText((Join-Path $hooksRoot 'pre-commit'),"#!/bin/sh`ngit branch 002-collision || exit 95`n",[Text.UTF8Encoding]::new($false))
+        $null=Invoke-FixtureGit $fixture @('config','core.hooksPath',$hooksRoot)
+        $targetBefore=[string](Invoke-FixtureGit $fixture @('rev-parse','master'))
+        $failure=$null
+        try { & $create -Number 2 -ShortName collision 'Fixture checkout collision' } catch { $failure=$_ }
+        $failure.Exception.Message | Should Match 'failed to create branch.*registration is retained'
+        (Get-CurrentBranch) | Should Be 'feat/001-example'
+        ([string](Invoke-FixtureGit $fixture @('rev-parse','master'))) | Should Not Be $targetBefore
+        (Invoke-FixtureGit $fixture @('show','master:docs/specs.md') | Out-String) | Should Match '002-collision'
+        (Test-Path -LiteralPath (Join-Path $fixture.RepoRoot 'specs/002-collision')) | Should Be $false
+    }
+
     It 'keeps missing-branch diagnostics as errors away from the configured target' {
         $allocation=(& $create -Number 2 -Json -ShortName missing 'Fixture missing sibling') | ConvertFrom-Json
         Save-FixtureRevision $fixture

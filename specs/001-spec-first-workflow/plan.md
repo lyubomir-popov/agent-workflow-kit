@@ -81,6 +81,15 @@ T026–T029 implement and record that owner scope; the next task is the manual
 slice B planning boundary, subject to CP2 owner clearance in spec.md. No further
 review or slice B/C implementation is part of this remediation.
 
+The subsequent adversarial review identifies ADV-1–5. Creation captures the
+original branch/detached head and restores it on failure, preserving registration
+and partial artifacts; a restoration error is reported alongside the primary
+error. The configured target must already have slice A's versioned owners and
+overrides. This kit's main at 864cad5 lacks them, so creation (including Spec 002)
+waits for slice A delivery. This correction performs no early merge. Gate review
+record protection/label parsing and orphan severity remain bounded remediation
+decisions; tasks keep a manual boundary before any unattended invocation.
+
 Fixture tests cover resume, lifecycle states, declared worktrees/branch mismatch,
 gates and verdicts, fourteen drift updates, lines/bytes/aggregate budgets, markers,
 inboxes and stale IDs, reserved numbering, failed checkout/worker/integration,

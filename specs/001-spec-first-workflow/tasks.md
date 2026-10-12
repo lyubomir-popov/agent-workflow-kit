@@ -1,6 +1,6 @@
 # Current work
 
-**Next tasks**: T030 (manual).
+**Next tasks**: T031 (manual).
 **Blockers**: ADV-1/2 correction timing and ADV-4 severity; CP2 owner acceptance before slice B planning. New package creation requires slice A on main.
 **Checkpoint links**: [slice gates](spec.md#checkpoints); [CP2 delta findings](reviews/2026-10-11-opus-slice-a-delta-review.md); [delta dispositions](reviews/2026-10-12-cp2-delta-author-dispositions.md).
 **Entry checkpoint**: CP1
@@ -81,7 +81,7 @@ The [saved adversarial review](reviews/2026-10-12-cp2-adversarial-delta-review.m
 reports ADV-1–5. Entry gate remains CP1; CP2 stays pending. No unattended run,
 early main merge or slice B/C work is part of the current remediation.
 
-- [ ] T030 Restore the original branch/detached head after versioned creation failure; preserve recovery artifacts and report both creation/restore failures; add post-switch fixtures and document the slice A prerequisite (ADV-3) (manual) (gate: CP1).
+- [x] T030 Restore the original branch/detached head after versioned creation failure; preserve recovery artifacts and report both creation/restore failures; add post-switch fixtures and document the slice A prerequisite (ADV-3) (manual) (gate: CP1).
 - [ ] T031 Resolve ADV-1/2 timing and ADV-4 diagnostic policy, record dispositions and validated handoff, and retain the pending CP2 boundary (manual) (gate: CP1).
 
 ## Deferred slices

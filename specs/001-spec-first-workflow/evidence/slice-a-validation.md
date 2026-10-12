@@ -239,3 +239,56 @@ Final metadata handoff repeated the full suite before commit (300.89 seconds):
 Strict lint, dry run and whitespace checks passed again; dry run stops at T016
 (manual), reports target=main and launches zero workers. Main remains an ancestor
 of the feature branch and master remains unchanged at 864cad5.
+
+## CP2 adversarial correction validation
+
+Date: 2026-10-12. Author: Codex, Spec 001 implementer. Starting reviewed revision:
+53fc575. The supplied adversarial review reports an independent 124/124 run
+(453.91 seconds); the author runs below are distinct evidence, not a new review.
+CP2 remains pending. No unattended worker, early main merge, push or slice B/C work.
+
+| Commit | Change | Full Pester summary before commit | Seconds |
+|---|---|---|---|
+| b533fc5 | Save supplied review, link pending CP2/inbox and establish manual remediation | Passed: 124 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0 | 376.67 |
+| bad7ba9 | Restore original creation checkout, preserve recovery data and report both failures | Passed: 129 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0 | 584.22 |
+| e6193c4 | Freeze existing reviews and parse every gate label consistently | Passed: 139 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0 | 573.27 |
+| d77c9c0 | Orphan error/unknown inventory distinction and narrowly scoped registration hint | Passed: 146 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0 | 444.97 |
+| b2124c1 | Decode Git blobs and filesystem review metadata consistently | Passed: 148 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0 | 382.41 |
+
+| Finding | Acceptance fixtures/checks |
+|---|---|
+| ADV-1 | Worker.Tests: remove superseded verdict; delete existing record; inject accepted scope into verdict-less dispositions; each new gate label; reverted record edit; new unlabelled notes allowed; UTF-16 LE/BE and UTF-32 metadata rejected with scratch retained |
+| ADV-2 | Workflow.Tests: list-style CP9 stops CP1; obsolete scope with backticks/context stops; list Accepted scope must match; all fields use one parser; reviewer/revision required; filesystem and declared-branch UTF-16 review identities give the same stop |
+| ADV-3 | SpecKit.Tests: target lacks config/AGENTS/model; detached original plus missing override; commit rejection retains staged row; simultaneous creation/restore failures retain both errors; failed feature checkout preserves target registration and restores original branch |
+| ADV-4 | SpecKit.Tests: cached-inventory and local-only orphan errors; uncached remote inventory is info/unknown; fresh clone with cached branch stays info/fetch; ordinary staged row and persisted hint cannot bypass; matching hint cannot excuse a committed orphan; another orphan blocks new registration; empty catalog real-hook registration succeeds |
+| ADV-5 | Worktree, index and 53fc575..HEAD range checks; supplied review EOF blank normalized before staging; deferred CI/baseline maintenance is named in dispositions |
+
+Focused author runs: ADV-3 28/28 (93.39 seconds); ADV-1/2 70/70 (307.71 seconds).
+The first ADV-3 focused run exposed inherited Git hook index environment in a
+nested fixture worktree command; the fixture now clears it. ADV-4's first focused
+run had a newline-sensitive assertion despite correct hook rejection; separate
+assertions resolved it before the clean 146 full run. An extra probe found UTF-16
+new metadata accepted by the old Git-text reader (disk label count 1, revision 0).
+Raw-byte/BOM-aware decoding fixes that case. The first encoding full run found
+multiple git.exe entries in hook PATH; selecting the first application resolved
+four failures, followed by the clean 148 run above. Runs were sequential.
+
+Strict lint passes (0 errors, 0 warnings, 1 semantic-limit info). Dry run reports
+target=main, no worker invocations and the manual owner boundary. Worktree/index
+whitespace checks and the nonempty correction range pass. The broader
+864cad5..HEAD range has older vendor/integration whitespace in skills, common,
+check-prerequisites, setup-plan and checklist template files; it is not described
+as clean. Ranged CI checking and that baseline are future kit maintenance, owner:
+Codex (Spec 001 implementer). Vendor skill files were not edited.
+
+Main/master remain at 864cad5; main is an ancestor of the feature. No remote/default
+change occurred. Main lacks slice A owners/config/overrides, so real creation
+(including Spec 002) still waits for delivery; failure now restores the caller.
+The orphan check uses available local/cached refs, never a network existence probe.
+Its registration hint is Git command-scoped, new-row/HEAD/index checked and cannot
+persist as policy. Original deferrals remain; rejected findings: none.
+
+Final metadata validation repeated the full suite before the handoff commit:
+`Passed: 148 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0` (381.51 seconds).
+Strict lint, dry run, worktree/index whitespace checks and 53fc575..HEAD passed.
+Dry run stops at T016 (manual), target=main, zero workers. CP2 stays pending.

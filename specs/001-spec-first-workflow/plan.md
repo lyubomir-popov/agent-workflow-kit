@@ -25,7 +25,8 @@ is verified locally; CI checks Windows and Linux. No performance claim is needed
 | IV Proportional verification | Fixture acceptance/failure tests, parser checks, lint/dry run/diff check per commit. |
 | V Canonical tooling | Kit only; external-mirror config survives; no prompt install or consumer edits. |
 
-All pass. No constitution exception or unresolved technical decision.
+The initial constitution check passed without an exception. Subsequent bounded
+correction choices and maintenance deferrals are recorded below and in reviews.
 
 ## Structure and responsibilities
 
@@ -87,8 +88,16 @@ and partial artifacts; a restoration error is reported alongside the primary
 error. The configured target must already have slice A's versioned owners and
 overrides. This kit's main at 864cad5 lacks them, so creation (including Spec 002)
 waits for slice A delivery. This correction performs no early merge. Gate review
-record protection/label parsing and orphan severity remain bounded remediation
-decisions; tasks keep a manual boundary before any unattended invocation.
+record protection and all gate labels share one parser; existing reviews are
+immutable during worker integration and new gate metadata is rejected. Git blob
+bytes use the same BOM-aware decoding as filesystem reads. Orphans in available
+local/cached refs are errors; configured but uncached remote inventory is unknown.
+Creation passes a command-scoped hint only for a new staged catalog row, with
+HEAD/index proof; persisted hints and existing orphans cannot use the exception.
+These fixes land in slice A, with CP2 still the owner boundary and tasks manual.
+ADV-5 author validation checks worktree, index and the reviewed commit range.
+Ranged CI checking and the older vendor/integration whitespace baseline remain
+future kit maintenance, owned by Codex (Spec 001 implementer); no vendor edits.
 
 Fixture tests cover resume, lifecycle states, declared worktrees/branch mismatch,
 gates and verdicts, fourteen drift updates, lines/bytes/aggregate budgets, markers,

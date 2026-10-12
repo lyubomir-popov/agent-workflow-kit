@@ -32,6 +32,11 @@ for published changes, using quick checks and fixture tests. Local files alone d
 not prove a remote run, enabled Actions, or required branch protection. Offline
 validation and unpushed commits have no CI coverage; missing consumer CI is an
 explicit adoption gap. Repo authorization governs publication.
+The current CI whitespace step checks only the worktree, so it does not verify
+committed whitespace on a clean checkout. Author validation additionally checks
+the index and the range from the reviewed starting revision. A ranged CI check
+and the older vendor/integration whitespace baseline are deferred maintenance,
+owned by the Spec 001 implementer; no vendor cleanup is claimed here.
 
 Versioned kit launchers reject worker revisions that alter the spec block before
 its first level-two heading, change `.workflow-kit.json`, alter the task entry
@@ -51,6 +56,8 @@ Gate validation and worker-range rejection share one parser for every gate
 label, supporting plain, single-emphasis and bold labels with an optional list
 prefix. Newly added unlabelled worker notes are allowed; existing records are
 immutable during worker integration. Owner sessions can still author records.
+Git blob reads and filesystem reads share UTF-8 defaults and BOM detection,
+including UTF-16/UTF-32 review metadata; the label parser sees the same text.
 During self-hosting, preflight child processes load the scripts in the current
 checkout. A worker's edits to checking/scheduling code can change subsequent
 preflight behavior; the launcher does not pin preflight code to the starting

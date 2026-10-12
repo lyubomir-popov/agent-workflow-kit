@@ -1,8 +1,8 @@
 # Current work
 
-**Next tasks**: T034 (manual).
+**Next tasks**: T016 (manual).
 **Blockers**: CP2 owner acceptance before slice B planning. New package creation requires slice A on main.
-**Checkpoint links**: [slice gates](spec.md#checkpoints); [CP2 delta findings](reviews/2026-10-11-opus-slice-a-delta-review.md); [delta dispositions](reviews/2026-10-12-cp2-delta-author-dispositions.md).
+**Checkpoint links**: [slice gates](spec.md#checkpoints); [adversarial findings](reviews/2026-10-12-cp2-adversarial-delta-review.md); [adversarial dispositions](reviews/2026-10-12-cp2-adversarial-author-dispositions.md).
 **Entry checkpoint**: CP1
 **Validation**: [commands](quickstart.md); [author results and FR map](evidence/slice-a-validation.md).
 
@@ -85,7 +85,7 @@ early main merge or slice B/C work is part of the current remediation.
 - [x] T031 Choose the bounded correction route: attended ADV-1/2 fixes in slice A, no early main merge, orphan errors with known ref evidence and explicit offline uncertainty; retain owner-only CP2 clearance (manual) (gate: CP1).
 - [x] T032 Freeze existing review records, reject all gate metadata in new worker reviews, share every gate-label parser, and test verdict deletion, accepted-scope injection and list-style records (ADV-1, ADV-2) (manual) (gate: CP1).
 - [x] T033 Diagnose orphan branches using cached ref evidence and distinguish offline uncertainty; allow only the transient new-row registration context through the creation hook; test each case (ADV-4) (manual) (gate: CP1).
-- [ ] T034 Record per-finding dispositions, meaningful ranged whitespace evidence and validation, update CP2/inbox links, and stop at the owner boundary (ADV-5) (manual) (gate: CP1).
+- [x] T034 Record per-finding dispositions, meaningful ranged whitespace evidence and validation, update CP2/inbox links, and stop at the owner boundary (ADV-5) (manual) (gate: CP1).
 
 ## Deferred slices
 
@@ -93,6 +93,8 @@ CPA-M5, CPA-m2 and CPA-m5 are inputs to the future slice B plan. Named owner:
 Codex (Spec 001 implementer). See [dispositions](reviews/2026-10-11-cp2-author-dispositions.md).
 CPA-r4 archive edit restrictions are also deferred to that plan, owned by
 Codex (Spec 001 implementer); see the delta dispositions.
+ADV-5 ranged CI checking and the older vendor/integration whitespace baseline
+are deferred kit maintenance, owned by Codex (Spec 001 implementer).
 
 - [ ] T016 Slice B: closeout in `workflow-kit.ps1`, detailed planning only after CP2 owner clearance (manual) (gate: CP2).
 - [ ] T017 Slice C: migration tooling and dual-mode `prompts/`, detailed planning only after CP3 owner clearance (manual) (gate: CP3).

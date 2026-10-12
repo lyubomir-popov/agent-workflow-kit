@@ -60,6 +60,10 @@ pwsh -NoLogo -NoProfile -File ./agent-loop.ps1 -DryRun -RepoRoot .
 pwsh -NoLogo -NoProfile -File ./tests/run-tests.ps1
 ```
 
+Check the staged diff with `git diff --cached --check` and the implemented
+commit range with `git diff --check <review-base>..HEAD`; record the chosen base.
+Report pre-existing failures separately and preserve vendor assets outside scope.
+
 - Verify repo, package, declared branch/base, write scope, and worktree before edits;
   checkout failure stops work. Detached scratch needs an integration target.
 - Read the target from `.workflow-kit.json`; never assume `main`.

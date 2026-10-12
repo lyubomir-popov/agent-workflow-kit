@@ -244,6 +244,14 @@ function Get-WorkflowTasks {
     return $tasks
 }
 
+function Get-WorkflowReviewVerdicts {
+    param([AllowEmptyString()][string]$Text)
+    # Gate validation and worker integration recognize the same Markdown labels.
+    foreach ($match in [regex]::Matches($Text,'(?im)^[ \t]*(?:[-*][ \t]+)?\*{0,2}Verdict\*{0,2}:[ \t]*\*{0,2}(?<value>[^\r\n]*)')) {
+        $match.Groups['value'].Value.Trim()
+    }
+}
+
 function Get-WorkflowGateProblem {
     param($Package, [string]$Gate)
     $checkpoint = @($Package.Checkpoints | Where-Object Id -eq $Gate)
@@ -257,8 +265,9 @@ function Get-WorkflowGateProblem {
         $review=Read-WorkflowPackageFile $Package $name
         if (-not $review) { return "$Gate saved review is missing: $name." }
         if ($review -match '(?m)^\*\*Checkpoint\*\*:\s*(CP\d+)\s*$' -and $Matches[1] -ne $Gate) { return "$Gate verdict names a different checkpoint: $name." }
-        if ($review -match '(?im)^[-* ]*\*?\*?Verdict\*?\*?:\s*\*?\*?(reject|blocking|superseded)\b') { return "$Gate verdict is blocking or superseded: $name." }
-        if ($review -match '(?im)^[-* ]*\*?\*?Verdict\*?\*?:\s*\*?\*?accept\b') {
+        $verdicts=@(Get-WorkflowReviewVerdicts $review)
+        if (@($verdicts | Where-Object { $_ -match '^(reject|blocking|superseded)\b' }).Count) { return "$Gate verdict is blocking or superseded: $name." }
+        if (@($verdicts | Where-Object { $_ -match '^accept\b' }).Count) {
             if ($review -notmatch '(?im)^[-* ]*\*?\*?Reviewer\*?\*?:\s*\S' -or $review -notmatch '(?im)^[-* ]*\*?\*?Reviewed revision\*?\*?:\s*\S') { return "$Gate verdict lacks actual reviewer or reviewed revision: $name." }
             $accepted=$true
         }

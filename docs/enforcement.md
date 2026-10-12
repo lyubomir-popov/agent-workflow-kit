@@ -36,7 +36,8 @@ explicit adoption gap. Repo authorization governs publication.
 Versioned kit launchers reject worker revisions that alter the spec block before
 its first level-two heading, change `.workflow-kit.json`, alter the task entry
 checkpoint or existing gate/manual annotations, add/remove/reorder task IDs,
-add or modify a review carrying a recognized plain/bold verdict label, or newly complete a task other than
+add or modify a review carrying a recognized plain/single-emphasis/bold verdict
+label, or newly complete a task other than
 the focused package/task ID. Task descriptions and current-work header fields
 other than the entry checkpoint remain editable. Rejected ranges remain in
 scratch and report worker-incomplete before cherry-pick. Launchers validate saved
@@ -45,8 +46,7 @@ Owner-only clearance remains a governance rule. Stale prose/scope reconciliation
 requires human judgment. Cleanup and full consumer migration remain later slices
 and are not claimed by this matrix.
 
-The single-emphasis verdict-label mismatch is recorded as CPA-r1 in the
-[delta findings](../specs/001-spec-first-workflow/reviews/2026-10-11-opus-slice-a-delta-review.md).
+Gate validation and worker-range rejection share the verdict label parser.
 During self-hosting, preflight child processes load the scripts in the current
 checkout. A worker's edits to checking/scheduling code can change subsequent
 preflight behavior; the launcher does not pin preflight code to the starting

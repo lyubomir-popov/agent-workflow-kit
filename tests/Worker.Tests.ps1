@@ -114,6 +114,16 @@ Describe 'Production worker integration and failure preservation in disposable r
         }
     }
 
+    It 'rejects a single-emphasis verdict before integration and retains scratch' {
+        Mock Invoke-AgentTask {
+            $worker=[pscustomobject]@{RepoRoot=$WorkingDirectory}
+            Write-FixtureFile $worker 'specs/001-example/reviews/fabricated.md' "*Verdict*: accept`n"
+            Save-FixtureRevision $worker
+            [pscustomobject]@{ExitCode=0; TimedOut=$false; ElapsedSeconds=0; StdOut=@(); StdErr=@()}
+        }
+        Assert-FixtureWorkerRejected 'review verdict added or modified'
+    }
+
     It 'rejects newly completing an unrelated task before integration and retains scratch' {
         Set-FixtureTasks $fixture "- [ ] T001 Implement example.`n- [ ] T002 Beyond the pending gate (gate: CP2)."
         Save-FixtureRevision $fixture

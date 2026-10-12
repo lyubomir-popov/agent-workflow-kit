@@ -1,6 +1,7 @@
 . (Join-Path $PSScriptRoot 'Fixture.Helpers.ps1')
 . (Join-Path $script:KitRoot 'workflow-model.ps1')
 . (Join-Path $script:KitRoot 'workflow-scheduler.ps1')
+$script:fixtureSwitchBranch=${function:Switch-WorkflowBranch}
 
 # The scheduler library has no worker executable. These local primitives use
 # only fixture Git; a missing worker mock fails immediately and cannot launch.
@@ -30,6 +31,8 @@ Describe 'Scheduler authorization and bounded failure paths' {
         $script:Model = 'fixture-mock'
         $script:ReasoningEffort = 'low'
         Mock Assert-WorkflowPreflight { }
+        # Pester 3 keeps mocks between examples; reset to production each time.
+        Mock Switch-WorkflowBranch { & $script:fixtureSwitchBranch $RepoPath $Branch }
         Mock Invoke-SpecKitWorkerPhase { [pscustomobject]@{ Status='ok'; WorktreePath='fixture-only' } }
     }
     AfterEach { Remove-WorkflowFixture $script:fixture }
@@ -97,6 +100,30 @@ Describe 'Scheduler authorization and bounded failure paths' {
         ($script:branchReport -join "`n") | Should Match 'master -> feat/001-example'
         ($script:branchReport -join "`n") | Should Match 'Restored original checkout.*master'
         Assert-MockCalled Invoke-SpecKitWorkerPhase -Times 1 -Exactly -Scope It
+    }
+
+    It 'reports both worker failure and failure to restore the original checkout' {
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        Mock Invoke-SpecKitWorkerPhase { [pscustomobject]@{Status='failed-stop'; WorktreePath='fixture-retained'} }
+        Mock Switch-WorkflowBranch {
+            if ($Branch -eq 'master') { throw 'checkout-incomplete: fixture restore denied' }
+            git -C $RepoPath checkout --quiet $Branch
+            if ($LASTEXITCODE) { throw 'fixture initial checkout failed' }
+        }
+        $failure=$null
+        try { Start-WorkflowScheduler $fixture.RepoRoot $config } catch { $failure=$_ }
+        $failure.Exception.Message | Should Match 'worker-incomplete: failed-stop.*fixture-retained'
+        $failure.Exception.Message | Should Match 'restoration-incomplete: checkout-incomplete: fixture restore denied'
+        $failure.Exception.InnerException.InnerExceptions.Count | Should Be 2
+        (Get-WorkflowBranch $fixture.RepoRoot) | Should Be 'feat/001-example'
+        Assert-MockCalled Invoke-SpecKitWorkerPhase -Times 1 -Exactly -Scope It
+    }
+
+    It 'accepts single-emphasis saved verdict labels through the shared parser' {
+        $path=Join-Path $fixture.RepoRoot 'specs/001-example/reviews/CP1-review.md'
+        Write-FixtureFile $fixture 'specs/001-example/reviews/CP1-review.md' ([IO.File]::ReadAllText($path).Replace('**Verdict**:','*Verdict*:'))
+        $package=@(Get-WorkflowPackages $fixture.RepoRoot)[0]
+        (Get-WorkflowGateProblem $package CP1) | Should BeNullOrEmpty
     }
 
     It 'restores the original primary branch after authorized non-local tasks complete' {

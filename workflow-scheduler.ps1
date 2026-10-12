@@ -27,7 +27,7 @@ function Assert-WorkflowWorkerRange {
                 $afterHeader=if ($null -ne $after) { ($after -split '(?m)^##\s',2)[0] } else { $null }
                 if ($beforeHeader -cne $afterHeader) { throw "worker-incomplete: owner spec block changed at $revision ($path)." }
             }
-            if ($path -match '(^|/)reviews/' -and $after -match '(?im)^.*\bVerdict(?:\*\*)?:') {
+            if ($path -match '(^|/)reviews/' -and @(Get-WorkflowReviewVerdicts ([string]$after)).Count) {
                 throw "worker-incomplete: review verdict added or modified at $revision ($path)."
             }
             if ($path -match '(^|/)tasks\.md$') {
@@ -124,6 +124,7 @@ function Start-WorkflowScheduler {
         $executionRoot=if ($package.Local) { $package.WorktreeRoot } else { $RepoPath }
         $originalBranch=Get-WorkflowBranch $executionRoot
         $originalHead=if ($originalBranch -eq 'HEAD') { Get-HeadCommit $executionRoot } else { $null }
+        $workerFailure=$null; $restoreFailure=$null
         try {
             if ($originalBranch -ne $package.Branch) { Write-Host "Scheduler checkout at ${executionRoot}: $originalBranch -> $($package.Branch); original checkout will be restored." }
             Switch-WorkflowBranch $executionRoot $package.Branch
@@ -147,15 +148,26 @@ function Start-WorkflowScheduler {
                     throw "scheduler-incomplete: $($task.Id) made no task progress; refusing unchanged retry."
                 }
             }
+        } catch {
+            $workerFailure=$_
         } finally {
-            if ((Get-WorkflowBranch $executionRoot) -ne $originalBranch) {
-                if ($originalBranch -eq 'HEAD') {
-                    git -C $executionRoot checkout --detach $originalHead 2>$null | Out-Null
-                    if ($LASTEXITCODE -or (Get-HeadCommit $executionRoot) -ne $originalHead) { throw "checkout-incomplete: cannot restore detached original $originalHead at $executionRoot." }
-                } else { Switch-WorkflowBranch $executionRoot $originalBranch }
-                Write-Host "Restored original checkout at ${executionRoot}: $originalBranch $(if ($originalHead) { $originalHead })"
-            }
+            try {
+                if ((Get-WorkflowBranch $executionRoot) -ne $originalBranch) {
+                    if ($originalBranch -eq 'HEAD') {
+                        git -C $executionRoot checkout --detach $originalHead 2>$null | Out-Null
+                        if ($LASTEXITCODE -or (Get-HeadCommit $executionRoot) -ne $originalHead) { throw "checkout-incomplete: cannot restore detached original $originalHead at $executionRoot." }
+                    } else { Switch-WorkflowBranch $executionRoot $originalBranch }
+                    Write-Host "Restored original checkout at ${executionRoot}: $originalBranch $(if ($originalHead) { $originalHead })"
+                }
+            } catch { $restoreFailure=$_ }
         }
+        if ($workerFailure -and $restoreFailure) {
+            throw [InvalidOperationException]::new(
+                "scheduler-incomplete: $($workerFailure.Exception.Message); restoration-incomplete: $($restoreFailure.Exception.Message)",
+                [AggregateException]::new([Exception[]]@($workerFailure.Exception,$restoreFailure.Exception)))
+        }
+        if ($workerFailure) { throw $workerFailure }
+        if ($restoreFailure) { throw $restoreFailure }
     }
     if (-not $active) { Write-Host 'No active catalog packages; nothing is authorized for unattended implementation.' }
     Write-Host "Worker invocations: $invocations"

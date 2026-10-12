@@ -20,7 +20,7 @@ function Test-WorkflowBudget {
 }
 
 function Test-WorkflowLinks {
-    param($Findings, [string]$RepoRoot, [string]$Relative, [string]$Text)
+    param($Findings, [string]$RepoRoot, [string]$Relative, [string]$Text, $Package=$null)
     foreach ($link in [regex]::Matches($Text, '\]\(([^)]+)\)')) {
         $target=$link.Groups[1].Value.Trim('<','>') -split '#',2 | Select-Object -First 1
         if (-not $target -or $target -match '^https?://') { continue }
@@ -29,6 +29,17 @@ function Test-WorkflowLinks {
             $absolute=[IO.Path]::GetFullPath((Join-Path $base $target))
             $relativeTarget=[IO.Path]::GetRelativePath($RepoRoot,$absolute)
             $absolute=Resolve-WorkflowRelativePath $RepoRoot $relativeTarget
+            $normalizedTarget=$relativeTarget -replace '\\','/'
+            if ($Relative -eq 'docs/specs.md' -and @((Get-WorkflowCatalog $RepoRoot) | Where-Object { $normalizedTarget -eq "$($_.RelativePath)/spec.md" }).Count) {
+                # Get-WorkflowPackages validates these owners on their declared branch,
+                # or reports a target-side fetch hint while the local ref is absent.
+                continue
+            }
+            if ($Package -and -not $Package.Local -and $normalizedTarget.StartsWith($Package.RelativePath+'/')) {
+                $name=$normalizedTarget.Substring($Package.RelativePath.Length+1)
+                if ($null -eq (Read-WorkflowPackageFile $Package $name)) { Add-Finding $Findings error owner-link $Relative "Missing declared-branch owner/link $target; repair the pointer or preserve its artifact." }
+                continue
+            }
             if (-not (Test-Path -LiteralPath $absolute)) { Add-Finding $Findings error owner-link $Relative "Missing local owner/link $target; repair the pointer or preserve its artifact." }
         } catch { Add-Finding $Findings error owner-link $Relative "Unsafe link $target; keep routing within the repository." }
     }
@@ -159,9 +170,13 @@ function Test-SpecWorkflowRepo {
     foreach ($package in $packages) {
         if ($identities.ContainsKey($package.Id)) { Add-Finding $findings error catalog-identity 'docs/specs.md' "Duplicate package ID $($package.Id); preserve original paths/numbers." }
         $identities[$package.Id]=$true
+        if (-not $package.Archived -and @($changed | Where-Object { $_.StartsWith($package.RelativePath+'/') }).Count -and $effective -ne $package.Branch) { Add-Finding $findings error package-branch $package.RelativePath "Package edits on $effective are forbidden; checkout declared $($package.Branch)." }
+        if (-not $package.Available) {
+            Add-Finding $findings info package-fetch $package.RelativePath "Local branch $($package.Branch) is unavailable; fetch the declared branch, then check it out to read package lifecycle and tasks."
+            continue
+        }
         if ($package.DerivedLifecycle -and $package.DerivedLifecycle -ne $package.Lifecycle) { Add-Finding $findings error catalog-lifecycle 'docs/specs.md' "Lifecycle view disagrees with $($package.RelativePath)/spec.md on $($package.Branch)." }
         if ($package.Lifecycle -eq 'delivered' -and -not $package.Archived) { Add-Finding $findings error catalog-archive 'docs/specs.md' "Move delivered $($package.Id) to Archive without moving its package." }
-        if (-not $package.Archived -and @($changed | Where-Object { $_.StartsWith($package.RelativePath+'/') }).Count -and $effective -ne $package.Branch) { Add-Finding $findings error package-branch $package.RelativePath "Package edits on $effective are forbidden; checkout declared $($package.Branch)." }
         $tasksText=Read-WorkflowPackageFile $package 'tasks.md'
         if ($package.Lifecycle -eq 'active' -and -not $tasksText) { Add-Finding $findings error task-owner $package.RelativePath 'Active package needs tasks.md.' }
         $tasks=@()
@@ -176,7 +191,7 @@ function Test-SpecWorkflowRepo {
                     if ($id -notin $tasks.Id -or @($tasks | Where-Object { $_.Id -eq $id -and $_.Complete }).Count) { Add-Finding $findings error task-next $package.RelativePath "Next task $id is missing/completed; reconcile current-work header." }
                 }
             }
-            Test-WorkflowLinks $findings $(if ($package.Local) { $package.WorktreeRoot } else { $RepoRoot }) "$($package.RelativePath)/tasks.md" $header
+            Test-WorkflowLinks $findings $(if ($package.Local) { $package.WorktreeRoot } else { $RepoRoot }) "$($package.RelativePath)/tasks.md" $header $package
         }
         foreach ($checkpoint in $package.Checkpoints | Where-Object State -eq 'owner-cleared') {
             $problem=Get-WorkflowGateProblem $package $checkpoint.Id

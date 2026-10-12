@@ -1,6 +1,6 @@
 # Current work
 
-**Next tasks**: T028, T029.
+**Next tasks**: T029.
 **Blockers**: CP2 owner acceptance before slice B planning.
 **Checkpoint links**: [slice gates](spec.md#checkpoints); [CP2 delta findings](reviews/2026-10-11-opus-slice-a-delta-review.md); [delta dispositions](reviews/2026-10-12-cp2-delta-author-dispositions.md).
 **Entry checkpoint**: CP1
@@ -72,7 +72,7 @@ CP2 stays pending. Target registration is the owner's selected CPA-R3 design.
 - [x] T025 Owner selected target registration, main, fixes for CPA-r1/r2, and slice B deferral for CPA-r4 on 2026-10-12 (manual) (gate: CP1).
 - [x] T026 Verify ancestry, create local main at master's commit without moving master, configure main and amend the governing creation contract (gate: CP1).
 - [x] T027 Share verdict parsing between gate and range checks, report simultaneous worker/restore failures, and add fixtures (CPA-r1, CPA-r2) (gate: CP1).
-- [ ] T028 Register new draft catalog rows on the configured target before branching; handle unavailable local branches as target info findings; test creation, both checkouts and a fresh clone (CPA-R3) (gate: CP1).
+- [x] T028 Register new draft catalog rows on the configured target before branching; handle unavailable local branches as target info findings; test creation, both checkouts and a fresh clone (CPA-R3) (gate: CP1).
 - [ ] T029 Record validation/dispositions, update pending CP2/inbox links, and report remaining owner remote steps (gate: CP1).
 
 ## Deferred slices

@@ -135,7 +135,12 @@ Describe 'Spec Kit ownership and reserved identities' {
     It 'creates its new feature from configured target rather than current feature HEAD' {
         $baseRevision = [string](Invoke-FixtureGit $fixture @('rev-parse','master'))
         $allocation = (& $create -Number 2 -Json -ShortName target 'Fixture target') | ConvertFrom-Json
-        ([string](Invoke-FixtureGit $fixture @('rev-parse','HEAD'))) | Should Be $baseRevision
+        $registeredRevision=[string](Invoke-FixtureGit $fixture @('rev-parse','master'))
+        $registeredRevision | Should Not Be $baseRevision
+        ([string](Invoke-FixtureGit $fixture @('rev-parse','master^'))) | Should Be $baseRevision
+        ([string](Invoke-FixtureGit $fixture @('rev-parse','HEAD'))) | Should Be $registeredRevision
+        ([string](Invoke-FixtureGit $fixture @('diff-tree','--no-commit-id','--name-only','-r','master'))) | Should Be 'docs/specs.md'
+        (Invoke-FixtureGit $fixture @('show','master:docs/specs.md') | Out-String) | Should Match '002-target'
         (Test-Path -LiteralPath $allocation.SPEC_FILE) | Should Be $true
         $env:SPECIFY_FEATURE | Should BeNullOrEmpty
     }
@@ -158,6 +163,97 @@ Describe 'Spec Kit ownership and reserved identities' {
         (Test-Path -LiteralPath $plan.IMPL_PLAN) | Should Be $true
         [IO.File]::ReadAllText($plan.IMPL_PLAN) | Should Match 'Implementation Plan'
         (Invoke-FixtureLint $fixture -Strict).ExitCode | Should Be 0
+        Save-FixtureRevision $fixture
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        (Invoke-FixtureLint $fixture -Strict).ExitCode | Should Be 0
+        $catalog=@(Get-WorkflowCatalog $fixture.RepoRoot | Where-Object Id -eq '002')
+        $catalog.Count | Should Be 1
+        $catalog[0].Branch | Should Be $allocation.BRANCH_NAME
+        # The newly created spec exists only on its declared branch.
+        (Test-Path -LiteralPath $allocation.SPEC_FILE) | Should Be $false
+        @(Get-WorkflowPackages $fixture.RepoRoot | Where-Object Id -eq '002')[0].Lifecycle | Should Be draft
+    }
+
+    It 'reports fetch info in a fresh clone even when only a remote package ref exists' {
+        $allocation=(& $create -Number 2 -Json -ShortName cloned 'Fixture clone') | ConvertFrom-Json
+        Save-FixtureRevision $fixture
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        $cloneRoot=Join-Path $fixture.TempRoot 'clone'
+        $null=Invoke-FixtureGit $fixture @('clone','--quiet','--no-local','--branch','master',$fixture.RepoRoot,$cloneRoot)
+        $clone=[pscustomobject]@{RepoRoot=$cloneRoot}
+        git -C $cloneRoot show-ref --verify --quiet "refs/heads/$($allocation.BRANCH_NAME)"
+        $LASTEXITCODE | Should Be 1
+        $null=Invoke-FixtureGit $clone @('show-ref','--verify',"refs/remotes/origin/$($allocation.BRANCH_NAME)")
+        $result=Invoke-FixtureLint $clone -Strict
+        $result.ExitCode | Should Be 0
+        $finding=@(Get-FixtureFindings $result 'package-fetch' | Where-Object path -eq 'specs/002-cloned')
+        $finding.Count | Should Be 1
+        $finding[0].severity | Should Be info
+        $finding[0].message | Should Match 'fetch the declared branch'
+    }
+
+    It 'commits target registration through the real hook before the feature ref exists' {
+        $hooksRoot=Join-Path $fixture.TempRoot 'registration-hooks'
+        $null=New-Item -ItemType Directory -Path $hooksRoot
+        $hookScript=(Join-Path $script:KitRoot 'workflow-hook.ps1') -replace '\\','/'
+        $hookText="#!/bin/sh`ngit show-ref --verify --quiet refs/heads/002-hooked && exit 93`nexec pwsh -NoLogo -NoProfile -File '$hookScript' -RepoRoot .`n"
+        [IO.File]::WriteAllText((Join-Path $hooksRoot 'pre-commit'),$hookText,[Text.UTF8Encoding]::new($false))
+        $null=Invoke-FixtureGit $fixture @('config','core.hooksPath',$hooksRoot)
+        $allocation=(& $create -Number 2 -Json -ShortName hooked 'Fixture hooked creation') | ConvertFrom-Json
+        $allocation.BRANCH_NAME | Should Be '002-hooked'
+        ([string](Invoke-FixtureGit $fixture @('rev-parse','HEAD'))) | Should Be ([string](Invoke-FixtureGit $fixture @('rev-parse','master')))
+        (Invoke-FixtureGit $fixture @('show','master:docs/specs.md') | Out-String) | Should Match '002-hooked'
+    }
+
+    It 'stops incomplete on a dirty target without changing its catalog or head' {
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        $before=[string](Invoke-FixtureGit $fixture @('rev-parse','HEAD'))
+        $catalogBefore=[IO.File]::ReadAllText((Join-Path $fixture.RepoRoot 'docs/specs.md'))
+        Write-FixtureFile $fixture 'README.md' 'Owner dirty target work'
+        $message=$null
+        try { & $create -Number 2 -ShortName dirty 'Fixture dirty target' } catch { $message=$_.Exception.Message }
+        $message | Should Match 'specify-incomplete:.*clean checkout'
+        ([string](Invoke-FixtureGit $fixture @('rev-parse','HEAD'))) | Should Be $before
+        [IO.File]::ReadAllText((Join-Path $fixture.RepoRoot 'docs/specs.md')) | Should Be $catalogBefore
+        [IO.File]::ReadAllText((Join-Path $fixture.RepoRoot 'README.md')) | Should Be 'Owner dirty target work'
+        (Test-Path -LiteralPath (Join-Path $fixture.RepoRoot 'specs/002-dirty')) | Should Be $false
+    }
+
+    It 'stops incomplete when the configured target is checked out elsewhere' {
+        $targetWorktree=Join-Path $fixture.TempRoot 'target'
+        $null=Invoke-FixtureGit $fixture @('worktree','add','--quiet',$targetWorktree,'master')
+        $before=[string](Invoke-FixtureGit $fixture @('rev-parse','master'))
+        $message=$null
+        try { & $create -Number 2 -ShortName blocked 'Fixture unavailable checkout' } catch { $message=$_.Exception.Message }
+        $message | Should Match 'specify-incomplete: cannot switch'
+        (Get-CurrentBranch) | Should Be 'feat/001-example'
+        ([string](Invoke-FixtureGit $fixture @('rev-parse','master'))) | Should Be $before
+        (Test-Path -LiteralPath (Join-Path $fixture.RepoRoot 'specs/002-blocked')) | Should Be $false
+    }
+
+    It 'keeps missing-branch diagnostics as errors away from the configured target' {
+        $allocation=(& $create -Number 2 -Json -ShortName missing 'Fixture missing sibling') | ConvertFrom-Json
+        Save-FixtureRevision $fixture
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','feat/001-example')
+        $null=Invoke-FixtureGit $fixture @('branch','-D',$allocation.BRANCH_NAME)
+        # Bring the target's registered catalog into this other package branch.
+        Write-FixtureFile $fixture 'docs/specs.md' ((Invoke-FixtureGit $fixture @('show','master:docs/specs.md')) -join "`n")
+        $result=Invoke-FixtureLint $fixture -Strict
+        $result.ExitCode | Should Be 1
+        @(Get-FixtureFindings $result 'package-owner').Count | Should Be 1
+        @(Get-FixtureFindings $result 'package-fetch').Count | Should Be 0
+    }
+
+    It 'still rejects target-side edits to a package whose branch is unavailable' {
+        $allocation=(& $create -Number 2 -Json -ShortName guarded 'Fixture unavailable edit') | ConvertFrom-Json
+        Save-FixtureRevision $fixture
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','master')
+        $null=Invoke-FixtureGit $fixture @('branch','-D',$allocation.BRANCH_NAME)
+        Write-FixtureFile $fixture 'specs/002-guarded/spec.md' 'Unauthorized target edit'
+        $result=Invoke-FixtureLint $fixture -Strict
+        $result.ExitCode | Should Be 1
+        @(Get-FixtureFindings $result 'package-branch').Count | Should Be 1
+        @(Get-FixtureFindings $result 'package-fetch' | Where-Object path -eq 'specs/002-guarded').Count | Should Be 1
     }
 
     It 'retains legacy cursor and environment behavior when version is absent' {

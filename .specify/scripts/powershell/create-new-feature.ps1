@@ -365,6 +365,30 @@ $featureDir = Join-Path $specsDir $branchName
 $specFile = Join-Path $featureDir 'spec.md'
 
 if (-not $DryRun) {
+    if ($workflowConfig) {
+        $target=$workflowConfig.targetBranch
+        $status=@(git -C $repoRoot status --porcelain)
+        if ($LASTEXITCODE -or $status.Count) { throw 'specify-incomplete: creation requires a clean checkout before switching to the configured target.' }
+        $checkoutOutput=git -C $repoRoot checkout -q $target 2>&1 | Out-String
+        if ($LASTEXITCODE -or (Get-WorkflowBranch $repoRoot) -ne $target) { throw "specify-incomplete: cannot switch to configured target '$target'. $($checkoutOutput.Trim())" }
+        $status=@(git -C $repoRoot status --porcelain)
+        if ($LASTEXITCODE -or $status.Count) { throw 'specify-incomplete: configured target checkout is dirty; catalog registration stopped.' }
+        $targetConfig=Get-WorkflowConfig $repoRoot
+        if (-not $targetConfig -or $targetConfig.targetBranch -ne $target) { throw 'specify-incomplete: configured target must contain the matching versioned workflow config.' }
+        $template=Resolve-Template -TemplateName 'spec-template' -RepoRoot $repoRoot
+        $overridePath=Join-Path $repoRoot '.specify/templates/overrides/spec-template.md'
+        if (-not $template -or -not (Test-Path -LiteralPath $template -PathType Leaf) -or [IO.Path]::GetFullPath($template) -ne [IO.Path]::GetFullPath($overridePath)) {
+            throw 'specify-incomplete: restore the project spec override template before registration.'
+        }
+        if (@(Get-WorkflowCatalog $repoRoot | Where-Object Id -eq $featureNum).Count) { throw "specify-incomplete: package $featureNum is already registered on the target." }
+        Add-WorkflowCatalogPackage -RepoRoot $repoRoot -Id $featureNum -Branch $branchName
+        git -C $repoRoot add -- docs/specs.md
+        if ($LASTEXITCODE) { throw 'specify-incomplete: cannot stage catalog registration; preserve the target checkout for recovery.' }
+        $registrationOutput=git -C $repoRoot commit --quiet -m "specs: register draft package $featureNum" 2>&1 | Out-String
+        if ($LASTEXITCODE) { throw "specify-incomplete: catalog registration commit failed; preserve the target checkout for recovery. $($registrationOutput.Trim())" }
+        # The row is now durable on the target even if feature checkout later fails.
+        # Never push or rewind registration as part of creation.
+    }
     if ($hasGit) {
         $branchCreated = $false
         $branchCreateError = ''
@@ -383,7 +407,7 @@ if (-not $DryRun) {
 
         if (-not $branchCreated) {
             if ($workflowConfig) {
-                throw "specify-workflow: failed to create branch '$branchName' from '$($workflowConfig.targetBranch)'. $($branchCreateError.Trim())"
+                throw "specify-incomplete: failed to create branch '$branchName' from '$($workflowConfig.targetBranch)'; target catalog registration is retained. $($branchCreateError.Trim())"
             }
             $currentBranch = ''
             try { $currentBranch = (git rev-parse --abbrev-ref HEAD 2>$null).Trim() } catch {}
@@ -446,8 +470,6 @@ if (-not $DryRun) {
             New-Item -ItemType File -Path $specFile -Force | Out-Null
         }
     }
-
-    if ($workflowConfig) { Add-WorkflowCatalogPackage -RepoRoot $repoRoot -Id $featureNum -Branch $branchName }
 
     # Set the SPECIFY_FEATURE environment variable for the current session
     if (-not $workflowConfig) { $env:SPECIFY_FEATURE = $branchName }

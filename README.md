@@ -103,6 +103,14 @@ while still comparing mirrored assets that exist. This preserves legacy mode.
 
 ## Scheduler and launchers
 
+Versioned Spec Kit creation switches to a clean configured target, commits only
+the draft package's catalog row there, then creates the feature branch from that
+commit and writes its draft spec from the project override. A dirty checkout or
+failed target switch stops incomplete; creation never pushes. On the target,
+missing local package branches produce an informational "fetch the declared
+branch" finding. Package edits still require their declared branch. This kit's
+target is `main`; consumers use their own configured target.
+
 `agent-loop.ps1` dispatches isolated workers. `-Agent Auto` chooses Codex from
 a Codex environment and Copilot otherwise. In spec-first mode, discovery reads
 package lifecycle/checkpoints and declared branches; only authorized active work

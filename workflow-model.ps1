@@ -149,7 +149,7 @@ function Read-WorkflowPackageFile {
         if (Test-Path -LiteralPath $path -PathType Leaf) { return [IO.File]::ReadAllText($path) }
         return $null
     }
-    $text = git -C $Package.RepoRoot show "$($Package.Branch):$($Package.RelativePath)/$Name" 2>$null
+    $text = git -C $Package.RepoRoot show "refs/heads/$($Package.Branch):$($Package.RelativePath)/$Name" 2>$null
     if ($LASTEXITCODE) { return $null }
     return ($text -join "`n") + "`n"
 }
@@ -163,6 +163,7 @@ function Get-WorkflowPackages {
     }
     if ($LASTEXITCODE) { throw 'workflow-git: cannot list worktrees.' }
     $current = Get-WorkflowBranch $RepoRoot
+    $config = Get-WorkflowConfig $RepoRoot
     $marker = if ($current -eq 'HEAD') { Get-WorkflowScratchMarker $RepoRoot } else { $null }
     $packages = @()
     foreach ($entry in @(Get-WorkflowCatalog $RepoRoot)) {
@@ -173,7 +174,17 @@ function Get-WorkflowPackages {
             Id=$entry.Id; RelativePath=$entry.RelativePath; Branch=$entry.Branch; Archived=$entry.Archived
             DerivedLifecycle=$entry.DerivedLifecycle; RepoRoot=$RepoRoot; Local=[bool]$localRoot
             WorktreeRoot=$localRoot; AbsolutePath=if ($localRoot) { Resolve-WorkflowRelativePath $localRoot $entry.RelativePath } else { $null }
-            Lifecycle=$null; Scope=$null; SupersededScopes=@(); SupersededTasks=@(); Checkpoints=@(); SpecText=$null; Header=$null
+            Available=$true; Lifecycle=$null; Scope=$null; SupersededScopes=@(); SupersededTasks=@(); Checkpoints=@(); SpecText=$null; Header=$null
+        }
+        if (-not $entry.Archived -and $config -and $current -eq $config.targetBranch) {
+            git -C $RepoRoot show-ref --verify --quiet "refs/heads/$($entry.Branch)"
+            if ($LASTEXITCODE -eq 1) {
+                # Registration precedes branch creation; a clone may have only a remote ref.
+                $package.Available=$false
+                $packages += $package
+                continue
+            }
+            if ($LASTEXITCODE) { throw "workflow-git: cannot check declared local branch $($entry.Branch)." }
         }
         $spec = Read-WorkflowPackageFile $package 'spec.md'
         if (-not $spec) {

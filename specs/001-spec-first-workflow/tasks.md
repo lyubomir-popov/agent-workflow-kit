@@ -1,6 +1,6 @@
 # Current work
 
-**Next tasks**: T044 (manual).
+**Next tasks**: T045 (manual).
 **Blockers**: Live cleanup, unattended runs, merging and pushing remain unauthorized. New package creation requires slice A on main.
 **Checkpoint links**: [slice gates](spec.md#checkpoints); [plan approval](reviews/2026-10-12-slice-b-plan-approval.md); [slice B plan](plan.md#slice-b-plan-for-owner-approval).
 **Entry checkpoint**: CP1
@@ -105,7 +105,8 @@ CP3 remains the stopping boundary before slice C.
 - [x] T041 Validate affected staged package contracts from the index without blocking unrelated unstaged package work (CPA-m2) (manual) (gate: CP2).
 - [x] T042 Include hook assets and the new shared libraries in canonical mirror diagnostics; preserve external/legacy selection without consumer installation (CPA-m5) (manual) (gate: CP2).
 - [x] T043 Check committed event ranges in CI, including PR/push/first-push/root and unavailable-base cases (ADV-5) (manual) (gate: CP2).
-- [ ] T044 Run full acceptance and integration checks; save B evidence, carryover dispositions and a bounded CP3 request; retain CP3 pending and prepare the owner handoff (manual) (gate: CP2).
+- [x] T044 Run full acceptance and integration checks; save B evidence, carryover dispositions and a bounded CP3 request; retain CP3 pending and prepare the owner handoff (manual) (gate: CP2).
+- [ ] T045 Owner-run Opus CP3 review of af8ed58, followed by owner acceptance/disposition and gate decision; code readiness authorizes no live cleanup, unattended run, merge, push or slice C work (manual) (gate: CP2).
 
 ## Carryovers and later slices
 

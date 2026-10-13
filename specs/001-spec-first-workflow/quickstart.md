@@ -25,5 +25,7 @@ pre-existing vendor/integration whitespace, reported separately in the evidence.
 Closeout preview/apply and required action authorizations are documented in
 [README](../../README.md#delivered-package-closeout). Only delivered fixture
 packages are cleaned up during validation; this session performs no live cleanup,
-network push, merge, unattended worker run or slice C work. Slice B evidence and
-the CP3 handoff will be saved in this package before implementation stops.
+network push, merge, unattended worker run or slice C work. Read the saved
+[slice B evidence](evidence/slice-b-validation.md) and
+[CP3 owner-run request](reviews/2026-10-13-opus-slice-b-review-request.md).
+Implementation stops at pending CP3; its review has not been launched.

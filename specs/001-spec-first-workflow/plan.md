@@ -114,7 +114,9 @@ human judgment. Hook installation and host limitations are reported explicitly.
 
 ## Slice B plan for owner approval
 
-Status: accepted for code/fixture implementation, 2026-10-12. Owner: Codex (Spec 001 implementer).
+Status: code/fixture implementation complete, 2026-10-13; pending CP3 owner-run review.
+Owner: Codex (Spec 001 implementer). [CP3 request](reviews/2026-10-13-opus-slice-b-review-request.md)
+pins the final code at af8ed58; [evidence](evidence/slice-b-validation.md) records checks.
 Authority: [owner plan approval](reviews/2026-10-12-slice-b-plan-approval.md), extending
 the [CP2 planning-only acceptance](reviews/2026-10-12-cp2-owner-planning-acceptance.md).
 Requirements: FR-019–024, relevant FR-008/010/013/018, SC-005/006 and the five

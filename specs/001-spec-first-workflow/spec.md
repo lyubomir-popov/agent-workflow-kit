@@ -13,7 +13,7 @@
 |---|---|---|---|
 | CP1 | Opus spec review | [Opus findings](reviews/2026-10-10-opus-spec-review.md); [owner acceptance, 2026-10-11](reviews/2026-10-11-author-dispositions.md#owner-acceptance-and-amendments-2026-10-11) | owner-cleared |
 | CP2 | Opus slice A review | [Opus findings](reviews/2026-10-11-opus-slice-a-review.md); [initial dispositions](reviews/2026-10-11-cp2-author-dispositions.md); [owner-requested delta findings](reviews/2026-10-11-opus-slice-a-delta-review.md); [updated delta dispositions](reviews/2026-10-12-cp2-delta-author-dispositions.md#implementation-and-final-dispositions-2026-10-12); [adversarial findings](reviews/2026-10-12-cp2-adversarial-delta-review.md); [adversarial dispositions](reviews/2026-10-12-cp2-adversarial-author-dispositions.md); [owner planning-only acceptance of 75ddc89](reviews/2026-10-12-cp2-owner-planning-acceptance.md); [subsequent plan approval](reviews/2026-10-12-slice-b-plan-approval.md) | owner-cleared |
-| CP3 | Opus slice B review | Pending owner-run review after slice B | pending |
+| CP3 | Opus slice B review | [owner-run request](reviews/2026-10-13-opus-slice-b-review-request.md); [author/delegated findings](reviews/2026-10-13-slice-b-author-review.md); [author dispositions](reviews/2026-10-13-cp3-author-dispositions.md) | pending |
 | CP4 | Opus slice C review | Pending owner-run review after slice C | pending |
 
 **Input**: Bring the kit up to date with the frequently used repositories.

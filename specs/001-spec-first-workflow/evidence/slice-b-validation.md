@@ -64,7 +64,7 @@ branch names exactly; a case-distinct configured target is tested.
 
 ## Acceptance map
 
-| Requirement/finding | Planned or implemented fixture coverage |
+| Requirement/finding | Validated fixture coverage |
 |---|---|
 | FR-019/020 | Closeout preview read-only, final delivered/archive records, exact accepted/base/landed identity, ancestry/squash changed-tree entries, mode/add/delete/rename/literal Unicode paths, conflicting/missing proof and annotated archive tag |
 | FR-021/022/023, CPA-M5 | Directory summaries and one bounded subtree scan; tracked precedence, nested evidence, ignored secrets, links/junctions, dirty/index changes, locks, accepted/base holds and encoded holds; scratch marker/containment and integration proof; delivery uses ordinary Git removal |
@@ -159,7 +159,7 @@ reads quoted porcelain after the caller hook, checks registered checkout names,
 and retains failed/empty/malformed inventory. It observes that prepared state;
 it does not lock other processes' HEAD files or claim global filesystem isolation.
 
-3. Final enforcement/ref-ownership chunk: `Passed: 258 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0`;
+3. Final enforcement/ref-ownership chunk (`af8ed58`): `Passed: 258 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0`;
    `Tests completed in 1256.56s`. This fresh run includes all 21 literal/checkout
    ownership regressions together with staged scope, CI ranges and existing A
    fixtures. Strict lint: 0 errors, 0 warnings, 1 semantic-limit info. Dry run:
@@ -168,3 +168,21 @@ it does not lock other processes' HEAD files or claim global filesystem isolatio
    its private snapshot adds an expected no-installed-hook info because its hooks
    are deliberately disabled. Main is an ancestor, main/master remain 864cad5.
    The previous 250-case state was not committed.
+
+## CP3 handoff
+
+Final code revision: `af8ed58ba17a0dff944c9f87e7774ac670234984`.
+The subsequent handoff commit changes package/review metadata only. Full findings
+and a finding-to-test/commit map are in the [author review](../reviews/2026-10-13-slice-b-author-review.md)
+and [dispositions](../reviews/2026-10-13-cp3-author-dispositions.md); the
+[bounded request](../reviews/2026-10-13-opus-slice-b-review-request.md) is for the owner.
+CP3 stays pending; T045 is the manual review action, and slice C is not started.
+No author/delegated check constitutes Opus or owner acceptance.
+
+4. Handoff metadata chunk: `Passed: 258 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0`;
+   `Tests completed in 1282.45s`. The full suite runs again after adding the
+   request/findings/dispositions and T045 owner handoff, with code unchanged from
+   af8ed58. Strict lint: 0 errors, 0 warnings, 1 semantic-limit info. Dry run:
+   target=main, manual T045, zero workers. Worktree/index and dce8394/53fc575
+   range whitespace and the staged contract hook pass. The request is 24 lines,
+   3130 UTF-8 bytes, within its 30-line/6144-byte budget. CP3 remains pending.

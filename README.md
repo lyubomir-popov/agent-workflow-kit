@@ -119,7 +119,7 @@ registration and partial artifacts, and reports any restoration failure alongsid
 the creation failure. The target must already contain the versioned config and
 project overrides. This kit's main at `864cad5` predates slice A, so new packages,
 including Spec 002, cannot be created until slice A is delivered to main. CP2
-remains the owner boundary; this remediation does not merge slice A early.
+authorization remains package-owned; code implementation does not merge slice A early.
 
 `agent-loop.ps1` dispatches isolated workers. `-Agent Auto` chooses Codex from
 a Codex environment and Copilot otherwise. In spec-first mode, discovery reads
@@ -168,6 +168,64 @@ $env:PATH = "$agentLoopBin$([System.IO.Path]::PathSeparator)$env:PATH"
 ```bash
 export PATH="/path/to/agent-workflow-kit/bin:$PATH"
 ```
+
+## Delivered-package closeout
+
+Versioned repositories can preview closeout using exact accepted source, declared
+base and landed target commits. Set the variables to the delivered package's
+reviewed evidence; an active package cannot be closed out. Preview is read-only:
+
+```powershell
+pwsh -NoLogo -NoProfile -File ./workflow-kit.ps1 -Command closeout -RepoRoot $repo -PackageId $package -AcceptedRevision $accepted -BaseRevision $base -LandedRevision $landed -Preview -Json
+```
+
+The report separates proof, worktrees, local branches, cached remote inventory,
+proposed actions and retention reasons. Ancestry or exact equality for every
+source-changed tree entry supplies automatic proof; unknown or conflicting
+evidence retains the source. Owner confirmation of the exact revisions can use
+`-OwnerConfirmed`, and its proof is preserved in an annotated archive tag before
+source deletion. Configured policy does not authorize an operation by itself.
+
+After separate owner authorization for the selected local cleanup actions:
+
+```powershell
+pwsh -NoLogo -NoProfile -File ./workflow-kit.ps1 -Command closeout -RepoRoot $repo -PackageId $package -AcceptedRevision $accepted -BaseRevision $base -LandedRevision $landed -Apply -AuthorizeLocalCleanup -RemoveWorktrees -DeleteLocalBranch -Json
+```
+
+Apply revalidates evidence and each candidate, creates or reuses matching
+`archive/<package-id>` proof, and uses ordinary Git removal for delivery
+worktrees. Primary/invoking checkouts, locks, accepted holds, unpublished work,
+dirty tracked/index state, protected untracked/ignored evidence and links remain
+protected. Delivery worktrees never receive automatic force permission. Disposable
+dependency summaries are scanned once for links/nested evidence; tracked content
+is never made disposable by a pattern. Scratch retains its separate marker/root
+and integration proof requirements. No recursive deletion fallback is used.
+Detached trees at the accepted revision and source-associated marked scratch
+remain visible as retained candidates requiring separate reconciliation.
+Local branch deletion requires known Git 2.29+ reference-transaction support;
+an exact accepted-tip guard composes the caller's reference hook using temporary
+command configuration. Verify-only prepared transactions hold archive/target
+proof stable during deletion. Unsupported locking retains the branch; no
+persistent hook or branch policy is installed.
+
+Network operations are off by default. Separately authorized remote actions need
+`-Apply -AuthorizeRemoteChanges -Remote <configured-name>` and selected
+`-PushArchiveTag`/`-DeleteRemoteBranch` flags. They verify exact remote revisions
+and matching annotated proof and use narrow leases; conflicting or unknown
+remote evidence remains incomplete.
+Accepted package cleanup holds also block remote source deletion; separately
+authorized archive-tag preservation can still proceed.
+Remote servers can omit unchanged proof refs
+from a transaction; a final proof mismatch reports incomplete, preserves local
+archive proof and names any deletion that already succeeded. This is not a claim
+of isolation against concurrent server changes. These flags do not authorize this kit session
+to push or delete branches. Local action success does not imply remote closeout.
+
+The final delivery commit sets lifecycle `delivered` and archives the catalog row
+on the package branch before owner-authorized landing. Cleanup makes no target
+documentation commit or package move. A landed package remains `delivered` even
+when cleanup retains a candidate. Retry reuses matching proof without overwriting
+conflicting tags. Consumer migration and prompt installation remain slice C work.
 
 ## Reusable VS Code prompts
 

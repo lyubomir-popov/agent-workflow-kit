@@ -1,6 +1,7 @@
 # Slice B implementation validation
 
 Date: 2026-10-13. Author: Codex, Spec 001 implementer.
+Runtime: Windows, PowerShell 7.6.6, Git 2.52.0.windows.1, Pester 3.4.0.
 Starting accepted plan: `dce8394`; [owner approval](../reviews/2026-10-12-slice-b-plan-approval.md).
 Scope: FR-019–024 and CPA-M5/m2/m5/r4/ADV-5. CP3 remains pending. All implementation
 tasks are manual; no live cleanup, unattended worker, merge, push, consumer change,
@@ -19,6 +20,8 @@ vendor skill edit, prompt installation or external review is performed.
 | Closeout proof, local guards and mocked remote reconciliation | 39 passed, 0 failed | 418.47 |
 | Final retained detached/scratch/unknown association | 3 passed, 0 failed | 24.76 |
 | Final CI event ranges, archive/mirror carryovers and CLI output | 18 passed, 0 failed | 31.73 |
+| Accepted remote holds and invariant/typed annotation dates | 4 passed, 0 failed | 48.00 |
+| Exact-case archive target and human local/remote output, CI/carryovers | 19 passed, 0 failed | 34.25 |
 
 These are implementation checks, not an independent/Opus checkpoint verdict.
 Fixture windows are sequential. Cleanup/network operations are tested in isolated
@@ -44,6 +47,18 @@ before a clean 31/31 (317.85s). Later verifier hardening initially reported
 26 passed/11 failed (306.32s); the all-zero old-OID correction preceded the
 successful 39-case run. The final file also contains the three retained-association
 cases, run separately above and included together in the full suite below.
+
+Root integration also found that remote deletion did not honor accepted cleanup
+holds. Four final fixtures cover held sources, deletion of working hold bytes,
+valid ISO day-13 annotation dates under en-GB, and malformed February-30 rejection.
+The first hold runs failed 0/2 in 25.33s, 24.87s and 26.05s. Raw proof tuples
+matched: UTC date rollover exposed PowerShell's automatic JSON DateTime decoding,
+whose string conversion was subsequently reparsed in en-GB. Typed date handling
+and invariant string parsing corrected that independent fail-closed bug without
+relaxing object/revision checks. Intermediate runs passed 3/3 in 37.00s and 4/4
+in 47.81s before the final restricted-type run above. Invalid date values retain
+conflicting annotations and make no push. Root's archive rule now compares Git
+branch names exactly; a case-distinct configured target is tested.
 
 ## Acceptance map
 
@@ -75,8 +90,15 @@ The full runs exercise the integrated working checkout, including later-area
 changes still unstaged while commits are split by area. Each area also has the
 focused evidence above. Final handoff checks cover the fully committed code.
 
-1. Preservation/scope chunk: `Passed: 232 Failed: 0 Skipped: 0 Pending: 0
-   Inconclusive: 0`; `Tests completed in 1025.41s`. Strict lint: 0 errors,
+1. Preservation/scope chunk (`2a4a6ef`): `Passed: 232 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0`;
+   `Tests completed in 1025.41s`. Strict lint: 0 errors,
    0 warnings, 1 semantic-limit info. Dry run: target=main, stops at manual T037,
    zero workers. Worktree/index whitespace and `dce8394..HEAD` range checks pass.
    Main remains an ancestor; main/master remain at `864cad5`.
+2. Closeout/CLI/mirror chunk: `Passed: 237 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0`;
+   `Tests completed in 999.49s`. Strict lint: 0 errors, 0 warnings, 1 info.
+   Dry run: target=main, manual T040, zero workers. Worktree/index and reviewed
+   range whitespace checks pass; the staged hook also passes. No live cleanup,
+   worker, network query/push or target-branch mutation is performed.
+   The first post-suite lint detected the inbox's completed T037 pointer;
+   advancing the handoff to remaining T040–T044 resolved it before commit.

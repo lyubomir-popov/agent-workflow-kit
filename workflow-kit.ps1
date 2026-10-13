@@ -3,20 +3,35 @@
   Workflow-kit validator and drift reporter.
 
 .DESCRIPTION
-  Provides two commands:
+  Provides three commands:
     lint - validate a repo that uses the agent-workflow-kit conventions.
     diff - report canonical workflow-file drift between this kit and a target repo.
+    closeout - preview or explicitly apply authorized delivered-package cleanup.
 
   Output is human-readable by default. Use -Json for machine-readable findings.
 #>
 
 param(
-    [ValidateSet('lint', 'diff')]
+    [ValidateSet('lint', 'diff', 'closeout')]
     [string]$Command = 'lint',
     [string]$RepoRoot = $PWD,
     [string]$KitRoot = $PSScriptRoot,
     [switch]$Json,
-    [switch]$Strict
+    [switch]$Strict,
+    [string]$PackageId,
+    [string]$AcceptedRevision,
+    [string]$BaseRevision,
+    [string]$LandedRevision,
+    [switch]$Preview,
+    [switch]$Apply,
+    [switch]$AuthorizeLocalCleanup,
+    [switch]$RemoveWorktrees,
+    [switch]$DeleteLocalBranch,
+    [switch]$OwnerConfirmed,
+    [switch]$AuthorizeRemoteChanges,
+    [string]$Remote,
+    [switch]$PushArchiveTag,
+    [switch]$DeleteRemoteBranch
 )
 
 $ErrorActionPreference = 'Stop'
@@ -272,6 +287,10 @@ function Get-CanonicalMirrorFiles {
         'workflow-model.ps1',
         'workflow-checks.ps1',
         'workflow-scheduler.ps1',
+        'workflow-preservation.ps1',
+        'workflow-closeout.ps1',
+        'workflow-hook.ps1',
+        '.githooks/pre-commit',
         'install-vscode-prompts.ps1',
         'bin/agent-loop',
         'bin/agent-loop.cmd',
@@ -421,5 +440,37 @@ switch ($Command) {
         $findings += Test-WorkflowRepo -RepoRoot $resolvedRepoRoot
         $findings += Test-WorkflowDrift -KitRoot $resolvedKitRoot -RepoRoot $resolvedRepoRoot
         Write-WorkflowReport -Findings $findings -Json:$Json -Strict:$Strict
+    }
+    'closeout' {
+        if (-not $PackageId) { throw 'closeout-incomplete: specify -PackageId.' }
+        if ($Preview -and $Apply) { throw 'closeout-incomplete: choose preview or apply.' }
+        . (Join-Path $PSScriptRoot 'workflow-closeout.ps1')
+        $report=Invoke-WorkflowCloseout -RepoRoot $resolvedRepoRoot -PackageId $PackageId -AcceptedRevision $AcceptedRevision -BaseRevision $BaseRevision -LandedRevision $LandedRevision -OwnerConfirmed:$OwnerConfirmed -Apply:$Apply -AuthorizeLocalCleanup:$AuthorizeLocalCleanup -RemoveWorktrees:$RemoveWorktrees -DeleteLocalBranch:$DeleteLocalBranch -AuthorizeRemoteChanges:$AuthorizeRemoteChanges -Remote $Remote -PushArchiveTag:$PushArchiveTag -DeleteRemoteBranch:$DeleteRemoteBranch
+        if ($Json) { $report | ConvertTo-Json -Depth 12 }
+        else {
+            Write-Host "Closeout $($report.packageId): $($report.status); target=$($report.targetBranch); proof=$($report.proofMethod)"
+            Write-Host "Base: $($report.baseRevision)"
+            Write-Host "Accepted source: $($report.acceptedRevision)"
+            Write-Host "Landed target: $($report.landedRevision)"
+            if ($report.archiveTag) { Write-Host "Archive tag $($report.archiveTag.name): $($report.archiveTag.state)" }
+            if ($report.localStatus) { Write-Host "Local outcome: $($report.localStatus)" }
+            if ($report.remoteStatus) { Write-Host "Remote outcome: $($report.remoteStatus)" }
+            if ($report.networkActionsEnabled -and $report.remoteIsolation) { Write-Host "Remote isolation: $($report.remoteIsolation)" }
+            foreach ($reason in $report.reasons) { Write-Host "Retained: $reason" }
+            foreach ($tree in $report.worktrees) {
+                Write-Host "Worktree $($tree.path): $(if ($tree.eligible) {'eligible'} else {'retained'})"
+                foreach ($reason in $tree.reasons) { Write-Host "  $reason" }
+            }
+            if ($report.branch) {
+                Write-Host "Local branch $($report.branch.name): $(if (-not $report.branch.exists) {'absent'} elseif ($report.branch.eligible) {'eligible'} else {'retained'})"
+                foreach ($reason in $report.branch.reasons) { Write-Host "  $reason" }
+            }
+            foreach ($action in $report.actions) { Write-Host "Proposed: $action" }
+            foreach ($result in $report.results) { Write-Host "$($result.action) $($result.target): $($result.status) $($result.reason)" }
+            foreach ($remoteBranch in $report.remoteBranches) { Write-Host "Remote branch $($remoteBranch.name): retained; $($remoteBranch.reason)" }
+            if ($report.remoteInventory) { Write-Host "Remote inventory: $($report.remoteInventory)" }
+            Write-Host "Network actions enabled: $($report.networkActionsEnabled); require separate explicit authorization."
+        }
+        if ($report.status -eq 'incomplete') { exit 1 }
     }
 }

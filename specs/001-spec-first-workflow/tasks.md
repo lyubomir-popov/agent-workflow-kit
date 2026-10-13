@@ -1,6 +1,6 @@
 # Current work
 
-**Next tasks**: T037 (manual).
+**Next tasks**: T040 (manual).
 **Blockers**: Live cleanup, unattended runs, merging and pushing remain unauthorized. New package creation requires slice A on main.
 **Checkpoint links**: [slice gates](spec.md#checkpoints); [plan approval](reviews/2026-10-12-slice-b-plan-approval.md); [slice B plan](plan.md#slice-b-plan-for-owner-approval).
 **Entry checkpoint**: CP1
@@ -98,12 +98,12 @@ early main merge or slice B/C work is part of the current remediation.
 All tasks remain manual because no unattended run is authorized. Entry is CP2;
 CP3 remains the stopping boundary before slice C.
 
-- [ ] T037 Add closeout preview and exact accepted/base/landed merge proof, including tree modes/deletions/renames and final delivery records (FR-019/020) (manual) (gate: CP2).
+- [x] T037 Add closeout preview and exact accepted/base/landed merge proof, including tree modes/deletions/renames and final delivery records (FR-019/020) (manual) (gate: CP2).
 - [x] T038 Share preservation inventory and scale disposable-directory inspection without skipping nested evidence or links (FR-021/022/023, CPA-M5) (manual) (gate: CP2).
-- [ ] T039 Add authorized local apply, annotated archive proof, immediate revalidation and resumable safe worktree/branch cleanup (FR-019–024) (manual) (gate: CP2).
+- [x] T039 Add authorized local apply, annotated archive proof, immediate revalidation and resumable safe worktree/branch cleanup (FR-019–024) (manual) (gate: CP2).
 - [ ] T040 Restrict archived package edits to the configured target while preserving target delivery/squash and deleted-branch resolution (CPA-r4) (manual) (gate: CP2).
 - [ ] T041 Validate affected staged package contracts from the index without blocking unrelated unstaged package work (CPA-m2) (manual) (gate: CP2).
-- [ ] T042 Include hook assets and the new shared libraries in canonical mirror diagnostics; preserve external/legacy selection without consumer installation (CPA-m5) (manual) (gate: CP2).
+- [x] T042 Include hook assets and the new shared libraries in canonical mirror diagnostics; preserve external/legacy selection without consumer installation (CPA-m5) (manual) (gate: CP2).
 - [ ] T043 Check committed event ranges in CI, including PR/push/first-push/root and unavailable-base cases (ADV-5) (manual) (gate: CP2).
 - [ ] T044 Run full acceptance and integration checks; save B evidence, carryover dispositions and a bounded CP3 request; retain CP3 pending and prepare the owner handoff (manual) (gate: CP2).
 

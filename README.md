@@ -207,6 +207,13 @@ an exact accepted-tip guard composes the caller's reference hook using temporary
 command configuration. Verify-only prepared transactions hold archive/target
 proof stable during deletion. Unsupported locking retains the branch; no
 persistent hook or branch policy is installed.
+Source, target and archive proof require exact literal, direct ref ownership;
+case aliases or symbolic refs retain cleanup even if they resolve to the same
+commit. The prepared deletion hook rechecks those names and IDs under the locks.
+Checked-out aliases are retained in preview and checked again at the prepared
+deletion boundary; native exact-name checkout protection remains in place.
+Local cleanup conservatively retains non-ASCII ref names because Windows case
+ownership is unverified for those names. Unicode filenames remain supported.
 
 Network operations are off by default. Separately authorized remote actions need
 `-Apply -AuthorizeRemoteChanges -Remote <configured-name>` and selected

@@ -163,14 +163,29 @@ function Test-SpecWorkflowRepo {
     $currentBranch=Get-WorkflowBranch $RepoRoot
     $marker=if ($currentBranch -eq 'HEAD') { Get-WorkflowScratchMarker $RepoRoot } else { $null }
     $effective=if ($marker) { $marker.integrationBranch } else { $currentBranch }
-    $changed=@(git -C $RepoRoot diff --name-only HEAD -- specs/; git -C $RepoRoot ls-files --others --exclude-standard -- specs/)
+    $changedDiff=@(git -C $RepoRoot diff --name-only -z HEAD -- specs/)
+    if ($LASTEXITCODE) { Add-Finding $findings error package-inventory 'specs/' 'Changed package paths are unavailable; stop ownership checks.'; return @($findings) }
+    $untrackedPaths=@(git -C $RepoRoot ls-files --others --exclude-standard -z -- specs/)
+    if ($LASTEXITCODE) { Add-Finding $findings error package-inventory 'specs/' 'Untracked package paths are unavailable; stop ownership checks.'; return @($findings) }
+    $changed=@((($changedDiff -join "`n") -split "`0")+(($untrackedPaths -join "`n") -split "`0") | Where-Object { $_ })
+    $pathComparison=if ($IsWindows) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
+    $previousCatalog=$null
     $candidateBlock=[regex]::Match($liveCatalog, '(?ms)^## Candidates\s*\n(.*?)(?=^## |\z)').Groups[1].Value
     $candidates=@($candidateBlock -split "`r?`n" | Where-Object { ($_ -match '^\|' -and $_ -notmatch '^\|\s*(Idea|Spec|[-:]+)\s*\|') -or $_ -match '^- ' })
     if ($candidates.Count -gt 10) { Add-Finding $findings error catalog-candidates 'docs/specs.md' 'Keep at most ten candidates; move overflow to ROADMAP.md.' }
     foreach ($package in $packages) {
         if ($identities.ContainsKey($package.Id)) { Add-Finding $findings error catalog-identity 'docs/specs.md' "Duplicate package ID $($package.Id); preserve original paths/numbers." }
         $identities[$package.Id]=$true
-        if (-not $package.Archived -and @($changed | Where-Object { $_.StartsWith($package.RelativePath+'/') }).Count -and $effective -ne $package.Branch) { Add-Finding $findings error package-branch $package.RelativePath "Package edits on $effective are forbidden; checkout declared $($package.Branch)." }
+        if (-not $package.Archived -and @($changed | Where-Object { $_.StartsWith($package.RelativePath+'/', $pathComparison) }).Count -and $effective -ne $package.Branch) { Add-Finding $findings error package-branch $package.RelativePath "Package edits on $effective are forbidden; checkout declared $($package.Branch)." }
+        if ($package.Archived -and @($changed | Where-Object { $_.StartsWith($package.RelativePath+'/', $pathComparison) }).Count -and $effective -cne $Config.targetBranch) {
+            if ($null -eq $previousCatalog) {
+                $previousText=Read-WorkflowGitFile -RepoRoot $RepoRoot -Revision HEAD -Path 'docs/specs.md'
+                $previousCatalog=if ($null -ne $previousText) { @(Get-WorkflowCatalog -RepoRoot $RepoRoot -Text $previousText) } else { @() }
+            }
+            $prior=@($previousCatalog | Where-Object { $_.Id -eq $package.Id -and $_.RelativePath -eq $package.RelativePath -and -not $_.Archived })
+            $deliveryTransition=$prior.Count -eq 1 -and $prior[0].Branch -ceq $effective -and $package.Branch -ceq $effective -and $package.Lifecycle -ceq 'delivered'
+            if (-not $deliveryTransition) { Add-Finding $findings error package-archive-branch $package.RelativePath "Archived package edits on $effective are forbidden; checkout configured target $($Config.targetBranch)." }
+        }
         if (-not $package.Available) {
             switch ($package.MissingBranchState) {
                 fetch { Add-Finding $findings info package-fetch $package.RelativePath "Local branch $($package.Branch) is unavailable but has a cached remote ref; fetch the declared branch, then check it out to read lifecycle and tasks." }

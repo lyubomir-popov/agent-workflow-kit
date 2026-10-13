@@ -22,6 +22,8 @@ vendor skill edit, prompt installation or external review is performed.
 | Final CI event ranges, archive/mirror carryovers and CLI output | 18 passed, 0 failed | 31.73 |
 | Accepted remote holds and invariant/typed annotation dates | 4 passed, 0 failed | 48.00 |
 | Exact-case archive target and human local/remote output, CI/carryovers | 19 passed, 0 failed | 34.25 |
+| Literal source/target/archive ownership and prepared deletion guards | 13 passed, 0 failed | 66.11 |
+| Final registered checkout ownership, inverse aliases and guard inventory | 8 passed, 0 failed | 73.02 |
 
 These are implementation checks, not an independent/Opus checkpoint verdict.
 Fixture windows are sequential. Cleanup/network operations are tested in isolated
@@ -95,10 +97,74 @@ focused evidence above. Final handoff checks cover the fully committed code.
    0 warnings, 1 semantic-limit info. Dry run: target=main, stops at manual T037,
    zero workers. Worktree/index whitespace and `dce8394..HEAD` range checks pass.
    Main remains an ancestor; main/master remain at `864cad5`.
-2. Closeout/CLI/mirror chunk: `Passed: 237 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0`;
+2. Closeout/CLI/mirror chunk (`17b3535`): `Passed: 237 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0`;
    `Tests completed in 999.49s`. Strict lint: 0 errors, 0 warnings, 1 info.
    Dry run: target=main, manual T040, zero workers. Worktree/index and reviewed
    range whitespace checks pass; the staged hook also passes. No live cleanup,
    worker, network query/push or target-branch mutation is performed.
    The first post-suite lint detected the inbox's completed T037 pointer;
    advancing the handoff to remaining T040–T044 resolved it before commit.
+   The staged whitespace check caught a new blank line at the end of the
+   closeout fixture file; removing that formatting residue made the check pass.
+
+The first integration-area full run passed `Passed: 237 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0`
+in 1024.85s. Before committing that area, a read-only root check established that
+Windows Git resolves `refs/heads/FEAT/001-SPEC-FIRST-WORKFLOW` even though its
+literal inventory lists only lowercase `feat/001-spec-first-workflow`. Source
+and proof identity therefore need literal inventory checks in addition to OIDs.
+T037/T039 were reopened for that correction, preserving all production refs;
+the corrected source receives new focused cases and a fresh full run before commit.
+The old-code private probe confirmed the consequence: uppercase declared source,
+lowercase primary HEAD and literal inventory; preview reported eligible with
+zero candidates, then native `branch -d` through the alias removed the checked-out
+lowercase ref and reported complete. The fixture retained its archive and was
+disposed safely. No production ref was mutated. Literal source/target/tag and
+direct-ref ownership checks are required before apply and under prepared locks.
+
+The final literal-ref fixtures pass 13/13 in 66.11s. Both edited scripts parse
+with zero errors. Initial runs reported 1 passed/8 failed (13.22s), caused by a
+helper variable colliding with PowerShell's automatic `$Matches`, and 8 passed/1
+failed (49.69s), because Git on Windows rejected the fixture's case-only rename
+before reaching the guard. A private two-step rename corrected the probe, and
+11/11 passed in 58.08s before the two dangling-symbolic cases were added. The
+final checks require exact literal direct source/target/tag ownership, reject
+case siblings and symbolic/dangling refs, and recheck names/OIDs after the caller
+hook under no-deref proof locks and the native source lock. Non-ASCII ref names
+are conservatively retained; Unicode delivered filenames remain supported.
+
+The subsequent full run passed `Passed: 250 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0`
+in 1149.23s. No commit followed: final inspection found the inverse alias case,
+where the source's literal name is exact but a checked-out worktree HEAD uses
+a differently cased physical alias. Exact-only worktree routing omitted it,
+and the ref-only prepared guard was insufficient. T037/T039 reopened again;
+the correction retains ambiguous checkout aliases and independently revalidates
+registered checkout names in the prepared guard. The final code gets focused
+regressions and a fresh full suite before commit; production refs remain untouched.
+The inverse private probe confirmed the same loss: lowercase declaration and
+literal source, uppercase primary HEAD; preview was eligible with zero candidates,
+and apply reported complete after deleting the checked-out lowercase physical
+source (subsequent source resolution exited 128). Only the fixture's target and
+archive remained. The correction therefore covers checkout metadata as well as
+literal ref identity. No actual kit source or target ref was removed.
+
+The final production source passed all 13 earlier literal-ref cases in a combined
+19 passed/2 failed run (126.21s). The two new failures were fixture path identity
+assertions comparing Git's slash spelling with Windows backslashes; full-path
+platform comparison corrected those assertions without changing production code.
+The eight registered-checkout cases then passed 8/8 in 73.02s. Both edited files
+parse with zero errors; whitespace is clean. Preview retains raw namespace/source
+aliases and ambiguous accepted-head branch ownership, including non-ASCII refs;
+an independent eligible delivery tree can still be removed. The prepared guard
+reads quoted porcelain after the caller hook, checks registered checkout names,
+and retains failed/empty/malformed inventory. It observes that prepared state;
+it does not lock other processes' HEAD files or claim global filesystem isolation.
+
+3. Final enforcement/ref-ownership chunk: `Passed: 258 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0`;
+   `Tests completed in 1256.56s`. This fresh run includes all 21 literal/checkout
+   ownership regressions together with staged scope, CI ranges and existing A
+   fixtures. Strict lint: 0 errors, 0 warnings, 1 semantic-limit info. Dry run:
+   target=main, manual T044, zero workers. Worktree/index and dce8394/53fc575
+   range whitespace checks pass. The staged hook passes with 0 errors/warnings;
+   its private snapshot adds an expected no-installed-hook info because its hooks
+   are deliberately disabled. Main is an ancestor, main/master remain 864cad5.
+   The previous 250-case state was not committed.

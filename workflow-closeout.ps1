@@ -63,6 +63,7 @@ function Start-WorkflowCloseoutProofLock {
     $lock=[pscustomobject]@{Process=$process; ErrorTask=$process.StandardError.ReadToEndAsync()}
     try {
         $process.StandardInput.WriteLine('start')
+        $process.StandardInput.WriteLine('option no-deref')
         $process.StandardInput.WriteLine("verify refs/tags/$($Preview.archiveTag.name) $($Preview.archiveTag.objectId)")
         $process.StandardInput.WriteLine("verify refs/heads/$($Preview.targetBranch) $($Preview.landedRevision)")
         $process.StandardInput.WriteLine('prepare'); $process.StandardInput.Flush()
@@ -86,6 +87,36 @@ function Resolve-WorkflowCloseoutCommit {
     return $result.Output.Trim()
 }
 
+function Get-WorkflowCloseoutLiteralRef {
+    param([string]$RepoRoot,[string]$Name)
+    # Files-backend lookups can resolve a differently cased physical path.
+    # Enumerate every literal name without a requested-name prefix, and reject
+    # symbolic refs: locking a referent does not establish this ref's ownership.
+    if ($Name -match '[^\x20-\x7e]') { throw "closeout-ref-ownership: non-ASCII literal ref ownership is unverified for $Name; retain cleanup." }
+    $inventory=Invoke-WorkflowCloseoutGit $RepoRoot @('for-each-ref','--format=%(refname)%00%(objectname)%00%(symref)')
+    if ($inventory.ExitCode) { throw "closeout-ref-ownership: literal ref inventory unavailable for $Name; retain cleanup." }
+    $literalEntries=@()
+    foreach ($line in ($inventory.Output -split '\r?\n' | Where-Object { $_ })) {
+        $fields=$line.Split([char]0)
+        if ($fields.Count -ne 3 -or $fields[1] -notmatch '^(?:[0-9a-f]{40}|[0-9a-f]{64})$') { throw 'closeout-ref-ownership: literal ref inventory is malformed; retain cleanup.' }
+        if ([string]::Equals($fields[0],$Name,[StringComparison]::OrdinalIgnoreCase)) {
+            if ($fields[0] -cne $Name) { throw "closeout-ref-ownership: requested $Name has a differently cased literal ref $($fields[0]); retain cleanup." }
+            if ($fields[2]) { throw "closeout-ref-ownership: $Name is symbolic; direct ref ownership and locking are unknown; retain cleanup." }
+            $literalEntries+=,[pscustomobject]@{name=$fields[0]; exists=$true; objectId=$fields[1]}
+        }
+    }
+    if ($literalEntries.Count -gt 1) { throw "closeout-ref-ownership: duplicate literal ref $Name; retain cleanup." }
+    if ($literalEntries.Count) { return $literalEntries[0] }
+    # Dangling symbolic refs may be omitted by for-each-ref and look absent to
+    # show-ref. Never let archive creation follow such a ref to its referent.
+    $symbolic=Invoke-WorkflowCloseoutGit $RepoRoot @('symbolic-ref','--quiet',$Name)
+    if ($symbolic.ExitCode -eq 0) { throw "closeout-ref-ownership: $Name is a dangling or unlisted symbolic ref; retain cleanup." }
+    if ($symbolic.ExitCode -ne 1) { throw "closeout-ref-ownership: symbolic ref ownership is unavailable for $Name; retain cleanup." }
+    $physical=Invoke-WorkflowCloseoutGit $RepoRoot @('show-ref','--verify','--quiet',$Name)
+    if ($physical.ExitCode -ne 1) { throw "closeout-ref-ownership: $Name cannot be established as an exact literal ref or safely absent; retain cleanup." }
+    return [pscustomobject]@{name=$Name; exists=$false; objectId=$null}
+}
+
 function Get-WorkflowCloseoutWorktrees {
     param([string]$RepoRoot)
     $result=Invoke-WorkflowCloseoutGit $RepoRoot @('worktree','list','--porcelain','-z')
@@ -94,16 +125,26 @@ function Get-WorkflowCloseoutWorktrees {
     foreach ($field in $result.Output.Split([char]0)) {
         if ($field.StartsWith('worktree ')) {
             if ($current) { $trees+=$current }
-            $current=[pscustomobject]@{Path=$field.Substring(9); Head=''; Branch=''; Locked=$false; Prunable=$false}
+            $current=[pscustomobject]@{Path=$field.Substring(9); Head=''; Branch=''; BranchRef=''; Locked=$false; Prunable=$false}
         } elseif ($current) {
             if ($field.StartsWith('HEAD ')) { $current.Head=$field.Substring(5) }
-            elseif ($field.StartsWith('branch ')) { $current.Branch=$field.Substring(7) -replace '^refs/heads/','' }
+            elseif ($field.StartsWith('branch ')) {
+                $current.BranchRef=$field.Substring(7)
+                $current.Branch=if ($current.BranchRef.StartsWith('refs/heads/',[StringComparison]::Ordinal)) {$current.BranchRef.Substring(11)} else {$current.BranchRef}
+            }
             elseif ($field -match '^locked(?: |$)') { $current.Locked=$true }
             elseif ($field -match '^prunable(?: |$)') { $current.Prunable=$true }
         }
     }
     if ($current) { $trees+=$current }
     return $trees
+}
+
+function Get-WorkflowCloseoutWorktreeBranchRef {
+    param($Tree)
+    if ($Tree.PSObject.Properties['BranchRef']) { return [string]$Tree.BranchRef }
+    if ($Tree.Branch) { return "refs/heads/$($Tree.Branch)" }
+    return ''
 }
 
 function Get-WorkflowCloseoutDeliveryRecord {
@@ -132,8 +173,16 @@ function Get-WorkflowCloseoutDeliveryRecord {
 
 function Get-WorkflowCloseoutRetainedAssociation {
     param([string]$RepoRoot,$Tree,[string]$Accepted,[string]$SourceBranch,[string]$CommonGitDir)
-    $kind=if (-not $Tree.Branch -and $Tree.Head -ceq $Accepted) {'detached'} else {$null}
     $reasons=@()
+    $branchRef=Get-WorkflowCloseoutWorktreeBranchRef $Tree
+    $sourceRef="refs/heads/$SourceBranch"
+    $kind=if (-not $branchRef -and $Tree.Head -ceq $Accepted) {'detached'} else {$null}
+    if ($branchRef -cne $sourceRef -and [string]::Equals($branchRef,$sourceRef,[StringComparison]::OrdinalIgnoreCase)) {
+        $kind='ref-alias'; $reasons+="registered checkout uses case-alias source ref $branchRef; delivery ownership is unresolved"
+    } elseif ($branchRef -and $Tree.Head -ceq $Accepted) {
+        try { $literal=Get-WorkflowCloseoutLiteralRef $RepoRoot $branchRef; if (-not $literal.exists) { throw 'registered branch has no exact literal ref' } }
+        catch { $kind='unknown'; $reasons+='accepted-head checkout has unresolved branch ownership: '+$_.Exception.Message }
+    }
     try {
         Assert-WorkflowNoLinks $Tree.Path
         if (Test-Path -LiteralPath $Tree.Path) {
@@ -161,7 +210,7 @@ function Get-WorkflowCloseoutRetainedAssociation {
     }
     if (-not $kind) { return $null }
     $reasons+="$kind worktree requires separate integration/preservation authorization; delivery cleanup permission does not apply"
-    return [pscustomobject]@{path=$Tree.Path; head=$Tree.Head; branch=$Tree.Branch; kind=$kind; eligible=$false; reasons=$reasons}
+    return [pscustomobject]@{path=$Tree.Path; head=$Tree.Head; branch=$Tree.Branch; branchRef=$branchRef; kind=$kind; eligible=$false; reasons=$reasons}
 }
 
 function Test-WorkflowCloseoutChangedPaths {
@@ -190,13 +239,18 @@ function Test-WorkflowCloseoutChangedPaths {
 function Get-WorkflowCloseoutArchiveTag {
     param([string]$RepoRoot,[string]$Name,[string]$PackageId,[string]$Base,[string]$Accepted,[string]$Target,[string]$Landed,[string]$TagObject)
     $tag=[pscustomobject]@{name=$Name; state='absent'; objectId=$null; proofMethod=$null; reasons=@()}
+    try { $literal=Get-WorkflowCloseoutLiteralRef $RepoRoot "refs/tags/$Name" }
+    catch { $tag.state='conflicting'; $tag.reasons=@($_.Exception.Message); return $tag }
+    if (-not $literal.exists) {
+        if ($TagObject) { $tag.state='conflicting'; $tag.reasons=@('captured archive proof has no current exact literal tag ref; retain cleanup') }
+        return $tag
+    }
+    if ($TagObject -and $literal.objectId -cne $TagObject) { $tag.state='conflicting'; $tag.reasons=@('captured archive proof differs from the exact literal tag ref; retain cleanup'); return $tag }
     if (-not $TagObject) {
-        $exists=Invoke-WorkflowCloseoutGit $RepoRoot @('show-ref','--verify','--quiet',"refs/tags/$Name")
-        if ($exists.ExitCode -eq 1) { return $tag }
-        if ($exists.ExitCode) { $tag.state='conflicting'; $tag.reasons=@('archive tag inventory unavailable'); return $tag }
         $object=Invoke-WorkflowCloseoutGit $RepoRoot @('rev-parse','--verify',"refs/tags/$Name")
         if ($object.ExitCode) { $tag.state='conflicting'; $tag.reasons=@('archive tag object unavailable'); return $tag }
         $TagObject=$object.Output.Trim()
+        if ($TagObject -cne $literal.objectId) { $tag.state='conflicting'; $tag.reasons=@('archive tag object changed during literal ownership verification; retain cleanup'); return $tag }
     }
     $tag.objectId=$TagObject
     $type=Invoke-WorkflowCloseoutGit $RepoRoot @('cat-file','-t',$TagObject)
@@ -212,6 +266,7 @@ function Get-WorkflowCloseoutArchiveTag {
         ($metadata.date -is [string] -and [datetime]::TryParse($metadata.date,[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::RoundtripKind,[ref]$date)))
     if ($type.ExitCode -or $type.Output.Trim() -ne 'tag' -or $head -cne $Accepted -or $body.ExitCode -or
         $parts[0] -notmatch ('(?m)^object '+[regex]::Escape($Accepted)+'$') -or $parts[0] -notmatch '(?m)^type commit$' -or
+        $parts[0] -cnotmatch ('(?m)^tag '+[regex]::Escape($Name)+'$') -or
         -not $metadata -or $metadata.version -ne 1 -or $metadata.packageId -cne $PackageId -or
         $metadata.baseRevision -cne $Base -or $metadata.acceptedRevision -cne $Accepted -or
         $metadata.targetBranch -cne $Target -or $metadata.landedRevision -cne $Landed -or
@@ -239,7 +294,9 @@ function Get-WorkflowCloseoutPreviewCore {
         $accepted=Resolve-WorkflowCloseoutCommit $RepoRoot $AcceptedRevision
         $landed=Resolve-WorkflowCloseoutCommit $RepoRoot $LandedRevision
         $report.baseRevision=$base; $report.acceptedRevision=$accepted; $report.landedRevision=$landed
-        $target=Resolve-WorkflowCloseoutCommit $RepoRoot "refs/heads/$($config.targetBranch)"
+        $targetRef=Get-WorkflowCloseoutLiteralRef $RepoRoot "refs/heads/$($config.targetBranch)"
+        if (-not $targetRef.exists) { throw 'closeout-ref-ownership: configured target has no exact literal ref; retain cleanup.' }
+        $target=$targetRef.objectId
         if ($target -cne $landed) { throw 'closeout-evidence: landed revision differs from current configured target; refresh the exact landing evidence.' }
         foreach ($head in @($accepted,$landed)) {
             $ancestry=Invoke-WorkflowCloseoutGit $RepoRoot @('merge-base','--is-ancestor',$base,$head)
@@ -263,9 +320,8 @@ function Get-WorkflowCloseoutPreviewCore {
             else { $report.reasons+='exact changed-path equality failed; owner confirmation of these exact revisions is required' }
         } else { throw 'closeout-proof: ancestry evidence unavailable.' }
         if ($report.archiveTag.state -eq 'matching' -and $report.archiveTag.proofMethod -ne $report.proofMethod) { $report.reasons+='existing archive tag proof method differs; preserve it and resolve explicitly' }
-        $ref=Invoke-WorkflowCloseoutGit $RepoRoot @('show-ref','--verify','--quiet',"refs/heads/$($entry.Branch)")
-        $branchExists=$ref.ExitCode -eq 0
-        if ($ref.ExitCode -notin @(0,1)) { throw 'closeout-inventory: branch inventory unavailable.' }
+        $ref=Get-WorkflowCloseoutLiteralRef $RepoRoot "refs/heads/$($entry.Branch)"
+        $branchExists=$ref.exists
         $branchReasons=@()
         if ($branchExists -and (Resolve-WorkflowCloseoutCommit $RepoRoot "refs/heads/$($entry.Branch)") -cne $accepted) { $branchReasons+='branch ref differs from accepted revision; preserve unpublished commits' }
         if (-not $branchExists -and $report.archiveTag.state -ne 'matching') { $report.reasons+='source branch missing without matching annotated archive proof' }
@@ -275,7 +331,8 @@ function Get-WorkflowCloseoutPreviewCore {
         $common=Invoke-WorkflowCloseoutGit $RepoRoot @('rev-parse','--path-format=absolute','--git-common-dir')
         if ($common.ExitCode) { throw 'closeout-inventory: repository identity unavailable.' }
         $primary=[IO.Path]::GetFullPath($trees[0].Path)
-        foreach ($tree in $trees | Where-Object { $_.Branch -ceq $entry.Branch }) {
+        $sourceRef="refs/heads/$($entry.Branch)"
+        foreach ($tree in $trees | Where-Object { (Get-WorkflowCloseoutWorktreeBranchRef $_) -ceq $sourceRef }) {
             $reasons=@($branchReasons)
             if ([IO.Path]::GetFullPath($tree.Path) -eq $primary) { $reasons+='primary checkout is protected' }
             elseif ([IO.Path]::GetFullPath($tree.Path) -eq $report.repoRoot) { $reasons+='invoking checkout is protected; rerun cleanup from the primary checkout' }
@@ -292,14 +349,18 @@ function Get-WorkflowCloseoutPreviewCore {
                 $reasons+=@($inventory.Reasons)
             } catch { $reasons+=$_.Exception.Message }
             $reasons+=@($report.reasons)
-            $report.worktrees+=[pscustomobject]@{path=$tree.Path; head=$tree.Head; branch=$tree.Branch; kind='delivery'; eligible=($reasons.Count -eq 0); reasons=$reasons}
+            $report.worktrees+=[pscustomobject]@{path=$tree.Path; head=$tree.Head; branch=$tree.Branch; branchRef=(Get-WorkflowCloseoutWorktreeBranchRef $tree); kind='delivery'; eligible=($reasons.Count -eq 0); reasons=$reasons}
         }
-        foreach ($tree in $trees | Where-Object { $_.Branch -cne $entry.Branch }) {
+        foreach ($tree in $trees | Where-Object { (Get-WorkflowCloseoutWorktreeBranchRef $_) -cne $sourceRef }) {
             $association=Get-WorkflowCloseoutRetainedAssociation $RepoRoot $tree $accepted $entry.Branch $common.Output.Trim()
-            if ($association) { $report.worktrees+=$association }
+            if ($association) {
+                if ([IO.Path]::GetFullPath($tree.Path) -eq $primary) { $association.reasons+='primary checkout is protected' }
+                elseif ([IO.Path]::GetFullPath($tree.Path) -eq $report.repoRoot) { $association.reasons+='invoking checkout is protected' }
+                $report.worktrees+=$association
+            }
         }
-        if (@($report.worktrees | Where-Object { $_.kind -ne 'delivery' }).Count) { $branchReasons+='associated detached/scratch work requires separate integration/preservation reconciliation; source branch retained' }
-        if (@($trees | Where-Object { $_.Branch -ceq $entry.Branch }).Count) { $branchReasons+='branch is checked out in a worktree; remove eligible worktrees first' }
+        if (@($report.worktrees | Where-Object { $_.kind -ne 'delivery' }).Count) { $branchReasons+='associated detached/scratch/alias work requires separate integration/preservation reconciliation; source branch retained' }
+        if (@($trees | Where-Object { (Get-WorkflowCloseoutWorktreeBranchRef $_) -ceq $sourceRef }).Count) { $branchReasons+='branch is checked out in a worktree; remove eligible worktrees first' }
         $branchReasons+=@($report.reasons)
         $report.branch=[pscustomobject]@{name=$entry.Branch; exists=$branchExists; eligible=($branchReasons.Count -eq 0); reasons=$branchReasons}
         $remotes=Invoke-WorkflowCloseoutGit $RepoRoot @('remote')
@@ -461,9 +522,40 @@ function Invoke-WorkflowCloseoutDeleteBranch {
         $hook=@'
 #!/bin/sh
 records=$(cat) || exit 1
+if [ -x __EXISTING__ ]; then
+    printf '%s\n' "$records" | __EXISTING__ "$@"
+    owner_status=$?
+    [ "$owner_status" = 0 ] || exit "$owner_status"
+fi
 if [ "$1" = prepared ]; then
+    # Do not use a requested-name prefix: on case-insensitive filesystems an
+    # alias can resolve the expected OID while literal ownership has changed.
+    inventory=$(git for-each-ref --format='%(refname) %(objectname) %(symref)') || exit 1
+    validate_literal_ref() {
+        expected_ref=$1
+        expected_oid=$2
+        non_ascii=$(printf '%s' "$expected_ref" | LC_ALL=C tr -d '\040-\176') || return 1
+        [ -z "$non_ascii" ] || return 1
+        folded_expected=$(printf '%s' "$expected_ref" | LC_ALL=C tr '[:upper:]' '[:lower:]') || return 1
+        found=no
+        while IFS=' ' read -r literal oid symbolic; do
+            folded_literal=$(printf '%s' "$literal" | LC_ALL=C tr '[:upper:]' '[:lower:]') || return 1
+            if [ "$folded_literal" = "$folded_expected" ] && [ "$literal" != "$expected_ref" ]; then
+                return 1
+            fi
+            if [ "$literal" = "$expected_ref" ]; then
+                [ "$found" = no ] && [ -z "$symbolic" ] && [ "$oid" = "$expected_oid" ] || return 1
+                found=yes
+            fi
+        done <<CLOSEOUT_LITERAL_REFS
+$inventory
+CLOSEOUT_LITERAL_REFS
+        [ "$found" = yes ]
+    }
+    source_record=no
     while IFS=' ' read -r old new ref; do
         if [ "$ref" = __REF__ ]; then
+            source_record=yes
             # Native branch -d can omit expected-old and report a zero oldOID.
             # At prepared, Git holds this ref's lock; resolve its actual current
             # value under that lock instead of treating zero as accepted proof.
@@ -480,17 +572,100 @@ if [ "$1" = prepared ]; then
     done <<CLOSEOUT_REF_RECORDS
 $records
 CLOSEOUT_REF_RECORDS
-fi
-if [ -x __EXISTING__ ]; then
-    printf '%s\n' "$records" | __EXISTING__ "$@"
-    exit $?
+    if [ "$source_record" != yes ]; then
+        echo 'closeout-ref-ownership: expected literal source is missing from the prepared transaction; branch retained' >&2
+        exit 1
+    fi
+    # Source is locked by native -d; target/tag by the held verify-only
+    # transaction. All three must still be literal, direct refs at these OIDs.
+    if ! validate_literal_ref __REF__ __ACCEPTED__ ||
+       ! validate_literal_ref __TARGET_REF__ __LANDED__ ||
+       ! validate_literal_ref __TAG_REF__ __TAG_OBJECT__; then
+        echo 'closeout-ref-ownership: exact literal direct source/target/archive ref changed under the ref locks; branch retained' >&2
+        exit 1
+    fi
+    # Native -d compares logical branch names. Independently observe registered
+    # HEAD aliases at prepared state; this does not lock HEADs or assert global
+    # isolation against a later noncooperating checkout edit.
+    worktrees=$(git -c core.quotePath=true worktree list --porcelain) || {
+        echo 'closeout-worktree-ownership: registered worktree inventory unavailable; branch retained' >&2
+        exit 1
+    }
+    folded_source=$(printf '%s' __REF__ | LC_ALL=C tr '[:upper:]' '[:lower:]') || exit 1
+    validate_checkout() {
+        [ "$checkout_started" = yes ] || return 0
+        case "$checkout_head" in ''|*[!0-9a-f]*) return 1 ;; esac
+        case "${#checkout_head}" in 40|64) ;; *) return 1 ;; esac
+        if [ -n "$checkout_branch" ]; then
+            [ "$checkout_state" = attached ] || return 1
+            folded_branch=$(printf '%s' "$checkout_branch" | LC_ALL=C tr '[:upper:]' '[:lower:]') || return 1
+            if [ "$folded_branch" = "$folded_source" ]; then
+                echo 'closeout-worktree-ownership: registered checkout uses exact or case-alias source ref; branch retained' >&2
+                return 1
+            fi
+            if [ "$checkout_head" = __ACCEPTED__ ] && ! validate_literal_ref "$checkout_branch" "$checkout_head"; then
+                echo 'closeout-worktree-ownership: accepted-head checkout has unresolved direct ASCII branch ownership; branch retained' >&2
+                return 1
+            fi
+        else
+            [ "$checkout_state" = detached ] || return 1
+            if [ "$checkout_head" = __ACCEPTED__ ]; then
+                echo 'closeout-worktree-ownership: accepted-head detached checkout requires separate preservation reconciliation; branch retained' >&2
+                return 1
+            fi
+        fi
+        return 0
+    }
+    checkout_seen=no
+    checkout_started=no
+    checkout_head=
+    checkout_branch=
+    checkout_state=
+    while IFS= read -r line; do
+        case "$line" in
+            'worktree '*)
+                validate_checkout || {
+                    echo 'closeout-worktree-ownership: registered checkout ownership is unresolved; branch retained' >&2
+                    exit 1
+                }
+                checkout_seen=yes; checkout_started=yes; checkout_head=; checkout_branch=; checkout_state=
+                ;;
+            'HEAD '*)
+                [ "$checkout_started" = yes ] && [ -z "$checkout_head" ] || exit 1
+                checkout_head=${line#HEAD }
+                ;;
+            'branch '*)
+                [ "$checkout_started" = yes ] && [ -z "$checkout_state" ] || exit 1
+                checkout_branch=${line#branch }; checkout_state=attached
+                ;;
+            detached)
+                [ "$checkout_started" = yes ] && [ -z "$checkout_state" ] || exit 1
+                checkout_state=detached
+                ;;
+            locked|'locked '*|prunable|'prunable '*|'') ;;
+            *)
+                echo 'closeout-worktree-ownership: registered worktree inventory malformed or unsupported; branch retained' >&2
+                exit 1
+                ;;
+        esac
+    done <<CLOSEOUT_WORKTREES
+$worktrees
+CLOSEOUT_WORKTREES
+    if [ "$checkout_seen" != yes ] || ! validate_checkout; then
+        echo 'closeout-worktree-ownership: registered checkout ownership is unresolved; branch retained' >&2
+        exit 1
+    fi
 fi
 exit 0
 '@
         $shellRef="'"+("refs/heads/$($Preview.branch.name)").Replace("'","'\''")+"'"
         $shellAccepted="'"+$Preview.acceptedRevision+"'"
         $shellExisting="'"+$existing.Output.Trim().Replace('\','/').Replace("'","'\''")+"'"
-        $hook=$hook.Replace('__REF__',$shellRef).Replace('__ACCEPTED__',$shellAccepted).Replace('__EXISTING__',$shellExisting)
+        $shellTarget="'"+("refs/heads/$($Preview.targetBranch)").Replace("'","'\''")+"'"
+        $shellTag="'"+("refs/tags/$($Preview.archiveTag.name)").Replace("'","'\''")+"'"
+        $hook=$hook.Replace('__REF__',$shellRef).Replace('__ACCEPTED__',$shellAccepted).Replace('__EXISTING__',$shellExisting).
+            Replace('__TARGET_REF__',$shellTarget).Replace('__LANDED__',("'"+$Preview.landedRevision+"'")).
+            Replace('__TAG_REF__',$shellTag).Replace('__TAG_OBJECT__',("'"+$Preview.archiveTag.objectId+"'"))
         [IO.File]::WriteAllText($hookPath,($hook -replace "`r`n","`n")+"`n",[Text.UTF8Encoding]::new($false))
         if (-not $IsWindows) { [IO.File]::SetUnixFileMode($hookPath,([IO.UnixFileMode]::UserRead -bor [IO.UnixFileMode]::UserWrite -bor [IO.UnixFileMode]::UserExecute)) }
         $proofLock=Start-WorkflowCloseoutProofLock $RepoRoot $Preview

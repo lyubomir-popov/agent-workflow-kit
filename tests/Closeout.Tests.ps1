@@ -51,6 +51,30 @@ function Invoke-CloseoutFixtureApply {
     return Invoke-WorkflowCloseout @parameters
 }
 
+function Move-CloseoutFixtureLiteralRef {
+    param($Fixture,[string]$From,[string]$To)
+    # Deliberately bypass Git's cooperating lock protocol in this private
+    # failure fixture: literal casing must still be checked under held locks.
+    $common=& $script:closeoutGitImplementation $Fixture.RepoRoot @('rev-parse','--path-format=absolute','--git-common-dir')
+    if ($common.ExitCode) { throw 'fixture common directory is unavailable' }
+    $root=[IO.Path]::GetFullPath($Fixture.TempRoot).TrimEnd([IO.Path]::DirectorySeparatorChar)+[IO.Path]::DirectorySeparatorChar
+    $comparison=if ($IsWindows) {[StringComparison]::OrdinalIgnoreCase} else {[StringComparison]::Ordinal}
+    $source=[IO.Path]::GetFullPath((Join-Path $common.Output.Trim() $From))
+    $destination=[IO.Path]::GetFullPath((Join-Path $common.Output.Trim() $To))
+    if (-not $source.StartsWith($root,$comparison) -or -not $destination.StartsWith($root,$comparison) -or
+        $From -notmatch '^refs/(heads|tags)/' -or $To -notmatch '^refs/(heads|tags)/') { throw 'fixture ref rename escaped its private temp repository' }
+    $temporary=$source+'.case-'+[guid]::NewGuid().ToString('N')
+    $null=[IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination))
+    [IO.File]::Move($source,$temporary)
+    [IO.File]::Move($temporary,$destination)
+}
+
+function Test-CloseoutFixturePath {
+    param([string]$Left,[string]$Right)
+    $comparison=if ($IsWindows) {[StringComparison]::OrdinalIgnoreCase} else {[StringComparison]::Ordinal}
+    return [string]::Equals([IO.Path]::GetFullPath($Left),[IO.Path]::GetFullPath($Right),$comparison)
+}
+
 function Enable-CloseoutRemoteMock {
     param($Fixture)
     $null=Invoke-FixtureGit $Fixture @('remote','add','origin','https://example.invalid/never-contact-this-fixture.git')
@@ -879,5 +903,392 @@ Describe 'Closeout accepted holds govern remote source deletion' {
             $script:remoteState.Tag | Should Be absent
             @($script:networkCalls | Where-Object { $_ -match '^push ' }).Count | Should Be 0
         } finally { [Threading.Thread]::CurrentThread.CurrentCulture=$priorCulture }
+    }
+}
+
+Describe 'Closeout literal ref ownership and prepared deletion guards' {
+    BeforeEach {
+        $script:fixture=$null
+        Mock Invoke-WorkflowCloseoutGit {
+            if ($Arguments -contains 'ls-remote' -or $Arguments -contains 'push') { throw 'Fixture network command was not explicitly mocked; no actual query/push is permitted.' }
+            & $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides
+        }
+        Mock Get-WorkflowCloseoutWorktrees { & $script:closeoutWorktreeImplementation $RepoRoot }
+        Mock Start-WorkflowCloseoutProofLock { & $script:closeoutProofLockImplementation $RepoRoot $Preview }
+    }
+    AfterEach { Remove-WorkflowFixture $script:fixture }
+
+    It 'retains a physically resolved source alias declared with different casing from the primary checkout' {
+        $script:fixture=New-CloseoutFixture -NoWorktree
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','feat/001-example')
+        foreach ($relative in @('docs/specs.md','specs/001-example/spec.md')) {
+            $path=Join-Path $fixture.RepoRoot $relative
+            [IO.File]::WriteAllText($path,[IO.File]::ReadAllText($path).Replace('feat/001-example','FEAT/001-EXAMPLE'))
+        }
+        Save-FixtureRevision $fixture
+        $fixture.Accepted=[string](Invoke-FixtureGit $fixture @('rev-parse','HEAD'))
+        $null=Invoke-FixtureGit $fixture @('update-ref','refs/heads/master',$fixture.Accepted)
+        $fixture.Landed=$fixture.Accepted
+        $fixture.PreviewParameters.AcceptedRevision=$fixture.Accepted
+        $fixture.PreviewParameters.LandedRevision=$fixture.Landed
+        if ($IsWindows) { (& $script:closeoutGitImplementation $fixture.RepoRoot @('show-ref','--verify','--quiet','refs/heads/FEAT/001-EXAMPLE')).ExitCode | Should Be 0 }
+        $parameters=$fixture.PreviewParameters
+        $preview=Get-WorkflowCloseoutPreview @parameters
+        $preview.status | Should Be incomplete
+        $preview.reasons -join ';' | Should Match 'differently cased literal ref refs/heads/feat/001-example'
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be incomplete
+        [string](Invoke-FixtureGit $fixture @('symbolic-ref','HEAD')) | Should Be 'refs/heads/feat/001-example'
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/heads/feat/001-example')) | Should Be $fixture.Accepted
+        (& $script:closeoutGitImplementation $fixture.RepoRoot @('show-ref','--verify','--quiet','refs/tags/archive/001-example')).ExitCode | Should Be 1
+        Test-Path -LiteralPath $fixture.RepoRoot | Should Be $true
+    }
+
+    It 'retains source work when the configured target names a physical case alias' {
+        $script:fixture=New-CloseoutFixture
+        $config=Get-FixtureConfig $fixture
+        $config.targetBranch='MASTER'
+        Set-FixtureConfig $fixture $config
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be incomplete
+        $report.reasons -join ';' | Should Match 'requested refs/heads/MASTER has a differently cased literal ref refs/heads/master'
+        Test-Path -LiteralPath $fixture.DeliveryPath | Should Be $true
+        [string](Invoke-FixtureGit $fixture @('rev-parse','feat/001-example')) | Should Be $fixture.Accepted
+    }
+
+    It 'retains a differently cased archive ref without relabeling it absent or matching' {
+        $script:fixture=New-CloseoutFixture
+        $parameters=$fixture.PreviewParameters.Clone(); $parameters.Apply=$true; $parameters.AuthorizeLocalCleanup=$true; $parameters.DeleteLocalBranch=$true
+        $null=Invoke-WorkflowCloseout @parameters
+        Move-CloseoutFixtureLiteralRef $fixture 'refs/tags/archive/001-example' 'refs/tags/archive/001-EXAMPLE'
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be incomplete
+        $report.archiveTag.state | Should Be conflicting
+        $report.reasons -join ';' | Should Match 'differently cased literal ref refs/tags/archive/001-EXAMPLE'
+        Test-Path -LiteralPath $fixture.DeliveryPath | Should Be $true
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-EXAMPLE^{commit}')) | Should Be $fixture.Accepted
+    }
+
+    It 'rejects symbolic delivery and configured target refs as unresolved ownership' {
+        foreach ($kind in @('source','target')) {
+            $script:fixture=New-CloseoutFixture
+            if ($kind -eq 'source') { $null=Invoke-FixtureGit $fixture @('symbolic-ref','refs/heads/feat/001-example','refs/heads/master') }
+            else { $null=Invoke-FixtureGit $fixture @('symbolic-ref','refs/heads/master','refs/heads/feat/001-example') }
+            $report=Invoke-CloseoutFixtureApply $fixture
+            $report.status | Should Be incomplete
+            $report.reasons -join ';' | Should Match 'is symbolic; direct ref ownership and locking are unknown'
+            Test-Path -LiteralPath $fixture.DeliveryPath | Should Be $true
+            Remove-WorkflowFixture $fixture; $script:fixture=$null
+        }
+    }
+
+    It 'rejects a symbolic archive alias even when it resolves the matching annotation object' {
+        $script:fixture=New-CloseoutFixture
+        $parameters=$fixture.PreviewParameters.Clone(); $parameters.Apply=$true; $parameters.AuthorizeLocalCleanup=$true; $parameters.DeleteLocalBranch=$true
+        $null=Invoke-WorkflowCloseout @parameters
+        $tagObject=[string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example'))
+        $null=Invoke-FixtureGit $fixture @('update-ref','refs/tags/preserved-original',$tagObject)
+        $null=Invoke-FixtureGit $fixture @('symbolic-ref','refs/tags/archive/001-example','refs/tags/preserved-original')
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be incomplete
+        $report.archiveTag.state | Should Be conflicting
+        $report.reasons -join ';' | Should Match 'is symbolic; direct ref ownership and locking are unknown'
+        Test-Path -LiteralPath $fixture.DeliveryPath | Should Be $true
+    }
+
+    It 'retains a dangling symbolic source rather than reporting an archived source already absent' {
+        $script:fixture=New-CloseoutFixture -NoWorktree
+        $null=Invoke-CloseoutFixtureApply $fixture -WorktreesOnly
+        $null=Invoke-FixtureGit $fixture @('symbolic-ref','refs/heads/feat/001-example','refs/heads/missing-source-referent')
+        $parameters=$fixture.PreviewParameters
+        $preview=Get-WorkflowCloseoutPreview @parameters
+        $preview.status | Should Be incomplete
+        $preview.reasons -join ';' | Should Match 'dangling or unlisted symbolic ref'
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be incomplete
+        @($report.results | Where-Object { $_.action -eq 'delete local branch' -and $_.reason -eq 'already absent' }).Count | Should Be 0
+        [string](Invoke-FixtureGit $fixture @('symbolic-ref','refs/heads/feat/001-example')) | Should Be 'refs/heads/missing-source-referent'
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example^{commit}')) | Should Be $fixture.Accepted
+    }
+
+    It 'retains a dangling symbolic archive without creating or updating its missing referent' {
+        $script:fixture=New-CloseoutFixture
+        $null=Invoke-FixtureGit $fixture @('symbolic-ref','refs/tags/archive/001-example','refs/tags/missing-archive-referent')
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be incomplete
+        $report.archiveTag.state | Should Be conflicting
+        $report.reasons -join ';' | Should Match 'dangling or unlisted symbolic ref'
+        @($report.results | Where-Object { $_.action -eq 'archive tag' }).Count | Should Be 0
+        [string](Invoke-FixtureGit $fixture @('symbolic-ref','refs/tags/archive/001-example')) | Should Be 'refs/tags/missing-archive-referent'
+        (& $script:closeoutGitImplementation $fixture.RepoRoot @('show-ref','--verify','--quiet','refs/tags/missing-archive-referent')).ExitCode | Should Be 1
+        Test-Path -LiteralPath $fixture.DeliveryPath | Should Be $true
+    }
+
+    It 'retains an accepted source renamed only in casing at the native deletion boundary' {
+        $script:fixture=New-CloseoutFixture -Squash -NoWorktree
+        Mock Invoke-WorkflowCloseoutGit {
+            if ($Arguments -contains 'branch' -and $Arguments -contains '-d') {
+                $null=Invoke-FixtureGit $script:fixture @('branch','-m','feat/001-example','feat/literal-case-intermediate')
+                $null=Invoke-FixtureGit $script:fixture @('branch','-m','feat/literal-case-intermediate','feat/001-EXAMPLE')
+            }
+            & $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides
+        }
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be incomplete
+        @($report.results | Where-Object { $_.action -eq 'delete local branch' -and $_.status -eq 'retained' }).Count | Should Be 1
+        if ($IsWindows) { $report.results[-1].reason | Should Match 'exact literal direct source/target/archive ref changed under the ref locks' }
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/heads/feat/001-EXAMPLE')) | Should Be $fixture.Accepted
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example^{commit}')) | Should Be $fixture.Accepted
+    }
+
+    It 'rechecks literal target and archive names under their held proof locks' {
+        foreach ($kind in @('target','tag')) {
+            $script:fixture=New-CloseoutFixture -Squash -NoWorktree
+            $script:literalProofRace=$kind
+            Mock Invoke-WorkflowCloseoutGit {
+                if ($Arguments -contains 'branch' -and $Arguments -contains '-d') {
+                    if ($script:literalProofRace -eq 'target') { Move-CloseoutFixtureLiteralRef $script:fixture 'refs/heads/master' 'refs/heads/MASTER' }
+                    else { Move-CloseoutFixtureLiteralRef $script:fixture 'refs/tags/archive/001-example' 'refs/tags/archive/001-EXAMPLE' }
+                }
+                & $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides
+            }
+            $report=Invoke-CloseoutFixtureApply $fixture
+            $report.status | Should Be incomplete
+            $report.results[-1].reason | Should Match 'exact literal direct source/target/archive ref changed under the ref locks'
+            [string](Invoke-FixtureGit $fixture @('rev-parse','refs/heads/feat/001-example')) | Should Be $fixture.Accepted
+            $tag=if ($kind -eq 'target') {'refs/tags/archive/001-example^{commit}'} else {'refs/tags/archive/001-EXAMPLE^{commit}'}
+            [string](Invoke-FixtureGit $fixture @('rev-parse',$tag)) | Should Be $fixture.Accepted
+            Remove-WorkflowFixture $fixture; $script:fixture=$null
+        }
+    }
+
+    It 'rejects a late symbolic source with the exact accepted OID at the native prepared guard' {
+        $script:fixture=New-CloseoutFixture -NoWorktree
+        Mock Invoke-WorkflowCloseoutGit {
+            if ($Arguments -contains 'branch' -and $Arguments -contains '-d') {
+                $null=Invoke-FixtureGit $script:fixture @('symbolic-ref','refs/heads/feat/001-example','refs/heads/master')
+            }
+            & $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides
+        }
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be incomplete
+        $report.results[-1].reason | Should Match 'exact literal direct source/target/archive ref changed under the ref locks'
+        [string](Invoke-FixtureGit $fixture @('symbolic-ref','refs/heads/feat/001-example')) | Should Be 'refs/heads/master'
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/heads/master')) | Should Be $fixture.Landed
+    }
+
+    It 'retains non-ASCII ref ownership while leaving valid Unicode delivered filenames intact' {
+        $script:fixture=New-CloseoutFixture
+        $config=Get-FixtureConfig $fixture
+        $config.targetBranch='cible/épreuve'
+        $null=Invoke-FixtureGit $fixture @('branch',$config.targetBranch,$fixture.Landed)
+        Set-FixtureConfig $fixture $config
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be incomplete
+        $report.reasons -join ';' | Should Match 'non-ASCII literal ref ownership is unverified'
+        [IO.File]::ReadAllText((Join-Path $fixture.DeliveryPath 'résumé [notes] λ.txt')) | Should Be 'Unicode literal path bytes'
+        [string](Invoke-FixtureGit $fixture @('rev-parse',$config.targetBranch)) | Should Be $fixture.Landed
+    }
+
+    It 'rejects a late differently cased sibling even when the exact accepted source remains' {
+        $script:fixture=New-CloseoutFixture -Squash -NoWorktree
+        $null=Invoke-FixtureGit $fixture @('pack-refs','--all')
+        Mock Invoke-WorkflowCloseoutGit {
+            if ($Arguments -contains 'branch' -and $Arguments -contains '-d') {
+                $common=& $script:closeoutGitImplementation $RepoRoot @('rev-parse','--path-format=absolute','--git-common-dir')
+                $path=Join-Path $common.Output.Trim() 'refs/heads/feat/001-EXAMPLE'
+                $null=[IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($path))
+                [IO.File]::WriteAllText($path,$script:fixture.Accepted+"`n",[Text.UTF8Encoding]::new($false))
+            }
+            & $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides
+        }
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be incomplete
+        $report.results[-1].reason | Should Match 'exact literal direct source/target/archive ref changed under the ref locks'
+        $inventory=(& $script:closeoutGitImplementation $fixture.RepoRoot @('for-each-ref','--format=%(refname)')).Output
+        @($inventory -split '\r?\n' | Where-Object { $_ -ceq 'refs/heads/feat/001-example' }).Count | Should Be 1
+        @($inventory -split '\r?\n' | Where-Object { $_ -ceq 'refs/heads/feat/001-EXAMPLE' }).Count | Should Be 1
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example^{commit}')) | Should Be $fixture.Accepted
+    }
+
+    It 'still deletes a literal accepted branch after composing its existing owner reference hook' {
+        $script:fixture=New-CloseoutFixture -Squash -NoWorktree
+        $hooks=Join-Path $fixture.TempRoot 'no-hooks'; $null=[IO.Directory]::CreateDirectory($hooks)
+        $marker=Join-Path $fixture.TempRoot 'literal-owner-hook.log'
+        $shellMarker="'"+$marker.Replace('\','/').Replace("'","'\''")+"'"
+        $hook="#!/bin/sh`nrecords=`$(cat)`nprintf '%s\n%s\n' `"`$1`" `"`$records`" >> $shellMarker`nexit 0`n"
+        $path=Join-Path $hooks 'reference-transaction'
+        [IO.File]::WriteAllText($path,$hook,[Text.UTF8Encoding]::new($false))
+        if (-not $IsWindows) { [IO.File]::SetUnixFileMode($path,([IO.UnixFileMode]::UserRead -bor [IO.UnixFileMode]::UserWrite -bor [IO.UnixFileMode]::UserExecute)) }
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be complete
+        $report.archiveTag.state | Should Be matching
+        [IO.File]::ReadAllText($marker) | Should Match 'prepared'
+        [IO.File]::ReadAllText($marker) | Should Match 'refs/heads/feat/001-example'
+        [IO.File]::ReadAllText($path) | Should Be $hook
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/heads/master')) | Should Be $fixture.Landed
+    }
+}
+
+Describe 'Closeout registered checkout ref ownership' {
+    BeforeEach {
+        $script:fixture=$null
+        Mock Invoke-WorkflowCloseoutGit {
+            if ($Arguments -contains 'ls-remote' -or $Arguments -contains 'push') { throw 'Fixture network command was not explicitly mocked; no actual query/push is permitted.' }
+            & $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides
+        }
+        Mock Get-WorkflowCloseoutWorktrees { & $script:closeoutWorktreeImplementation $RepoRoot }
+        Mock Start-WorkflowCloseoutProofLock { & $script:closeoutProofLockImplementation $RepoRoot $Preview }
+    }
+    AfterEach { Remove-WorkflowFixture $script:fixture }
+
+    It 'retains a primary uppercase HEAD alias of an exact lowercase delivery ref' {
+        $script:fixture=New-CloseoutFixture -NoWorktree
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','feat/001-example')
+        $null=Invoke-FixtureGit $fixture @('symbolic-ref','HEAD','refs/heads/FEAT/001-EXAMPLE')
+        $parameters=$fixture.PreviewParameters
+        $preview=Get-WorkflowCloseoutPreview @parameters
+        $preview.status | Should Be incomplete
+        $preview.branch.eligible | Should Be $false
+        $preview.worktrees[0].kind | Should Be 'ref-alias'
+        $preview.worktrees[0].branchRef | Should Be 'refs/heads/FEAT/001-EXAMPLE'
+        $preview.worktrees[0].reasons -join ';' | Should Match 'case-alias source ref'
+        $preview.worktrees[0].reasons -join ';' | Should Match 'primary checkout is protected'
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be incomplete
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/heads/feat/001-example')) | Should Be $fixture.Accepted
+        [string](Invoke-FixtureGit $fixture @('symbolic-ref','HEAD')) | Should Be 'refs/heads/FEAT/001-EXAMPLE'
+        Test-Path -LiteralPath $fixture.RepoRoot | Should Be $true
+    }
+
+    It 'retains a linked source alias while independently removing an eligible exact delivery checkout' {
+        $script:fixture=New-CloseoutFixture
+        $alias=& $script:closeoutGitImplementation $fixture.DeliveryPath @('symbolic-ref','HEAD','refs/heads/FEAT/001-EXAMPLE')
+        $alias.ExitCode | Should Be 0
+        $regular=Join-Path $fixture.TempRoot 'independent-delivery'
+        $null=Invoke-FixtureGit $fixture @('worktree','add','--quiet','--detach',$regular,$fixture.Accepted)
+        $attach=& $script:closeoutGitImplementation $regular @('symbolic-ref','HEAD','refs/heads/feat/001-example')
+        $attach.ExitCode | Should Be 0
+        $parameters=$fixture.PreviewParameters
+        $preview=Get-WorkflowCloseoutPreview @parameters
+        @($preview.worktrees | Where-Object { (Test-CloseoutFixturePath $_.path $fixture.DeliveryPath) -and $_.kind -eq 'ref-alias' -and -not $_.eligible }).Count | Should Be 1
+        @($preview.worktrees | Where-Object { (Test-CloseoutFixturePath $_.path $regular) -and $_.eligible }).Count | Should Be 1
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be incomplete
+        Test-Path -LiteralPath $regular | Should Be $false
+        Test-Path -LiteralPath $fixture.DeliveryPath | Should Be $true
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/heads/feat/001-example')) | Should Be $fixture.Accepted
+    }
+
+    It 'preserves raw ref namespace casing instead of normalizing a primary HEAD alias' {
+        $script:fixture=New-CloseoutFixture -NoWorktree
+        $null=Invoke-FixtureGit $fixture @('switch','--quiet','feat/001-example')
+        $null=Invoke-FixtureGit $fixture @('symbolic-ref','HEAD','refs/HEADS/feat/001-example')
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be incomplete
+        $report.worktrees[0].kind | Should Be 'ref-alias'
+        $report.worktrees[0].branchRef | Should Be 'refs/HEADS/feat/001-example'
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/heads/feat/001-example')) | Should Be $fixture.Accepted
+    }
+
+    It 'rejects a late registered case-alias checkout after native deletion has selected its exact source' {
+        $script:fixture=New-CloseoutFixture -Squash -NoWorktree
+        $script:lateAliasPath=Join-Path $fixture.TempRoot 'late-alias-checkout'
+        Mock Invoke-WorkflowCloseoutGit {
+            if ($Arguments -contains 'branch' -and $Arguments -contains '-d') {
+                $null=Invoke-FixtureGit $script:fixture @('worktree','add','--quiet','--detach',$script:lateAliasPath,$script:fixture.Accepted)
+                $alias=& $script:closeoutGitImplementation $script:lateAliasPath @('symbolic-ref','HEAD','refs/heads/FEAT/001-EXAMPLE')
+                if ($alias.ExitCode) { throw 'private late checkout alias setup failed' }
+            }
+            & $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides
+        }
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be incomplete
+        $report.results[-1].reason | Should Match 'registered checkout uses exact or case-alias source ref'
+        Test-Path -LiteralPath $script:lateAliasPath | Should Be $true
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/heads/feat/001-example')) | Should Be $fixture.Accepted
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example^{commit}')) | Should Be $fixture.Accepted
+    }
+
+    It 'retains accepted-head Unicode branch association while allowing independent delivery removal' {
+        $script:fixture=New-CloseoutFixture
+        $unicode=Join-Path $fixture.TempRoot 'unicode-accepted-checkout'
+        $null=Invoke-FixtureGit $fixture @('worktree','add','--quiet','-b','feat/épreuve',$unicode,$fixture.Accepted)
+        $parameters=$fixture.PreviewParameters
+        $preview=Get-WorkflowCloseoutPreview @parameters
+        @($preview.worktrees | Where-Object { (Test-CloseoutFixturePath $_.path $unicode) -and $_.kind -eq 'unknown' -and -not $_.eligible }).Count | Should Be 1
+        ($preview.worktrees | Where-Object { Test-CloseoutFixturePath $_.path $unicode }).reasons -join ';' | Should Match 'non-ASCII literal ref ownership is unverified'
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be incomplete
+        Test-Path -LiteralPath $fixture.DeliveryPath | Should Be $false
+        Test-Path -LiteralPath $unicode | Should Be $true
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/heads/feat/001-example')) | Should Be $fixture.Accepted
+    }
+
+    It 'rejects a late accepted-head Unicode checkout without asserting distinct filesystem ownership' {
+        $script:fixture=New-CloseoutFixture -NoWorktree
+        $script:lateUnicodePath=Join-Path $fixture.TempRoot 'late-unicode-checkout'
+        Mock Invoke-WorkflowCloseoutGit {
+            if ($Arguments -contains 'branch' -and $Arguments -contains '-d') {
+                $null=Invoke-FixtureGit $script:fixture @('worktree','add','--quiet','-b','feat/épreuve',$script:lateUnicodePath,$script:fixture.Accepted)
+            }
+            & $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides
+        }
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be incomplete
+        $report.results[-1].reason | Should Match 'accepted-head checkout has unresolved direct ASCII branch ownership'
+        Test-Path -LiteralPath $script:lateUnicodePath | Should Be $true
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/heads/feat/001-example')) | Should Be $fixture.Accepted
+    }
+
+    It 'retains the source when prepared registered inventory fails or is empty or malformed' {
+        foreach ($kind in @('failure','empty','malformed')) {
+            $script:fixture=New-CloseoutFixture -Squash -NoWorktree
+            $shim=Join-Path $fixture.TempRoot 'prepared-git-shim'; $null=[IO.Directory]::CreateDirectory($shim)
+            $realGit=(Get-Command git -CommandType Application | Select-Object -First 1).Source.Replace('\','/')
+            $quotedGit="'"+$realGit.Replace("'","'\''")+"'"
+            $script:preparedShim=$shim
+            $wrapper=@'
+#!/bin/sh
+if [ "$1" = -c ] && [ "$2" = core.quotePath=true ] && [ "$3" = worktree ] && [ "$4" = list ] && [ "$5" = --porcelain ]; then
+    __OUTCOME__
+fi
+exec __REAL_GIT__ "$@"
+'@
+            $outcome=switch ($kind) {
+                'failure' {"echo 'private fixture inventory unavailable' >&2; exit 1"}
+                'empty' {'exit 0'}
+                'malformed' {"printf '%s\n' 'worktree private-fixture' 'HEAD invalid' 'branch refs/heads/master'; exit 0"}
+            }
+            $wrapper=$wrapper.Replace('__OUTCOME__',$outcome).Replace('__REAL_GIT__',$quotedGit)
+            $path=Join-Path $shim 'git'
+            [IO.File]::WriteAllText($path,($wrapper -replace "`r`n","`n")+"`n",[Text.UTF8Encoding]::new($false))
+            if (-not $IsWindows) { [IO.File]::SetUnixFileMode($path,([IO.UnixFileMode]::UserRead -bor [IO.UnixFileMode]::UserWrite -bor [IO.UnixFileMode]::UserExecute)) }
+            Mock Invoke-WorkflowCloseoutGit {
+                if ($Arguments -contains 'branch' -and $Arguments -contains '-d') {
+                    $overrides=if ($EnvironmentOverrides) {$EnvironmentOverrides.Clone()} else {@{}}
+                    $overrides.GIT_EXEC_PATH=$script:preparedShim
+                    return & $script:closeoutGitImplementation $RepoRoot $Arguments $overrides
+                }
+                & $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides
+            }
+            $report=Invoke-CloseoutFixtureApply $fixture
+            $report.status | Should Be incomplete
+            $report.results[-1].reason | Should Match 'closeout-worktree-ownership: registered'
+            [string](Invoke-FixtureGit $fixture @('rev-parse','refs/heads/feat/001-example')) | Should Be $fixture.Accepted
+            [string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example^{commit}')) | Should Be $fixture.Accepted
+            Remove-WorkflowFixture $fixture; $script:fixture=$null
+        }
+    }
+
+    It 'accepts a quoted Unicode worktree path when its direct ASCII branch and head are distinct' {
+        $script:fixture=New-CloseoutFixture -Squash -NoWorktree
+        $unrelated=Join-Path $fixture.TempRoot 'registered résumé λ path'
+        $null=Invoke-FixtureGit $fixture @('worktree','add','--quiet','-b','feat/unrelated',$unrelated,$fixture.Base)
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be complete
+        Test-Path -LiteralPath $unrelated | Should Be $true
+        $report.archiveTag.state | Should Be matching
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/heads/feat/unrelated')) | Should Be $fixture.Base
     }
 }

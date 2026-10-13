@@ -43,4 +43,4 @@ jobs:
         run: pwsh -NoLogo -NoProfile -File ./tests/run-tests.ps1
       - name: Whitespace
         shell: pwsh
-        run: git diff --check
+        run: pwsh -NoLogo -NoProfile -File ./.github/scripts/check-whitespace.ps1 -RepoRoot . -EventName $env:GITHUB_EVENT_NAME -EventPath $env:GITHUB_EVENT_PATH

@@ -12,7 +12,7 @@
 | ID | Gate | Verdict link | State |
 |---|---|---|---|
 | CP1 | Opus spec review | [Opus findings](reviews/2026-10-10-opus-spec-review.md); [owner acceptance, 2026-10-11](reviews/2026-10-11-author-dispositions.md#owner-acceptance-and-amendments-2026-10-11) | owner-cleared |
-| CP2 | Opus slice A review | [Opus findings](reviews/2026-10-11-opus-slice-a-review.md); [initial dispositions](reviews/2026-10-11-cp2-author-dispositions.md); [owner-requested delta findings](reviews/2026-10-11-opus-slice-a-delta-review.md); [updated delta dispositions](reviews/2026-10-12-cp2-delta-author-dispositions.md#implementation-and-final-dispositions-2026-10-12); [adversarial findings](reviews/2026-10-12-cp2-adversarial-delta-review.md); [adversarial dispositions](reviews/2026-10-12-cp2-adversarial-author-dispositions.md); [owner planning-only acceptance of 75ddc89](reviews/2026-10-12-cp2-owner-planning-acceptance.md) | owner-cleared |
+| CP2 | Opus slice A review | [Opus findings](reviews/2026-10-11-opus-slice-a-review.md); [initial dispositions](reviews/2026-10-11-cp2-author-dispositions.md); [owner-requested delta findings](reviews/2026-10-11-opus-slice-a-delta-review.md); [updated delta dispositions](reviews/2026-10-12-cp2-delta-author-dispositions.md#implementation-and-final-dispositions-2026-10-12); [adversarial findings](reviews/2026-10-12-cp2-adversarial-delta-review.md); [adversarial dispositions](reviews/2026-10-12-cp2-adversarial-author-dispositions.md); [owner planning-only acceptance of 75ddc89](reviews/2026-10-12-cp2-owner-planning-acceptance.md); [subsequent plan approval](reviews/2026-10-12-slice-b-plan-approval.md) | owner-cleared |
 | CP3 | Opus slice B review | Pending owner-run review after slice B | pending |
 | CP4 | Opus slice C review | Pending owner-run review after slice C | pending |
 
@@ -22,9 +22,11 @@ and complete worktree cleanup after spec delivery. Cross-repo orchestration
 moves to Spec 002. [Author dispositions](reviews/2026-10-11-author-dispositions.md)
 record the owner's acceptance and amendments dated 2026-10-11. CP1 is
 owner-cleared. The owner accepted slice A corrections at `75ddc89` and cleared
-CP2 on 2026-10-12 for slice B planning only. Slice B implementation, unattended
-runs, merging to main and pushing require owner approval of the plan. CP3/CP4
-remain pending; the manual approval task in `tasks.md` prevents worker dispatch.
+CP2 on 2026-10-12 for slice B planning only. The subsequent
+[owner continuation](reviews/2026-10-12-slice-b-plan-approval.md) approves the plan
+at `dce8394` for code and fixture implementation. Live cleanup, unattended runs,
+merging to main and pushing remain unauthorized. CP3/CP4 remain pending; slice B
+tasks are manual so the scheduler still dispatches no workers.
 
 ## User scenarios and testing
 
@@ -501,9 +503,12 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
   Self-hosting A may activate only kit-local instructions/config; it MUST NOT
   install shared prompts or claim B/C complete. Slice A leaves root `STATUS.md`,
   `TODO.md`, and `HISTORY.md` as 2–3 line catalog placeholders (FR-006); slice C
-  removes them only after the owner installs dual-mode prompts. `plan.md` covers
-  all three slices briefly; `tasks.md` details slice A only, with one-line
-  placeholders for B and C. Before A, declare CP2 (after A),
+  removes them only after the owner installs dual-mode prompts. During slice A,
+  `plan.md` covers all three slices briefly; `tasks.md` details slice A only,
+  with one-line placeholders for B and C. Subsequent slices receive detailed
+  plans/tasks only after the owner clears their entry checkpoint and approves
+  the phase scope; planning clearance alone does not authorize implementation.
+  Before A, declare CP2 (after A),
   CP3 (after B), CP4 (after C) in the same checkpoint table. Beyond-slice work
   stops until the owner clears that checkpoint. Spec 002 may start after A,
   on separate authorization; no package is created by this revision.

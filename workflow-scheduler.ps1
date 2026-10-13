@@ -194,20 +194,14 @@ function Test-WorkflowDisposablePath {
     return $false
 }
 
+. (Join-Path $PSScriptRoot 'workflow-preservation.ps1')
+
 function Test-WorkflowScratchHasWork {
     param([string]$RepoPath, [string]$BaseCommit)
     if ((Get-HeadCommit $RepoPath) -ne $BaseCommit) { return $true }
-    $trackedChanges=@(git -C $RepoPath status --porcelain --untracked-files=no)
-    if ($LASTEXITCODE -or $trackedChanges.Count) { return $true }
-    $extras=@(git -C $RepoPath ls-files --others --exclude-standard)
-    if ($LASTEXITCODE) { return $true }
-    $extras+=@(git -C $RepoPath ls-files --others --ignored --exclude-standard)
-    if ($LASTEXITCODE) { return $true }
     $config=Get-WorkflowConfig $RepoPath
-    foreach ($relative in $extras) {
-        if ($relative -match '(^|/)(specs|reviews|evidence)(/|$)' -or -not (Test-WorkflowDisposablePath $relative $config)) { return $true }
-    }
-    return $false
+    $inventory=Get-WorkflowPreservationInventory -RepoRoot $RepoPath -WorktreePath $RepoPath -Config $config
+    return $inventory.Reasons.Count -gt 0
 }
 
 function New-WorkflowScratch {
@@ -236,41 +230,39 @@ function Remove-WorkflowScratch {
     if ($normalized -eq [IO.Path]::GetFullPath($RepoPath) -or -not $normalized.StartsWith($root.TrimEnd([IO.Path]::DirectorySeparatorChar)+[IO.Path]::DirectorySeparatorChar,$comparison)) { throw 'scratch-preserved: target is not contained scratch; primary checkout is protected.' }
     Assert-WorkflowNoLinks $normalized
     if (-not (Test-Path -LiteralPath $normalized)) { Write-Host "Scratch residue: $normalized; inspect Git inventory before later pruning."; return }
-    foreach ($item in Get-ChildItem -LiteralPath $normalized -Recurse -Force) {
-        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "scratch-preserved: linked content at $($item.FullName)." }
-    }
     $marker=Get-WorkflowScratchMarker $normalized
     $common=git -C $RepoPath rev-parse --path-format=absolute --git-common-dir
     if (-not $marker -or $marker.kind -ne 'workflow-kit-scratch-v1' -or $marker.worktree -ne $normalized -or $marker.commonGitDir -ne $common -or $marker.repo -ne [IO.Path]::GetFullPath($RepoPath)) { throw 'scratch-preserved: marker/repo/root proof is missing.' }
     $inventory=git -C $RepoPath worktree list --porcelain
     if ($inventory -notcontains ('worktree '+($normalized -replace '\\','/'))) { throw 'scratch-preserved: not a registered worktree.' }
-    if (Test-Path -LiteralPath (Join-Path ((git -C $normalized rev-parse --absolute-git-dir)) 'locked')) { throw 'scratch-preserved: worktree is locked.' }
-    if (@(git -C $normalized status --porcelain --untracked-files=no).Count) { throw 'scratch-preserved: tracked changes remain.' }
-    $tracked=@(git -C $normalized ls-files)
-    $extras=@(git -C $normalized ls-files --others --exclude-standard; git -C $normalized ls-files --others --ignored --exclude-standard)
-    foreach ($relative in $extras) {
-        if ($relative -in $tracked -or $relative -match '(^|/)(specs|reviews|evidence)(/|$)' -or -not (Test-WorkflowDisposablePath $relative $config)) { throw "scratch-preserved: protected untracked/ignored content $relative." }
-        Assert-WorkflowNoLinks (Join-Path $normalized $relative)
-    }
+    $baseHolds=@(Get-WorkflowPreservationHolds $normalized $marker.base)
+    if ($baseHolds.Count) { throw ('scratch-preserved: package-owned base holds remain: '+($baseHolds -join '; ')) }
     $head=Get-HeadCommit $normalized
+    $integrationHead=[string](git -C $RepoPath rev-parse --verify $marker.integrationBranch)
+    if ($LASTEXITCODE) { throw 'scratch-preserved: integration revision is unknown.' }
     # Cherry-picked commits may have different IDs. Unrelated bookkeeping at the
     # integration tip is allowed, but every scratch patch and changed path must match.
-    git -C $RepoPath merge-base --is-ancestor $head $marker.integrationBranch
+    git -C $RepoPath merge-base --is-ancestor $head $integrationHead
     $ancestry=$LASTEXITCODE -eq 0
     if (-not $ancestry) {
-        $cherries=@(git -C $RepoPath cherry $marker.integrationBranch $head $marker.base)
+        $cherries=@(git -C $RepoPath cherry $integrationHead $head $marker.base)
         if ($LASTEXITCODE -or @($cherries | Where-Object { $_ -match '^\+' }).Count) { throw 'scratch-preserved: unpublished commits remain.' }
         $names=@(git -C $RepoPath diff --name-only --no-renames -z $marker.base $head)
         if ($LASTEXITCODE) { throw 'scratch-preserved: changed-path proof is unknown.' }
         $paths=@(($names -join "`n") -split "`0" | Where-Object { $_ })
         if ($paths.Count) {
-            git --literal-pathspecs -C $RepoPath diff --quiet $head $marker.integrationBranch -- @paths
+            git --literal-pathspecs -C $RepoPath diff --quiet $head $integrationHead -- @paths
             if ($LASTEXITCODE) { throw 'scratch-preserved: integration differs on scratch-changed paths.' }
         }
     }
     # Revalidate containment/links and marker immediately before Git's mutation.
     $null=Resolve-WorkflowRelativePath $root ([IO.Path]::GetRelativePath($root,$normalized))
+    $preservation=Get-WorkflowPreservationInventory -RepoRoot $RepoPath -WorktreePath $normalized -Config $config
+    if ($preservation.Reasons.Count) { throw ('scratch-preserved: '+($preservation.Reasons -join '; ')) }
+    if ($preservation.Head -ne $head) { throw 'scratch-preserved: HEAD changed during preservation proof.' }
     if ((Get-WorkflowScratchMarker $normalized | ConvertTo-Json -Compress) -ne ($marker | ConvertTo-Json -Compress)) { throw 'scratch-preserved: marker changed.' }
+    $currentIntegration=[string](git -C $RepoPath rev-parse --verify $marker.integrationBranch)
+    if ($LASTEXITCODE -or $currentIntegration -ne $integrationHead) { throw 'scratch-preserved: integration revision changed during preservation proof.' }
     git -C $RepoPath worktree remove --force $normalized 2>$null | Out-Null
     if ($LASTEXITCODE) { throw "scratch-preserved: Git removal failed at $normalized; no recursive filesystem fallback." }
 }

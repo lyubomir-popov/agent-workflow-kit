@@ -1,10 +1,10 @@
 # Current work
 
-**Next tasks**: T036 (manual).
-**Blockers**: Owner approval of the slice B plan before implementation, unattended runs, merging or pushing. New package creation requires slice A on main.
-**Checkpoint links**: [slice gates](spec.md#checkpoints); [planning-only acceptance](reviews/2026-10-12-cp2-owner-planning-acceptance.md); [proposed slice B plan](plan.md#slice-b-plan-for-owner-approval).
+**Next tasks**: T037 (manual).
+**Blockers**: Live cleanup, unattended runs, merging and pushing remain unauthorized. New package creation requires slice A on main.
+**Checkpoint links**: [slice gates](spec.md#checkpoints); [plan approval](reviews/2026-10-12-slice-b-plan-approval.md); [slice B plan](plan.md#slice-b-plan-for-owner-approval).
 **Entry checkpoint**: CP1
-**Validation**: [commands](quickstart.md); [author results and FR map](evidence/slice-a-validation.md).
+**Validation**: [commands](quickstart.md); [slice B results and FR map](evidence/slice-b-validation.md); [slice A history](evidence/slice-a-validation.md).
 
 ## Setup and foundation
 
@@ -90,12 +90,26 @@ early main merge or slice B/C work is part of the current remediation.
 
 ## Slice B planning
 
-- [x] T016 Prepare the slice B closeout plan, including CPA-M5/CPA-m2/CPA-m5/CPA-r4/ADV-5, under the owner's planning-only acceptance of 75ddc89; implementation remains unapproved (manual) (gate: CP2).
-- [ ] T036 Owner approves the proposed slice B plan and explicitly authorizes its implementation scope; retain this manual stop and do not enqueue implementation tasks until approval (manual) (gate: CP2).
+- [x] T016 Prepare the slice B closeout plan, including CPA-M5/CPA-m2/CPA-m5/CPA-r4/ADV-5, under the owner's planning-only acceptance of 75ddc89; subsequent implementation approval is recorded at T036 (manual) (gate: CP2).
+- [x] T036 Owner approved the slice B plan at dce8394 by replying "continue" to the plan handoff on 2026-10-12; authorize code and fixture work only, retaining all operational restrictions (manual) (gate: CP2).
+
+## Slice B implementation
+
+All tasks remain manual because no unattended run is authorized. Entry is CP2;
+CP3 remains the stopping boundary before slice C.
+
+- [ ] T037 Add closeout preview and exact accepted/base/landed merge proof, including tree modes/deletions/renames and final delivery records (FR-019/020) (manual) (gate: CP2).
+- [x] T038 Share preservation inventory and scale disposable-directory inspection without skipping nested evidence or links (FR-021/022/023, CPA-M5) (manual) (gate: CP2).
+- [ ] T039 Add authorized local apply, annotated archive proof, immediate revalidation and resumable safe worktree/branch cleanup (FR-019–024) (manual) (gate: CP2).
+- [ ] T040 Restrict archived package edits to the configured target while preserving target delivery/squash and deleted-branch resolution (CPA-r4) (manual) (gate: CP2).
+- [ ] T041 Validate affected staged package contracts from the index without blocking unrelated unstaged package work (CPA-m2) (manual) (gate: CP2).
+- [ ] T042 Include hook assets and the new shared libraries in canonical mirror diagnostics; preserve external/legacy selection without consumer installation (CPA-m5) (manual) (gate: CP2).
+- [ ] T043 Check committed event ranges in CI, including PR/push/first-push/root and unavailable-base cases (ADV-5) (manual) (gate: CP2).
+- [ ] T044 Run full acceptance and integration checks; save B evidence, carryover dispositions and a bounded CP3 request; retain CP3 pending and prepare the owner handoff (manual) (gate: CP2).
 
 ## Carryovers and later slices
 
-CPA-M5, CPA-m2 and CPA-m5 are included in the proposed slice B plan. Named owner:
+CPA-M5, CPA-m2 and CPA-m5 are included in the accepted slice B plan. Named owner:
 Codex (Spec 001 implementer). See [dispositions](reviews/2026-10-11-cp2-author-dispositions.md).
 CPA-r4 archive edit restrictions are included in that plan, owned by
 Codex (Spec 001 implementer); see the delta dispositions.

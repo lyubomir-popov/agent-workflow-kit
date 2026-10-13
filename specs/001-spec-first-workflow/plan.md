@@ -7,8 +7,9 @@
 Self-host a versioned, spec-owned workflow while retaining legacy launcher behavior
 for repositories without the version. Deliver three slices with owner checkpoints;
 slice A corrections are accepted at `75ddc89`. The owner's October 12 clearance
-authorizes slice B planning only; the proposed plan below awaits owner approval
-before implementation, unattended runs, merging to main or pushing.
+initially authorized slice B planning only. The subsequent continuation approves
+implementation of the plan below; live cleanup, unattended runs, merging to main
+and pushing remain separately authorized owner actions.
 
 ## Technical context
 
@@ -21,7 +22,7 @@ is verified locally; CI checks Windows and Linux. No performance claim is needed
 
 | Principle | Before and after design |
 |---|---|
-| I Owner scope/review | CP1 and planning-only CP2 accepted by owner; stop at manual plan approval before implementing B; no unrequested review. |
+| I Owner scope/review | CP1/CP2 accepted; subsequent owner continuation approves B code/fixtures; stop at pending CP3 without operational mutations or unrequested external review. |
 | II One owner per fact | Catalog routes; spec owns lifecycle/gates; tasks own execution; shared parser, no sidecar state. |
 | III Preserve work | Read-only checks; preserve failed workers; marked, contained scratch only; Git history retains legacy content. |
 | IV Proportional verification | Fixture acceptance/failure tests, parser checks, lint/dry run/diff check per commit. |
@@ -81,8 +82,8 @@ This kit now targets main; generic fixtures retain master to test configuration.
 CPA-r1/r2 are authorized corrections; CPA-r4 archive edit restrictions are deferred
 to the slice B plan, owned by Codex (Spec 001 implementer).
 T026–T029 implemented and recorded that earlier owner scope. The subsequent
-planning-only acceptance is linked from spec.md; the next task is manual owner
-approval of this plan. No further review or slice B/C implementation has started.
+planning-only acceptance is linked from spec.md. The subsequent owner continuation
+approves B code and fixtures; CP3 remains the stopping boundary before slice C.
 
 The subsequent adversarial review identifies ADV-1–5. Creation captures the
 original branch/detached head and restores it on failure, preserving registration
@@ -97,7 +98,8 @@ local/cached refs are errors; configured but uncached remote inventory is unknow
 Creation passes a command-scoped hint only for a new staged catalog row, with
 HEAD/index proof; persisted hints and existing orphans cannot use the exception.
 These fixes landed in slice A; the owner subsequently cleared CP2 for planning
-only, accepting revision 75ddc89. The approval task remains manual.
+only, accepting revision 75ddc89. T036 records subsequent plan approval; all
+implementation tasks remain manual because unattended execution is unauthorized.
 ADV-5 author validation checks worktree, index and the reviewed commit range.
 Ranged CI checking is proposed below. The older vendor/integration whitespace
 baseline remains separate maintenance, owned by Codex (Spec 001 implementer);
@@ -112,13 +114,15 @@ human judgment. Hook installation and host limitations are reported explicitly.
 
 ## Slice B plan for owner approval
 
-Status: proposed, 2026-10-12. Owner: Codex (Spec 001 implementer).
-Authority: [CP2 planning-only acceptance](reviews/2026-10-12-cp2-owner-planning-acceptance.md).
+Status: accepted for code/fixture implementation, 2026-10-12. Owner: Codex (Spec 001 implementer).
+Authority: [owner plan approval](reviews/2026-10-12-slice-b-plan-approval.md), extending
+the [CP2 planning-only acceptance](reviews/2026-10-12-cp2-owner-planning-acceptance.md).
 Requirements: FR-019–024, relevant FR-008/010/013/018, SC-005/006 and the five
-carryovers below. This is a design and validation proposal, not an implementation
-queue. T036 remains an incomplete manual task. No code, hooks, CI, tags, branches
-or worktrees are changed by this plan. Only after owner approval will the
-implementer declare detailed implementation tasks and their authorized gates.
+carryovers below. The owner approved the plan at dce8394 by replying "continue"
+to its handoff. T036 records approval; T037–T044 declare implementation and fixture
+validation work, all manual. The earlier planning commit changed no code, hooks,
+CI, tags, branches or worktrees. Code work may now proceed; operational mutations
+outside isolated fixtures remain separately authorized.
 Slice C remains behind CP3; no migration or prompt installation is included.
 
 ### Closeout interface and evidence
@@ -187,8 +191,9 @@ delivery and cleanup; this planning change performs neither.
 
 ### Proposed implementation sequence and carryovers
 
-All rows are proposed work owned by Codex (Spec 001 implementer), pending T036.
-They do not claim test completion or authorize execution.
+All rows are accepted implementation scope owned by Codex (Spec 001 implementer).
+They define acceptance evidence to add; they do not claim test completion or
+authorize live cleanup, unattended workers, merging or pushing.
 
 | Order | Proposed change and files | Acceptance evidence to add |
 |---|---|---|
@@ -228,9 +233,9 @@ until the owner pushes and observes it.
 
 ### Approval and delivery boundaries
 
-The owner reviews this proposal at T036 before any implementation task is added
-or started. Approval must identify accepted changes to the interface, proof and
-preservation policy, all five carryovers, and implementation/run permissions.
+T036 records the owner's approval of this plan at dce8394, extending the earlier
+planning-only clearance to code and fixture implementation. The accepted scope
+covers the interface, proof and preservation policy and all five carryovers.
 Unattended execution, real cleanup, merging and pushing remain separately scoped
 owner actions; approving code work does not silently authorize them. CP3 guards
 slice C after slice B review and acceptance.

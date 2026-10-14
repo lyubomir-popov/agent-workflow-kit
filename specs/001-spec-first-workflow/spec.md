@@ -13,20 +13,18 @@
 |---|---|---|---|
 | CP1 | Opus spec review | [Opus findings](reviews/2026-10-10-opus-spec-review.md); [owner acceptance, 2026-10-11](reviews/2026-10-11-author-dispositions.md#owner-acceptance-and-amendments-2026-10-11) | owner-cleared |
 | CP2 | Opus slice A review | [Opus findings](reviews/2026-10-11-opus-slice-a-review.md); [initial dispositions](reviews/2026-10-11-cp2-author-dispositions.md); [owner-requested delta findings](reviews/2026-10-11-opus-slice-a-delta-review.md); [updated delta dispositions](reviews/2026-10-12-cp2-delta-author-dispositions.md#implementation-and-final-dispositions-2026-10-12); [adversarial findings](reviews/2026-10-12-cp2-adversarial-delta-review.md); [adversarial dispositions](reviews/2026-10-12-cp2-adversarial-author-dispositions.md); [owner planning-only acceptance of 75ddc89](reviews/2026-10-12-cp2-owner-planning-acceptance.md); [subsequent plan approval](reviews/2026-10-12-slice-b-plan-approval.md) | owner-cleared |
-| CP3 | Opus slice B review | [correction request](reviews/2026-10-14-cp3-correction-review-request.md); [correction dispositions](reviews/2026-10-14-cp3-author-correction-dispositions.md); [received Cline review, model unattested](reviews/2026-10-13-opus-slice-b-review.md); [initial request](reviews/2026-10-13-opus-slice-b-review-request.md); [author/delegated findings](reviews/2026-10-13-slice-b-author-review.md); [initial dispositions](reviews/2026-10-13-cp3-author-dispositions.md) | pending |
-| CP4 | Opus slice C review | Pending owner-run review after slice C | pending |
+| CP3 | Slice B owner acceptance | [correction request](reviews/2026-10-14-cp3-correction-review-request.md); [correction dispositions](reviews/2026-10-14-cp3-author-correction-dispositions.md); [received Cline review, model unattested](reviews/2026-10-13-opus-slice-b-review.md); [initial request](reviews/2026-10-13-opus-slice-b-review-request.md); [author/delegated findings](reviews/2026-10-13-slice-b-author-review.md); [initial dispositions](reviews/2026-10-13-cp3-author-dispositions.md) | pending |
+| CP4 | Slice C owner acceptance | Pending owner decision after slice C | pending |
 
 **Input**: Bring the kit up to date with the frequently used repositories.
 Prevent staleness and instruction growth, remove overlapping legacy state,
 and complete worktree cleanup after spec delivery. Cross-repo orchestration
-moves to Spec 002. [Author dispositions](reviews/2026-10-11-author-dispositions.md)
-record the owner's acceptance and amendments dated 2026-10-11. CP1 is
-owner-cleared. The owner accepted slice A corrections at `75ddc89` and cleared
-CP2 on 2026-10-12 for slice B planning only. The subsequent
-[owner continuation](reviews/2026-10-12-slice-b-plan-approval.md) approves the plan
-at `dce8394` for code and fixture implementation. Live cleanup, unattended runs,
-merging to main and pushing remain unauthorized. CP3/CP4 remain pending; slice B
-tasks are manual so the scheduler still dispatches no workers.
+moves to Spec 002. Checkpoint states live only in the table above; linked
+records hold each authorization. Live cleanup, unattended runs, merging and
+pushing remain unauthorized until the owner scopes them; package tasks stay
+manual. The [2026-10-14 owner direction](reviews/2026-10-14-lean-direction-handover.md)
+adds proportional validation and record economy (FR-038/039), records reviewer
+identity flexibly (FR-037), freezes remote closeout (FR-019/024) and bounds slice C.
 
 ## User scenarios and testing
 
@@ -80,7 +78,7 @@ manual health prompt.
 
 ### User story 3: Keep reviews durable and checkpoints binding (Priority: P1)
 
-As the owner, I want Opus findings to survive chat changes and inbox triage,
+As the owner, I want review findings to survive chat changes and inbox triage,
 and automation to stop at the checkpoints I designated.
 
 **Why this priority**: Lost findings and bypassed gates invalidate completion.
@@ -304,12 +302,15 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
   findings in the owning package, naming scope, reviewed revision, actual
   known reviewer identity, verdict, and actionable findings. Inbox links and
   task dispositions MUST preserve the full reviews through triage/archive.
-  Author self-checks MUST NOT impersonate independent or Opus reviews.
+  Author self-checks MUST NOT impersonate independent reviews or claim an
+  unattested reviewer model; unknown identity is recorded as unattested.
 - **FR-015**: Checkpoints MUST be declared before execution. Agents record
   per-finding dispositions: fixed at a revision/section, rejected with reason,
   or deferred to a named owner/spec. Only the owner sets `owner-cleared` after
   accepting dispositions and the saved verdict; agents MUST NOT clear gates.
-  Delta reviews happen only on owner request. Automation MUST stop for uncleared
+  Delta reviews happen only on owner request; fixing accepted findings does not
+  by itself start another round. Each round has one bounded request and one
+  disposition record. Automation MUST stop for uncleared
   checkpoints or missing/blocking/superseded required verdicts; task checkboxes,
   an empty inbox, or answering a Spec Kit "proceed anyway" prompt cannot override.
   File records cannot prevent a dishonest agent; enforcement is in kit launchers
@@ -340,7 +341,10 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
   MUST stay in `specs/`; closeout MUST NOT write to the target branch. Before
   deleting the delivery branch, closeout MUST create an annotated
   `archive/<package-id>` tag on the accepted head as preserved proof (FR-020).
-  Pushing this tag requires authorization.
+  Pushing this tag requires authorization. Remote reconciliation (tag push and
+  remote branch deletion) stays off by default, is experimental, and is excluded
+  from consumer rollout until the owner resolves provider-side proof-ref
+  isolation (BQA-06). Spec 001 adds no further remote closeout machinery.
 - **FR-020**: Merge proof MUST identify the target and accepted source
   revision. Automatic proof is ancestry, or, for squash delivery, exact equality
   on the target with the branch head for every path the branch changed relative
@@ -387,6 +391,8 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
   computed from Git/config in the preview, not persisted; package-owned holds
   are declared before delivery. Retry MUST reuse preserved proof safely.
   Separate parked/held work does not prevent other eligible cleanup.
+  Closeout is feature-complete for Spec 001: further changes are limited to
+  defects reproduced in fixtures; new guard classes need owner approval.
 
 #### Cross-repository orchestration – moved to Spec 002
 
@@ -399,15 +405,19 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
 #### Migration and delivery boundary
 
 - **FR-030**: Adoption MUST meet these transition clauses:
-  1. Preview every legacy file/section disposition, conflicts, and router changes.
+  1. Preview, read-only, every legacy file/section disposition, conflicts, and
+     router changes. Tooling lists dispositions; moving prose between owners is
+     agent/owner judgment, not automated semantic merging.
   2. Flag tracked scratch such as `tmp/`; do not silently delete or ignore it.
   3. Activate through the versioned per-repo config in FR-035, reconciling
      instructions, resume agents, Spec Kit cursors, validators, and scheduler.
   4. Shared prompts/launchers choose spec-first mode when the new config model
      version is present, legacy mode otherwise; invalid config fails explicitly.
      Existing external-mirror config alone MUST NOT activate spec-first mode.
-  5. Preserve recoverable state during interruption and rollback; competing
-     execution owners MUST NOT be reported as a completed migration.
+  5. Preserve recoverable state through Git: apply makes ordinary commits on a
+     migration branch; rollback is revert or branch deletion, with no custom
+     journal or transaction state. Competing execution owners MUST NOT be
+     reported as a completed migration.
   6. Treat installing updated user-level prompts as a separately authorized
      activation step, outside kit self-hosting; do not silently run the installer.
   7. Retain legacy mode until all portfolio repos migrate, then retire it in
@@ -497,9 +507,11 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
 
 #### Delivery slices
 
-- **FR-037**: Delivery MUST proceed in slices with owner-run Opus checkpoints:
+- **FR-037**: Delivery MUST proceed in slices with owner checkpoints:
   A – ownership, lifecycle, lint/budgets, scheduler gates, Spec Kit alignment,
   and self-hosting; B – closeout; C – migration procedure and prompt dual mode.
+  The owner picks each checkpoint's reviewer, or none, and saves acceptance with
+  the reviewer's actual identity. Records never claim an unattested model.
   Self-hosting A may activate only kit-local instructions/config; it MUST NOT
   install shared prompts or claim B/C complete. Slice A leaves root `STATUS.md`,
   `TODO.md`, and `HISTORY.md` as 2–3 line catalog placeholders (FR-006); slice C
@@ -512,6 +524,22 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
   CP3 (after B), CP4 (after C) in the same checkpoint table. Beyond-slice work
   stops until the owner clears that checkpoint. Spec 002 may start after A,
   on separate authorization; no package is created by this revision.
+
+#### Lean operation
+
+- **FR-038**: Validation MUST be proportional to the change. Record-only commits
+  (Markdown or package records, no executable code, config or CI) run strict
+  lint, scheduler dry run and staged/worktree whitespace checks. Code commits add
+  the test files covering the changed scripts. One full suite runs on the final
+  code before a checkpoint handoff; CI repeats it per push. A full suite is not
+  rerun for record-only commits, and passing results are not rerun to regenerate
+  evidence. Test-runtime growth beyond about a third per slice is a reported
+  finding, not an accepted cost.
+- **FR-039**: Records MUST NOT duplicate state. Task rows and plan prose name
+  work and links, not checkpoint states or restated prohibitions; the checkpoint
+  table and AGENTS own those. Evidence keeps one final summary per checkpoint
+  (commands, revision, results, known gaps), not intermediate run diaries.
+  Inbox handoffs stay at recipient, scope, links and requested action.
 
 ### Key entities
 
@@ -571,10 +599,13 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
   invariants remain accessible; an external-kit example keeps external ownership.
   An unmigrated example still executes legacy prompts/launchers; installer changes
   are not applied. Tracked scratch appears in migration preview.
-- **SC-009**: The owner's Opus spec review is received and blocking findings
+- **SC-009**: The owner's spec review is received and blocking findings
   dispositioned and CP1 owner-cleared before planning/implementation. Slice A,
   B, and C checks pass independently, and each next slice starts zero work before
   its owner-cleared checkpoint. Delivery records preserve checks and closeout proof.
+- **SC-010**: Record-only commits validate in well under a minute. Slice C
+  produces at most one review request, one disposition record and one evidence
+  summary per checkpoint round, and adds no new remote closeout code.
 
 ## Assumptions
 
@@ -584,11 +615,9 @@ deferred to the candidate in [the catalog](../../docs/specs.md).
   imposed on consumers. Full specifications and findings are read on demand.
 - Spec 002 remains a candidate, sourced from spacing/BF and the Jira bridge;
   returns must cite brief revisions and consumer `tasks.md` write ownership there.
-- The goal is enforced ownership/lifecycle; no causal token or time savings
-  are claimed and no general autonomous semantic audit is promised.
-- Current kit instructions remain active until slice A replaces them. Spec Kit
-  is installed for specification work; runtime changes follow the accepted plan.
-- The owner's 2026-10-11 instruction accepts dispositions and clears CP1 with
-  the recorded amendments. Planning and detailed slice A tasks are authorized;
-  implementation becomes `active` after tasks exist. CP2/CP3/CP4 stay pending,
-  and downstream repository changes remain outside this authorization.
+- The goal is enforced ownership/lifecycle with lean entry files; the measured
+  always-loaded instruction set fell from about 19.8 KB to 4.3 KB. No general
+  token/time saving is claimed and no autonomous semantic audit is promised.
+- Spec Kit is installed for specification work; runtime changes follow the plan.
+- Checkpoint authorizations are recorded in the linked review files; downstream
+  repository changes remain outside this feature's authorization.

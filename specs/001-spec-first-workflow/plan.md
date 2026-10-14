@@ -5,11 +5,10 @@
 ## Summary
 
 Self-host a versioned, spec-owned workflow while retaining legacy launcher behavior
-for repositories without the version. Deliver three slices with owner checkpoints;
-slice A corrections are accepted at `75ddc89`. The owner's October 12 clearance
-initially authorized slice B planning only. The subsequent continuation approves
-implementation of the plan below; live cleanup, unattended runs, merging to main
-and pushing remain separately authorized owner actions.
+for repositories without the version. Deliver three slices with owner checkpoints
+(states in [spec.md](spec.md#checkpoints)). From 2026-10-14 the owner's lean
+direction applies: proportional validation (FR-038), no duplicated state (FR-039),
+frozen remote closeout, and a narrow slice C (see below).
 
 ## Technical context
 
@@ -25,7 +24,7 @@ is verified locally; CI checks Windows and Linux. No performance claim is needed
 | I Owner scope/review | CP1/CP2 accepted; subsequent owner continuation approves B code/fixtures; stop at pending CP3 without operational mutations or unrequested external review. |
 | II One owner per fact | Catalog routes; spec owns lifecycle/gates; tasks own execution; shared parser, no sidecar state. |
 | III Preserve work | Read-only checks; preserve failed workers; marked, contained scratch only; Git history retains legacy content. |
-| IV Proportional verification | Fixture acceptance/failure tests, parser checks, lint/dry run/diff check per commit. |
+| IV Proportional verification | Fixture acceptance/failure tests for paths that can lose work; FR-038 tiers: record-only commits run lint/dry run/diff checks, code commits add covering test files, one full suite per checkpoint plus CI. |
 | V Canonical tooling | Kit only; external-mirror config survives; no prompt install or consumer edits. |
 
 The initial constitution check passed without an exception. Subsequent bounded
@@ -63,9 +62,18 @@ Save a bounded CP2 request and transient inbox link after validated implementati
 commit/catalog archive, exact merge proof, annotated archive tags, preservation
 and idempotent cleanup. `delivered` is terminal; no target documentation write.
 
-**C**, after CP3 owner clearance: migration preview/apply/rollback, dual-mode
-prompt tooling and adoption examples. Prompt installation needs separate owner
-authorization; then remove kit placeholders. Stop at CP4 for owner acceptance.
+**C**, after CP3 owner clearance, kept narrow:
+- Read-only `migrate -Preview` in `workflow-kit.ps1` that reuses the existing
+  lint/model; lists legacy file/section dispositions, tracked scratch and conflicts.
+- Apply writes the kit templates and `.workflow-kit.json` as ordinary commits on
+  a migration branch; rollback is `git revert` or branch deletion. No journal.
+- Prompt dual mode keys on `workflowModelVersion` (already used by lint and
+  launchers); `/freshen-status` and similar legacy names alias or deprecate.
+- Fixtures: one migrated and one unmigrated example, plus an external-kit config.
+  Target: under 400 production lines and a focused test file under 5 minutes.
+- Out of scope: consumer edits, prompt installation, remote closeout, new
+  guard classes. Installing prompts and removing placeholders are separate owner
+  steps. Stop at CP4.
 
 ## Validation and limits
 
@@ -114,8 +122,8 @@ human judgment. Hook installation and host limitations are reported explicitly.
 
 ## Slice B plan for owner approval
 
-Status: initial code/fixture implementation complete, 2026-10-13; CP3 corrections
-received from Cline on 2026-10-14, with model identity unattested. CP3 stays pending.
+Status: implementation and CP3 corrections complete at 8569b12; owner decision
+is T045. Remote reconciliation is frozen as experimental (FR-019).
 The implementer takes the review's recommended correction route inside slice B:
 keep the original landing tuple, require its ancestry in the current target, and
 bind local locks/remote leases to separately captured current tips. Tag proof and
@@ -216,7 +224,7 @@ authorize live cleanup, unattended workers, merging or pushing.
 | 5 | CPA-m2 staged-package scoping in `workflow-hook.ps1` | `tests/Workflow.Tests.ps1`: unrelated package's unstaged changes no longer block an unrelated commit; validate affected contract bytes from the index; staged config/catalog/root changes expand checks to affected/all governed packages; deletion/rename/new review and staged injection cannot bypass checks |
 | 6 | CPA-m5 canonical mirror inventory decision in `workflow-kit.ps1` and enforcement docs | Propose adding `workflow-hook.ps1` and `.githooks/pre-commit` to canonical diff inventory; `tests/Workflow.Tests.ps1` detects missing/drifted hook assets while preserving external-mirror configuration and legacy mode. Inventory changes do not install consumer hooks or implement slice C adoption |
 | 7 | ADV-5 committed-range CI checking in `.github/workflows/workflow.yml`, `tests/CI.Tests.ps1`, quickstart/enforcement docs | Exercise actual CI step on a committed whitespace error with a clean worktree; PR uses validated base/head merge base, push uses validated before/after. Fail rather than silently passing an unavailable nonzero base; first/new-branch push uses configured-target merge base, or HEAD's parent when that base equals HEAD, or the empty tree for a root commit. Check Git exit codes and cover both event shapes offline |
-| 8 | Full acceptance, FR/finding evidence and owner CP3 handoff | Full suite, strict lint, dry run, worktree/index/range checks before each commit; retain CP3 pending. Save a bounded review request and inbox handoff; an independent review runs only when the owner requests it |
+| 8 | Full acceptance, FR/finding evidence and owner CP3 handoff | One full suite on final code, strict lint, dry run, worktree/index/range checks (FR-038 tiers apply to later record-only commits). Save a bounded review request and inbox handoff; an independent review runs only when the owner requests it |
 
 For CPA-M5, directory summaries are not permission to skip nested evidence or
 links. Use Git's directory inventory to avoid dependency-file expansion, retain

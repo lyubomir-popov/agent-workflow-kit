@@ -73,7 +73,9 @@ pwsh -NoLogo -NoProfile -File ./workflow-kit.ps1 -Command lint -RepoRoot . -Stri
 pwsh -NoLogo -NoProfile -File ./agent-loop.ps1 -DryRun -RepoRoot .
 ```
 
-Before commits, also run relevant fixture tests and `git diff --check`.
+Validation is tiered (see AGENTS): record-only commits run the quick checks
+above plus `git diff --check`; code commits add the covering fixture test files;
+the full suite runs once per checkpoint handoff and in CI.
 Read [enforcement coverage](docs/enforcement.md) before claiming host automation.
 Lint is read-only, local, and needs no network/model calls. It checks declared
 owners/links, lifecycle/checkpoints, branch routing, physical lines and UTF-8
@@ -222,6 +224,8 @@ deletion boundary; native exact-name checkout protection remains in place.
 Local cleanup conservatively retains non-ASCII ref names because Windows case
 ownership is unverified for those names. Unicode filenames remain supported.
 
+Remote reconciliation is experimental and frozen: excluded from consumer
+rollout until provider-side proof-ref isolation is resolved.
 Network operations are off by default. Separately authorized remote actions need
 `-Apply -AuthorizeRemoteChanges -Remote <configured-name>` and selected
 `-PushArchiveTag`/`-DeleteRemoteBranch` flags. They verify exact remote revisions

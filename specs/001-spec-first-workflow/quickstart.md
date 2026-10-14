@@ -1,34 +1,44 @@
 # Workflow validation
 
-From the kit repository:
+Tiers follow FR-038; run from the kit repository.
+
+Quick checks, for every commit (seconds):
 
 ```powershell
 pwsh -NoLogo -NoProfile -File ./workflow-kit.ps1 -Command lint -RepoRoot . -Strict
 pwsh -NoLogo -NoProfile -File ./agent-loop.ps1 -DryRun -RepoRoot .
-pwsh -NoLogo -NoProfile -File ./tests/run-tests.ps1
-git diff --check
-git diff --cached --check
-# Adversarial correction round starts at the reviewed revision:
-git diff --check 53fc575..HEAD
-# Slice B implementation starts at the accepted plan:
-git diff --check dce8394..HEAD
-# CP3 bounded corrections start at the reviewed handoff:
-git diff --check 9e1819c..HEAD
+git diff --check; git diff --cached --check
 ```
 
-Tests create local fixture repositories in a unique OS temporary directory;
-workers are mocked and no real repo worker, network, installer or push runs.
-The runner reports retained fixture paths if cleanup cannot safely finish.
-Consult [host enforcement](../../docs/enforcement.md) for installed triggers/gaps.
-Use the accepted starting revision for later rounds. A clean worktree alone does
-not check committed content. This round's range is clean; 864cad5..HEAD includes
-pre-existing vendor/integration whitespace, reported separately in the evidence.
+Code changes also run the covering test files:
 
-Closeout preview/apply and required action authorizations are documented in
-[README](../../README.md#delivered-package-closeout). Only delivered fixture
-packages are cleaned up during validation; this session performs no live cleanup,
-network push, merge, unattended worker run or slice C work. Read the saved
-[slice B evidence](evidence/slice-b-validation.md) and
-[CP3 correction request](reviews/2026-10-14-cp3-correction-review-request.md).
-Implementation stops at pending CP3. Cline findings were received with model
-identity unattested; no new external review has been launched after corrections.
+| Changed script | Test files |
+|---|---|
+| `workflow-closeout.ps1` | `Closeout`, `Carryover` |
+| `workflow-preservation.ps1` | `Preservation`, `Closeout`, `Scheduler` |
+| `workflow-scheduler.ps1` | `Scheduler`, `Worker`, `Preservation` |
+| `agent-loop.ps1` | `Worker`, `Scheduler` |
+| `workflow-hook.ps1` | `Hook`, `HookScope` |
+| `workflow-model.ps1`, `workflow-checks.ps1`, `workflow-kit.ps1` | `Workflow`, `Hook`, `Carryover` |
+| `.specify/scripts/powershell/*` | `SpecKit`, `Workflow` |
+| `.github/**` | `CI` |
+
+```powershell
+pwsh -NoLogo -NoProfile -File ./tests/run-tests.ps1 -Path ./tests/Closeout.Tests.ps1, ./tests/Carryover.Tests.ps1
+```
+
+A model change touching shared parsing can widen this set. When in doubt, add
+the next file, not the whole suite.
+
+Checkpoint handoff, once on the final code:
+
+```powershell
+pwsh -NoLogo -NoProfile -File ./tests/run-tests.ps1
+git diff --check <review-base>..HEAD   # record the base in the evidence summary
+```
+
+Tests create fixture repositories in a unique OS temporary directory; workers
+and network are mocked. `864cad5..HEAD` includes pre-existing vendor whitespace,
+reported separately. Closeout usage is in
+[README](../../README.md#delivered-package-closeout); remote flags are frozen as
+experimental. Gaps are listed in [host enforcement](../../docs/enforcement.md).

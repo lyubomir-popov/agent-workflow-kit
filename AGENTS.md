@@ -47,22 +47,26 @@ terminal/authentication procedures; [enforcement](docs/enforcement.md) names gap
 
 ## Verification and Git safety
 
-Run quick health checks at session start/end and after scope changes:
+Run quick checks at session start/end, after scope changes, and before every
+commit (a few seconds):
 
 ```powershell
 pwsh -NoLogo -NoProfile -File ./workflow-kit.ps1 -Command lint -RepoRoot . -Strict
-```
-
-Before each commit, also run relevant tests, `git diff --check`, and:
-
-```powershell
 pwsh -NoLogo -NoProfile -File ./agent-loop.ps1 -DryRun -RepoRoot .
-pwsh -NoLogo -NoProfile -File ./tests/run-tests.ps1
+git diff --check; git diff --cached --check
 ```
 
-Check the staged diff with `git diff --cached --check` and the implemented
-commit range with `git diff --check <review-base>..HEAD`; record the chosen base.
+Validate in proportion to the change:
+
+- Record-only commits (Markdown/package records, no code, config or CI): quick
+  checks only. Never rerun the full suite to refresh evidence.
+- Code commits: add the test files covering the changed scripts, e.g.
+  `./tests/run-tests.ps1 -Path ./tests/Closeout.Tests.ps1`.
+- Checkpoint handoff: one full `./tests/run-tests.ps1` on the final code; also
+  `git diff --check <review-base>..HEAD`, recording the base. CI repeats per push.
+
 Report pre-existing failures separately and preserve vendor assets outside scope.
+Record results once in the package evidence summary, not per commit.
 
 - Verify repo, package, declared branch/base, write scope, and worktree before edits;
   checkout failure stops work. Detached scratch needs an integration target.

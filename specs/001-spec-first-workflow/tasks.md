@@ -1,10 +1,10 @@
 # Current work
 
-**Next tasks**: T045 (manual).
-**Blockers**: Live cleanup, unattended runs, merging and pushing remain unauthorized. New package creation requires slice A on main.
-**Checkpoint links**: [slice gates](spec.md#checkpoints); [plan approval](reviews/2026-10-12-slice-b-plan-approval.md); [slice B plan](plan.md#slice-b-plan-for-owner-approval).
+**Next tasks**: T045 (manual owner decision), then T051.
+**Blockers**: New package creation requires slice A on main. Linux/remote CI need an owner push.
+**Checkpoint links**: [slice gates](spec.md#checkpoints); [lean direction and handover](reviews/2026-10-14-lean-direction-handover.md).
 **Entry checkpoint**: CP1
-**Validation**: [commands](quickstart.md); [slice B results and FR map](evidence/slice-b-validation.md); [slice A history](evidence/slice-a-validation.md).
+**Validation**: [tiered commands](quickstart.md) (FR-038); [slice B evidence](evidence/slice-b-validation.md).
 
 ## Setup and foundation
 
@@ -49,44 +49,42 @@ vendor skills stay unchanged, legacy config still selects legacy launcher/lint.
 
 ## Cross-cutting validation and handoff
 
-- [x] T015 Run `tests/run-tests.ps1`, lint, dry run and whitespace checks; save task/FR evidence and bounded CP2 request in `reviews/`, add one `AGENT-INBOX.md` handoff link, leave CP2 pending (FR-014–015, 037, SC-009).
+- [x] T015 Run `tests/run-tests.ps1`, lint, dry run and whitespace checks; save task/FR evidence and bounded CP2 request in `reviews/`, add one `AGENT-INBOX.md` handoff link (FR-014–015, 037, SC-009).
 
 ## CP2 remediation
 
-Owner-authorized slice A corrections, 2026-10-11. Entry gate remains CP1;
-CP2 stays pending. The owner subsequently requested the saved delta review;
-this round fixes CPA-R1/R2 under the existing slice A entry gate.
+Owner-authorized slice A corrections, 2026-10-11, under the slice A entry gate.
 
 - [x] T018 Reject worker changes to owner spec blocks, review verdicts and unrelated task completions; preserve rejected scratch and test each case (CPA-B1) (gate: CP1).
 - [x] T019 Repair scratch integration proof and clean failed-run cleanup; test the legacy TODO loop with bookkeeping and record intentional FR-018 changes (CPA-B2, CPA-m6) (gate: CP1).
 - [x] T020 Resolve archived packages from the checkout, accept target-side delivery, stop manual tasks, restore scheduler branches, and fix inventory/redundant logic (CPA-M1, CPA-M2, CPA-m1, CPA-m3, CPA-m4) (gate: CP1).
 - [x] T021 Detect missing Spec Kit integrations, author catalog/lifecycle on creation, test create → setup-plan, and repair CI branch restoration (CPA-M3, CPA-M4) (gate: CP1).
-- [x] T022 Save finding dispositions and validation evidence, update pending CP2/inbox links, and hand back to the owner (gate: CP1).
+- [x] T022 Save finding dispositions and validation evidence, update checkpoint/inbox links, and hand back to the owner (gate: CP1).
+
 ## CP2 delta remediation
 
-Owner-authorized slice A corrections, 2026-10-12; entry gate remains CP1.
-CP2 stays pending. Target registration is the owner's selected CPA-R3 design.
+Owner-authorized slice A corrections, 2026-10-12. Target registration is the
+owner's selected CPA-R3 design.
 
 - [x] T023 Reject worker changes to task entry checkpoints, gate/manual declarations and task ID structure; reject all worker changes to `.workflow-kit.json`; test rejected ranges and allowed description/header edits (CPA-R1, CPA-R2) (gate: CP1).
-- [x] T024 Record delta dispositions/evidence, retain CPA-R3 for the owner's decision and update the pending CP2/inbox handoff (gate: CP1).
+- [x] T024 Record delta dispositions/evidence, retain CPA-R3 for the owner's decision and update the inbox handoff (gate: CP1).
 - [x] T025 Owner selected target registration, main, fixes for CPA-r1/r2, and slice B deferral for CPA-r4 on 2026-10-12 (manual) (gate: CP1).
 - [x] T026 Verify ancestry, create local main at master's commit without moving master, configure main and amend the governing creation contract (gate: CP1).
 - [x] T027 Share verdict parsing between gate and range checks, report simultaneous worker/restore failures, and add fixtures (CPA-r1, CPA-r2) (gate: CP1).
 - [x] T028 Register new draft catalog rows on the configured target before branching; handle unavailable local branches as target info findings; test creation, both checkouts and a fresh clone (CPA-R3) (gate: CP1).
-- [x] T029 Record validation/dispositions, update pending CP2/inbox links, and report remaining owner remote steps (gate: CP1).
+- [x] T029 Record validation/dispositions, update checkpoint/inbox links, and report remaining owner remote steps (gate: CP1).
 
 ## CP2 adversarial remediation
 
 The [saved adversarial review](reviews/2026-10-12-cp2-adversarial-delta-review.md)
-reports ADV-1–5. Entry gate remains CP1; CP2 stays pending. No unattended run,
-early main merge or slice B/C work is part of the current remediation.
+reports ADV-1–5, corrected under the slice A entry gate.
 
 - [x] T030 Restore the original branch/detached head after versioned creation failure; preserve recovery artifacts and report both creation/restore failures; add post-switch fixtures and document the slice A prerequisite (ADV-3) (manual) (gate: CP1).
 - [x] T031 Owner confirmed the bounded correction route on 2026-10-12: attended ADV-1/2 fixes in slice A, wait for delivery without an early main merge, orphan errors with remote-ref evidence and explicit offline uncertainty; retain owner-only CP2 clearance (manual) (gate: CP1).
 - [x] T032 Freeze existing review records, reject all gate metadata in new worker reviews, share every gate-label parser, and test verdict deletion, accepted-scope injection and list-style records (ADV-1, ADV-2) (manual) (gate: CP1).
 - [x] T033 Diagnose orphan branches using cached ref evidence and distinguish offline uncertainty; allow only the transient new-row registration context through the creation hook; test each case (ADV-4) (manual) (gate: CP1).
-- [x] T034 Record per-finding dispositions, meaningful ranged whitespace evidence and validation, update CP2/inbox links, and stop at the owner boundary (ADV-5) (manual) (gate: CP1).
-- [x] T035 Record the owner's confirmation of the three correction choices in dispositions and the handoff; retain CP2 pending and the existing slice B/C boundary (manual) (gate: CP1).
+- [x] T034 Record per-finding dispositions, meaningful ranged whitespace evidence and validation, update checkpoint/inbox links, and stop at the owner boundary (ADV-5) (manual) (gate: CP1).
+- [x] T035 Record the owner's confirmation of the three correction choices in dispositions and the handoff (manual) (gate: CP1).
 
 ## Slice B planning
 
@@ -95,8 +93,7 @@ early main merge or slice B/C work is part of the current remediation.
 
 ## Slice B implementation
 
-All tasks remain manual because no unattended run is authorized. Entry is CP2;
-CP3 remains the stopping boundary before slice C.
+All tasks are manual; slice C waits for its checkpoint in spec.md.
 
 - [x] T037 Add closeout preview and exact accepted/base/landed merge proof, including tree modes/deletions/renames and final delivery records (FR-019/020) (manual) (gate: CP2).
 - [x] T038 Share preservation inventory and scale disposable-directory inspection without skipping nested evidence or links (FR-021/022/023, CPA-M5) (manual) (gate: CP2).
@@ -105,19 +102,21 @@ CP3 remains the stopping boundary before slice C.
 - [x] T041 Validate affected staged package contracts from the index without blocking unrelated unstaged package work (CPA-m2) (manual) (gate: CP2).
 - [x] T042 Include hook assets and the new shared libraries in canonical mirror diagnostics; preserve external/legacy selection without consumer installation (CPA-m5) (manual) (gate: CP2).
 - [x] T043 Check committed event ranges in CI, including PR/push/first-push/root and unavailable-base cases (ADV-5) (manual) (gate: CP2).
-- [x] T044 Run full acceptance and integration checks; save B evidence, carryover dispositions and a bounded CP3 request; retain CP3 pending and prepare the owner handoff (manual) (gate: CP2).
+- [x] T044 Run full acceptance and integration checks; save B evidence, carryover dispositions and a bounded CP3 request; prepare the owner handoff (manual) (gate: CP2).
+
 ## CP3 slice B remediation
 
-The [received Cline review](reviews/2026-10-13-opus-slice-b-review.md) accepts with
-bounded corrections CP3-R1/R2/R3. Its model identity is not independently attested;
-it is not relabelled as an Opus review. Correct within the existing slice B scope,
-under CP2, without clearing CP3 or starting slice C.
+The [received Cline review](reviews/2026-10-13-opus-slice-b-review.md) (model
+identity unattested; filename is historical) accepts with bounded corrections
+CP3-R1/R2/R3, applied within slice B scope.
 
 - [x] T046 Keep original landing proof valid under target advancement, lock a separate current target snapshot, reuse immutable archives and correct mocked remote leases/proof checks (CP3-R1/R2, FR-020/024) (manual) (gate: CP2).
 - [x] T047 Document retry with the original base/accepted/landed tuple, current-tip reporting and preservation of conflicting archives (CP3-R3) (manual) (gate: CP2).
 - [x] T049 Preserve independently authorized remote steps when selected local steps lack cleanup permission; report retained local actions and test the mixed-permission outcome (author QA CP3-Q1, FR-019) (manual) (gate: CP2).
-- [x] T048 Run required acceptance checks, save correction dispositions/evidence, refresh the owner handoff and retain CP3 pending (manual) (gate: CP2).
-- [ ] T045 Owner-run CP3 review/acceptance, reviewer-identity judgment and gate decision at correction code 8569b12; Cline findings received at af8ed58 with model identity unattested, not verified Opus. [Correction request](reviews/2026-10-14-cp3-correction-review-request.md) pins the exact revision. Code readiness authorizes no live cleanup, unattended run, merge, push or slice C work (manual) (gate: CP2).
+- [x] T048 Run required acceptance checks, save correction dispositions/evidence and refresh the owner handoff (manual) (gate: CP2).
+- [x] T050 Adopt the owner's lean direction: proportional validation and record economy (FR-038/039), flexible reviewer identity (FR-037), frozen remote closeout (FR-019/024), Git-based migration rollback (FR-030); tier AGENTS/quickstart; save the [handover](reviews/2026-10-14-lean-direction-handover.md) (manual) (gate: CP2).
+- [ ] T045 Owner decision on slice B at code 8569b12: accept or name remaining blockers, saving the reviewer's actual identity per FR-037. Record-only commits after 8569b12 do not need a new review ([correction request](reviews/2026-10-14-cp3-correction-review-request.md)) (manual) (gate: CP2).
+- [ ] T051 Make hook test assertions robust to wrapped error output: 7 Hook/HookScope cases fail locally where the expected message is line-wrapped (likely console width). Test-only change; run only those two files (manual) (gate: CP2).
 
 ## Carryovers and later slices
 
@@ -129,7 +128,7 @@ ADV-5 ranged CI checking is included in that plan. The older vendor/integration
 whitespace baseline remains separate maintenance, owned by Codex (Spec 001
 implementer); vendor skill edits remain outside scope.
 
-- [ ] T017 Slice C: migration tooling and dual-mode `prompts/`, detailed planning only after CP3 owner clearance (manual) (gate: CP3).
+- [ ] T017 Slice C, narrow: read-only migration preview, Git-branch apply/rollback, `workflowModelVersion` prompt dual mode, one migrated and one unmigrated example (FR-030–032); plan first, per the [handover](reviews/2026-10-14-lean-direction-handover.md) (manual) (gate: CP3).
 
 ## Dependencies and execution strategy
 
@@ -139,4 +138,4 @@ US4 closeout belongs entirely to B; US6 belongs to the separately authorized
 Spec 002 candidate. MVP is ownership plus quick lint, then scheduler and self-hosting.
 After shared interfaces stabilize, independent fixture groups or adapter/README
 edits can run in parallel; catalog and task header edits remain single-writer.
-Full suite plus lint/dry run/diff check precede each implementation commit.
+Validation follows FR-038 tiers; see [quickstart](quickstart.md).

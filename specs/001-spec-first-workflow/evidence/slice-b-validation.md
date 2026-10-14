@@ -210,3 +210,52 @@ Review-save validation (code unchanged from 9e1819c):
 Dry run: target=main, manual T046, zero workers. Worktree/index and reviewed
 range whitespace checks pass; main/master remain 864cad5, main an ancestor.
 The review's Cline attribution and unattested model identity are preserved.
+
+Focused R1/R2 correction: `Closeout immutable landing and advancing targets`
+passed 14/14 in 256.27s on its first run; two existing frozen-target tests were
+revised/moved, twelve new cases added. Both edited files parse with zero errors;
+whitespace checks pass. Coverage includes ancestry/squash interrupted retries
+with unchanged tag object ID, squash followed by catalog registration, changed
+explicit landing rejected even with owner confirmation, rewind/unrelated/missing
+proof, captured-tip lock races, observed remote-tip leases/no-op refspecs, unknown
+remote objects without fetch, refreshed remote snapshots, BQA-06 descendant
+snapshot change, early partial/promisor declaration retention and offline defaults.
+
+Independent read-only QA by staged_hook (gpt-5.6-sol, not the closeout implementer)
+found no concrete R1/R2 defect. It found CP3-Q1 (minor): an unauthorized selected
+local action returns before a separately authorized selected remote action can
+run; the reverse combination already continues authorized local work. Repair is
+bounded to existing FR-019 permission separation, with a mocked regression.
+This is author QA, not Opus or owner acceptance. No review was started externally.
+
+CP3-Q1 focused regression, `Closeout separate local and remote authorization`:
+1/1 passed in 15.14s on its first run. The mocked remote reconciliation completes
+while both unauthorized local actions remain retained and the local branch,
+worktree content and status remain unchanged. Production and fixture parsers
+report zero errors; whitespace is clean.
+
+CLI/documentation integration: `tests/Carryover.Tests.ps1` passed 7/7 in 32.06s.
+Its existing CLI case now advances the target with another catalog registration,
+then checks JSON and human output against the original landing and separate
+current target tip. Preview and unauthorized apply remain read-only. README
+instructions retain the original tuple and recover it from the immutable tag;
+they never prescribe deleting or retargeting an archive to make a retry pass.
+
+Offline object proof adds child-only `GIT_NO_LAZY_FETCH=1` plus conservative early
+retention for declared partial-clone/promisor/filter configuration. The
+[Git 2.52 source](https://raw.githubusercontent.com/git/git/v2.52.0/promisor-remote.c)
+honors that variable before fetch; the
+[Git 2.29 source](https://raw.githubusercontent.com/git/git/v2.29.0/promisor-remote.c)
+lacks that guard and also creates a promisor from filter configuration alone.
+The early configuration bound avoids relying on an unsupported environment flag.
+This does not claim Linux/provider verification or concurrent config isolation.
+
+Correction code chunk validation:
+`Passed: 271 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0`;
+`Tests completed in 1748.51s`. The full run includes all R1/R2/Q1 regressions
+and the expanded CLI case together with the existing slice A/B suite. Strict
+lint: 0 errors, 0 warnings, 1 semantic-limit info. Dry run: target=main, manual
+T048, zero workers. Worktree/index and 9e1819c/dce8394/53fc575 range whitespace
+checks pass; the staged contract hook passes. Main remains an ancestor and
+main/master remain 864cad5319ea48aaa60557d4361fb9a803df675c. No fixture failure
+was encountered in the correction full run; no source was changed during it.

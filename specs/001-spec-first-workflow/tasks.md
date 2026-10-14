@@ -1,6 +1,6 @@
 # Current work
 
-**Next tasks**: T046 (manual).
+**Next tasks**: T048 (manual).
 **Blockers**: Live cleanup, unattended runs, merging and pushing remain unauthorized. New package creation requires slice A on main.
 **Checkpoint links**: [slice gates](spec.md#checkpoints); [plan approval](reviews/2026-10-12-slice-b-plan-approval.md); [slice B plan](plan.md#slice-b-plan-for-owner-approval).
 **Entry checkpoint**: CP1
@@ -113,8 +113,9 @@ bounded corrections CP3-R1/R2/R3. Its model identity is not independently attest
 it is not relabelled as an Opus review. Correct within the existing slice B scope,
 under CP2, without clearing CP3 or starting slice C.
 
-- [ ] T046 Keep original landing proof valid under target advancement, lock a separate current target snapshot, reuse immutable archives and correct mocked remote leases/proof checks (CP3-R1/R2, FR-020/024) (manual) (gate: CP2).
-- [ ] T047 Document retry with the original base/accepted/landed tuple, current-tip reporting and preservation of conflicting archives (CP3-R3) (manual) (gate: CP2).
+- [x] T046 Keep original landing proof valid under target advancement, lock a separate current target snapshot, reuse immutable archives and correct mocked remote leases/proof checks (CP3-R1/R2, FR-020/024) (manual) (gate: CP2).
+- [x] T047 Document retry with the original base/accepted/landed tuple, current-tip reporting and preservation of conflicting archives (CP3-R3) (manual) (gate: CP2).
+- [x] T049 Preserve independently authorized remote steps when selected local steps lack cleanup permission; report retained local actions and test the mixed-permission outcome (author QA CP3-Q1, FR-019) (manual) (gate: CP2).
 - [ ] T048 Run required acceptance checks, save correction dispositions/evidence, refresh the owner handoff and retain CP3 pending (manual) (gate: CP2).
 - [ ] T045 Owner-run Opus CP3 review/acceptance and gate decision after corrections; Cline findings received at af8ed58 with model identity unattested. Code readiness authorizes no live cleanup, unattended run, merge, push or slice C work (manual) (gate: CP2).
 

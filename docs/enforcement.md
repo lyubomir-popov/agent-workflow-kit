@@ -73,6 +73,12 @@ the effective caller hook with an exact accepted-old-ID guard during prepared
 deletion. Temporary command configuration binds the merge check to archive proof
 without persisting policy. Verify-only prepared transactions hold archive/target
 proof stable during deletion; unsupported locking retains the branch.
+The original landed commit remains the immutable delivery/tree/tag proof anchor
+and must be an ancestor of the current target. Locks capture the current literal
+target tip separately. Remote ancestry requires local commit objects; its leases
+and no-op target refspec use the observed remote tip, avoiding a target rewind.
+Declared partial-clone/promisor repositories remain unsupported for offline
+closeout proof; unavailable ancestry retains cleanup without automatic fetch.
 Literal source, target and archive names must match the full ref inventory and
 be direct refs. Filesystem case aliases or symbolic ownership are incomplete,
 even if their resolved object IDs match. Prepared deletion checks the literal

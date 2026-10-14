@@ -17,6 +17,9 @@ function New-WorkflowCloseoutGitStartInfo {
             else { $start.Environment[$name]=[string]$EnvironmentOverrides[$name] }
         }
     }
+    # Never lazily fetch proof objects. Older Git can ignore this variable, so
+    # closeout also rejects declared partial/promisor repositories before reads.
+    $start.Environment['GIT_NO_LAZY_FETCH']='1'
     foreach ($argument in (@('--no-optional-locks','-C',$RepoRoot)+$Arguments)) { $start.ArgumentList.Add($argument) }
     return $start
 }
@@ -65,7 +68,7 @@ function Start-WorkflowCloseoutProofLock {
         $process.StandardInput.WriteLine('start')
         $process.StandardInput.WriteLine('option no-deref')
         $process.StandardInput.WriteLine("verify refs/tags/$($Preview.archiveTag.name) $($Preview.archiveTag.objectId)")
-        $process.StandardInput.WriteLine("verify refs/heads/$($Preview.targetBranch) $($Preview.landedRevision)")
+        $process.StandardInput.WriteLine("verify refs/heads/$($Preview.targetBranch) $($Preview.targetRevision)")
         $process.StandardInput.WriteLine('prepare'); $process.StandardInput.Flush()
         foreach ($expected in @('start: ok','prepare: ok')) {
             $line=$process.StandardOutput.ReadLineAsync()
@@ -85,6 +88,22 @@ function Resolve-WorkflowCloseoutCommit {
     $result=Invoke-WorkflowCloseoutGit $RepoRoot @('rev-parse','--verify',"$Revision^{commit}")
     if ($result.ExitCode) { throw "closeout-evidence: commit is unavailable: $Revision." }
     return $result.Output.Trim()
+}
+
+function Assert-WorkflowCloseoutOfflineProofRepository {
+    param([string]$RepoRoot)
+    $config=Invoke-WorkflowCloseoutGit $RepoRoot @('config','--get-regexp','^(extensions\.partialclone|remote\..*\.(promisor|partialclonefilter))$')
+    if ($config.ExitCode -eq 0) { throw 'closeout-evidence: declared partial-clone/promisor repositories have unsupported offline proof; retain cleanup without fetching objects.' }
+    if ($config.ExitCode -ne 1) { throw 'closeout-evidence: partial-clone/promisor configuration is unknown; retain cleanup without object reads or fetch.' }
+}
+
+function Assert-WorkflowCloseoutLandingAncestor {
+    param([string]$RepoRoot,[string]$Landed,[string]$TargetRevision,[string]$Context)
+    $type=Invoke-WorkflowCloseoutGit $RepoRoot @('cat-file','-t',$TargetRevision)
+    if ($type.ExitCode -or $type.Output.Trim() -cne 'commit') { throw "closeout-evidence: $Context tip is not a locally available commit; retain cleanup without fetching objects." }
+    $ancestry=Invoke-WorkflowCloseoutGit $RepoRoot @('merge-base','--is-ancestor',$Landed,$TargetRevision)
+    if ($ancestry.ExitCode -eq 1) { throw "closeout-evidence: original landed revision is not an ancestor of $Context; retain cleanup and preserve the original landing tuple." }
+    if ($ancestry.ExitCode -ne 0) { throw "closeout-evidence: original landing ancestry to $Context is unavailable; retain cleanup without fetching objects." }
 }
 
 function Get-WorkflowCloseoutLiteralRef {
@@ -272,7 +291,7 @@ function Get-WorkflowCloseoutArchiveTag {
         $metadata.targetBranch -cne $Target -or $metadata.landedRevision -cne $Landed -or
         $metadata.proofMethod -notin @('ancestry','changed-path equality','owner confirmation') -or
         -not $validDate) {
-        $tag.state='conflicting'; $tag.reasons=@('existing archive tag is lightweight, moved, or has conflicting/missing proof; preserve it and resolve explicitly')
+        $tag.state='conflicting'; $tag.reasons=@('existing archive tag is lightweight, moved, or has conflicting/missing proof; preserve it and inspect its original base/accepted/landed tuple before retrying; do not substitute the current target tip for the original landed revision')
     } else { $tag.state='matching'; $tag.proofMethod=$metadata.proofMethod }
     return $tag
 }
@@ -281,13 +300,14 @@ function Get-WorkflowCloseoutPreviewCore {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$RepoRoot,[Parameter(Mandatory)][string]$PackageId,
         [string]$AcceptedRevision,[string]$BaseRevision,[string]$LandedRevision,[switch]$OwnerConfirmed)
-    $report=[pscustomobject]@{version=1; status='incomplete'; repoRoot=$RepoRoot; packageId=$PackageId; targetBranch=$null;
+    $report=[pscustomobject]@{version=1; status='incomplete'; repoRoot=$RepoRoot; packageId=$PackageId; targetBranch=$null; targetRevision=$null;
         baseRevision=$BaseRevision; acceptedRevision=$AcceptedRevision; landedRevision=$LandedRevision; proofMethod='unknown';
         archiveTag=$null; cleanupHolds=@(); worktrees=@(); branch=$null; remoteBranches=@(); unknownRemotes=@(); remoteInventory='cached only'; remoteIsolation='network actions disabled'; localStatus='incomplete'; remoteStatus='disabled'; actions=@(); results=@(); reasons=@(); networkActionsEnabled=$false}
     try {
         $config=Get-WorkflowConfig $RepoRoot
         if (-not $config) { throw 'closeout-config: versioned workflow configuration is required.' }
         Assert-WorkflowNoLinks $RepoRoot
+        Assert-WorkflowCloseoutOfflineProofRepository $RepoRoot
         $report.repoRoot=[IO.Path]::GetFullPath($RepoRoot)
         $report.targetBranch=[string]$config.targetBranch
         $base=Resolve-WorkflowCloseoutCommit $RepoRoot $BaseRevision
@@ -297,7 +317,10 @@ function Get-WorkflowCloseoutPreviewCore {
         $targetRef=Get-WorkflowCloseoutLiteralRef $RepoRoot "refs/heads/$($config.targetBranch)"
         if (-not $targetRef.exists) { throw 'closeout-ref-ownership: configured target has no exact literal ref; retain cleanup.' }
         $target=$targetRef.objectId
-        if ($target -cne $landed) { throw 'closeout-evidence: landed revision differs from current configured target; refresh the exact landing evidence.' }
+        $report.targetRevision=$target
+        # Delivery/equality and archive metadata remain pinned to the explicit
+        # original landing. Only the moving literal target tip is captured anew.
+        Assert-WorkflowCloseoutLandingAncestor $RepoRoot $landed $target 'the current configured target'
         foreach ($head in @($accepted,$landed)) {
             $ancestry=Invoke-WorkflowCloseoutGit $RepoRoot @('merge-base','--is-ancestor',$base,$head)
             if ($ancestry.ExitCode) { throw 'closeout-evidence: declared base is not an ancestor of both source and landing.' }
@@ -416,9 +439,10 @@ function Get-WorkflowCloseoutPreview {
 
 function Get-WorkflowCloseoutRemoteEvidence {
     param([string]$RepoRoot,$Preview,[string]$Remote,[switch]$AuthorizeRemoteChanges)
-    $evidence=[pscustomobject]@{remote=$Remote; status='incomplete'; sourceExists=$false; tagState='unknown'; tagObject=$null; reasons=@()}
+    $evidence=[pscustomobject]@{remote=$Remote; status='incomplete'; targetRevision=$null; sourceExists=$false; tagState='unknown'; tagObject=$null; reasons=@()}
     try {
         if (-not $AuthorizeRemoteChanges) { throw 'remote evidence query requires explicit remote authorization' }
+        Assert-WorkflowCloseoutOfflineProofRepository $RepoRoot
         $configured=Invoke-WorkflowCloseoutGit $RepoRoot @('remote')
         if ($configured.ExitCode -or -not $Remote -or $Remote.StartsWith('-') -or $Remote -cnotin @($configured.Output -split '\r?\n')) { throw 'remote closeout requires an explicitly named configured remote' }
         if ($Preview.reasons.Count -or -not $Preview.branch -or $Preview.archiveTag.state -ne 'matching') { throw 'remote closeout requires current matching local annotated archive proof' }
@@ -435,7 +459,11 @@ function Get-WorkflowCloseoutRemoteEvidence {
             if ($line -notmatch '^([0-9a-f]{40,64})\s+(refs/\S+)$' -or $refs.ContainsKey($Matches[2])) { throw 'remote ref evidence is malformed or duplicated' }
             $refs[$Matches[2]]=$Matches[1]
         }
-        if (-not $refs.ContainsKey($targetRef) -or $refs[$targetRef] -cne $Preview.landedRevision) { $evidence.reasons+='remote target is missing or differs from exact landed revision; retain remote refs' }
+        if (-not $refs.ContainsKey($targetRef)) { $evidence.reasons+='remote target is missing; retain remote refs' }
+        else {
+            $evidence.targetRevision=$refs[$targetRef]
+            Assert-WorkflowCloseoutLandingAncestor $RepoRoot $Preview.landedRevision $evidence.targetRevision 'the observed remote target'
+        }
         $evidence.sourceExists=$refs.ContainsKey($sourceRef)
         if ($evidence.sourceExists -and $refs[$sourceRef] -cne $Preview.acceptedRevision) { $evidence.reasons+='remote source differs from accepted revision; preserve unpublished remote commits' }
         $evidence.tagState=if (-not $refs.ContainsKey($tagRef)) {'absent'}
@@ -451,7 +479,7 @@ function Get-WorkflowCloseoutRemoteEvidence {
 function Invoke-WorkflowCloseoutRemoteActions {
     param([string]$RepoRoot,[hashtable]$PreviewParameters,[string]$Remote,[switch]$PushArchiveTag,[switch]$DeleteRemoteBranch,[switch]$AuthorizeRemoteChanges)
     if (-not $AuthorizeRemoteChanges) { return [pscustomobject]@{results=@([pscustomobject]@{action='remote reconciliation'; target=$Remote; status='retained'; reason='explicit remote authorization required'}); evidence=$null; complete=$false; status='incomplete'} }
-    $results=@(); $remoteProof=$null
+    $results=@(); $remoteProof=$null; $deletionProof=$null
     foreach ($action in @('push archive tag','delete remote branch')) {
         if (($action -eq 'push archive tag' -and -not $PushArchiveTag) -or ($action -eq 'delete remote branch' -and -not $DeleteRemoteBranch)) { continue }
         $local=Get-WorkflowCloseoutPreview @PreviewParameters
@@ -476,8 +504,9 @@ function Invoke-WorkflowCloseoutRemoteActions {
             if (-not $remoteProof.sourceExists) { $results+=[pscustomobject]@{action=$action; target="$Remote/$sourceRef"; status='complete'; reason='already absent with preserved annotated proof'}; continue }
             $targetRef="refs/heads/$($local.targetBranch)"
             $result=Invoke-WorkflowCloseoutGit $RepoRoot @('push','--atomic','--porcelain',"--force-with-lease=${sourceRef}:$($local.acceptedRevision)",
-                "--force-with-lease=${targetRef}:$($local.landedRevision)","--force-with-lease=${tagRef}:$($remoteProof.tagObject)",'--',$Remote,
-                "$($local.landedRevision):$targetRef","$($remoteProof.tagObject):$tagRef",":$sourceRef")
+                "--force-with-lease=${targetRef}:$($remoteProof.targetRevision)","--force-with-lease=${tagRef}:$($remoteProof.tagObject)",'--',$Remote,
+                "$($remoteProof.targetRevision):$targetRef","$($remoteProof.tagObject):$tagRef",":$sourceRef")
+            if (-not $result.ExitCode) { $deletionProof=[pscustomobject]@{targetRevision=$remoteProof.targetRevision; tagObject=$remoteProof.tagObject} }
         }
         $results+=[pscustomobject]@{action=$action; target=$Remote; status=$(if ($result.ExitCode) {'retained'} else {'complete'}); reason=$result.Error.Trim()}
     }
@@ -486,13 +515,15 @@ function Invoke-WorkflowCloseoutRemoteActions {
     # Some servers omit unchanged target/tag refspecs from their transaction.
     # Leases plus --atomic therefore are not a claim of cross-ref isolation.
     # Always observe the final proof and expose a deletion whose proof changed.
-    if ($remoteProof.status -ne 'verified') {
+    $snapshotChanged=$deletionProof -and ($remoteProof.targetRevision -cne $deletionProof.targetRevision -or $remoteProof.tagObject -cne $deletionProof.tagObject -or $remoteProof.tagState -ne 'matching')
+    if ($remoteProof.status -ne 'verified' -or $snapshotChanged) {
         foreach ($result in $results | Where-Object { $_.action -eq 'delete remote branch' -and $_.status -eq 'complete' -and $_.reason -ne 'already absent with preserved annotated proof' }) {
             $result.status='incomplete'
-            $result.reason='deletion succeeded but proof changed; local archive retained; owner reconciliation required: '+($remoteProof.reasons -join '; ')
+            $changedReason=if ($snapshotChanged) {'captured target/tag snapshot changed after deletion'} else {$remoteProof.reasons -join '; '}
+            $result.reason='deletion succeeded but proof changed; local archive retained; owner reconciliation required: '+$changedReason
         }
     }
-    $complete=$remoteProof.status -eq 'verified' -and $remoteProof.tagState -eq 'matching' -and -not $remoteProof.sourceExists
+    $complete=$remoteProof.status -eq 'verified' -and -not $snapshotChanged -and $remoteProof.tagState -eq 'matching' -and -not $remoteProof.sourceExists
     return [pscustomobject]@{results=$results; evidence=$remoteProof; complete=$complete; isolation='server no-op ref transaction isolation is unverified; owner/provider cooperation remains required'; status=$(if (@($results | Where-Object status -ne 'complete').Count -or $remoteProof.status -ne 'verified') {'incomplete'} else {'complete'})}
 }
 
@@ -504,6 +535,7 @@ function Invoke-WorkflowCloseoutDeleteBranch {
     # path still checks worktree use and whether a racing tip is in this proof.
     $path=$null; $hookPath=$null; $directory=$null; $proofLock=$null; $result=$null
     try {
+        Assert-WorkflowCloseoutOfflineProofRepository $RepoRoot
         $version=Invoke-WorkflowCloseoutGit $RepoRoot @('version')
         if ($version.ExitCode -or $version.Output -notmatch 'git version (\d+)\.(\d+)' -or [version]::new([int]$Matches[1],[int]$Matches[2]) -lt [version]'2.29') { throw 'Git reference-transaction hooks require version 2.29 or newer; preserve this branch' }
         $existing=Invoke-WorkflowCloseoutGit $RepoRoot @('rev-parse','--path-format=absolute','--git-path','hooks/reference-transaction')
@@ -579,7 +611,7 @@ CLOSEOUT_REF_RECORDS
     # Source is locked by native -d; target/tag by the held verify-only
     # transaction. All three must still be literal, direct refs at these OIDs.
     if ! validate_literal_ref __REF__ __ACCEPTED__ ||
-       ! validate_literal_ref __TARGET_REF__ __LANDED__ ||
+       ! validate_literal_ref __TARGET_REF__ __TARGET_REVISION__ ||
        ! validate_literal_ref __TAG_REF__ __TAG_OBJECT__; then
         echo 'closeout-ref-ownership: exact literal direct source/target/archive ref changed under the ref locks; branch retained' >&2
         exit 1
@@ -664,7 +696,7 @@ exit 0
         $shellTarget="'"+("refs/heads/$($Preview.targetBranch)").Replace("'","'\''")+"'"
         $shellTag="'"+("refs/tags/$($Preview.archiveTag.name)").Replace("'","'\''")+"'"
         $hook=$hook.Replace('__REF__',$shellRef).Replace('__ACCEPTED__',$shellAccepted).Replace('__EXISTING__',$shellExisting).
-            Replace('__TARGET_REF__',$shellTarget).Replace('__LANDED__',("'"+$Preview.landedRevision+"'")).
+            Replace('__TARGET_REF__',$shellTarget).Replace('__TARGET_REVISION__',("'"+$Preview.targetRevision+"'")).
             Replace('__TAG_REF__',$shellTag).Replace('__TAG_OBJECT__',("'"+$Preview.archiveTag.objectId+"'"))
         [IO.File]::WriteAllText($hookPath,($hook -replace "`r`n","`n")+"`n",[Text.UTF8Encoding]::new($false))
         if (-not $IsWindows) { [IO.File]::SetUnixFileMode($hookPath,([IO.UnixFileMode]::UserRead -bor [IO.UnixFileMode]::UserWrite -bor [IO.UnixFileMode]::UserExecute)) }
@@ -699,8 +731,20 @@ function Invoke-WorkflowCloseout {
     if (-not $Apply) { return $preview }
     $localSelected=$RemoveWorktrees -or $DeleteLocalBranch
     $remoteSelected=$PushArchiveTag -or $DeleteRemoteBranch
-    if (($localSelected -and -not $AuthorizeLocalCleanup) -or (-not $localSelected -and -not $remoteSelected)) {
+    if (-not $localSelected -and -not $remoteSelected) {
         $preview.status='incomplete'; $preview.reasons+='apply requires explicit local cleanup authorization for local actions and at least one selected action'; return $preview
+    }
+    if ($localSelected -and -not $AuthorizeLocalCleanup) {
+        if (-not ($remoteSelected -and $AuthorizeRemoteChanges -and $Remote)) {
+            $preview.status='incomplete'; $preview.reasons+='apply requires explicit local cleanup authorization for local actions and at least one selected action'; return $preview
+        }
+        # A missing local grant must not suppress a separately authorized remote
+        # action. Record each denied local action and suppress its mutations;
+        # archive preservation for the authorized remote path remains allowed.
+        if ($RemoveWorktrees) { $preview.results+=[pscustomobject]@{action='remove worktree'; target=$RepoRoot; status='retained'; reason='selected worktree removal requires explicit local cleanup authorization'} }
+        if ($DeleteLocalBranch) { $preview.results+=[pscustomobject]@{action='delete local branch'; target=$(if ($preview.branch) {$preview.branch.name} else {$PackageId}); status='retained'; reason='selected local branch deletion requires explicit local cleanup authorization'} }
+        $preview.localStatus='incomplete'
+        $RemoveWorktrees=$false; $DeleteLocalBranch=$false; $localSelected=$false
     }
     if ($remoteSelected -and (-not $AuthorizeRemoteChanges -or -not $Remote)) {
         $preview.remoteStatus='incomplete'

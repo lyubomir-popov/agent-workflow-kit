@@ -98,6 +98,22 @@ Describe 'Slice B archive and mirror carryovers' {
         $human | Should Match 'Archive tag archive/001-example: absent'
         $human | Should Match 'Local outcome: eligible'
         $human | Should Match 'Remote outcome: disabled'
+        $catalogPath = Join-Path $fixture.RepoRoot 'docs/specs.md'
+        $nextRow = '| 002 | [Next](../specs/002-next/spec.md) | `feat/002-next` |'
+        Write-FixtureFile $fixture 'docs/specs.md' ([IO.File]::ReadAllText($catalogPath).Replace('## Archive', $nextRow + "`n`n## Archive"))
+        Save-FixtureRevision $fixture
+        $targetTip = [string](Invoke-FixtureGit $fixture @('rev-parse','master'))
+        $output = & pwsh @arguments 2>&1
+        $LASTEXITCODE | Should Be 0
+        $report = ($output -join "`n") | ConvertFrom-Json
+        $report.landedRevision | Should Be $accepted
+        $report.targetRevision | Should Be $targetTip
+        $report.proofMethod | Should Be 'ancestry'
+        $human = (& pwsh @humanArguments 2>&1) -join "`n"
+        $LASTEXITCODE | Should Be 0
+        $human | Should Match ([regex]::Escape("Landed target: $accepted"))
+        $human | Should Match ([regex]::Escape("Current target tip: $targetTip"))
+        @(& git -C $fixture.RepoRoot status --porcelain).Count | Should Be 0
         $output = & pwsh @arguments -Apply -DeleteLocalBranch 2>&1
         $LASTEXITCODE | Should Be 1
         $report = ($output -join "`n") | ConvertFrom-Json

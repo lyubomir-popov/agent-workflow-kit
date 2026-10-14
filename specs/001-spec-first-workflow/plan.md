@@ -120,7 +120,8 @@ The implementer takes the review's recommended correction route inside slice B:
 keep the original landing tuple, require its ancestry in the current target, and
 bind local locks/remote leases to separately captured current tips. Tag proof and
 source/landing comparisons remain immutable; unknown ancestry retains cleanup.
-T046–T048 add fixtures and retry instructions before returning to the owner.
+T046/T047/T049 corrections and focused fixtures are complete; T048 performs full
+acceptance checks and saves the correction handoff before returning to the owner.
 Owner: Codex (Spec 001 implementer). [CP3 request](reviews/2026-10-13-opus-slice-b-review-request.md)
 pins the final code at af8ed58; [evidence](evidence/slice-b-validation.md) records checks.
 Authority: [owner plan approval](reviews/2026-10-12-slice-b-plan-approval.md), extending

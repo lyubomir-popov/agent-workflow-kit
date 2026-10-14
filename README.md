@@ -186,6 +186,13 @@ evidence retains the source. Owner confirmation of the exact revisions can use
 `-OwnerConfirmed`, and its proof is preserved in an annotated archive tag before
 source deletion. Configured policy does not authorize an operation by itself.
 
+`-LandedRevision` identifies the original delivery or squash commit. It must be
+an ancestor of the configured target's current tip; it need not be that tip.
+Proof compares against the original landing tree, so later target commits such
+as another package's catalog registration do not change the delivery evidence.
+The report shows the original landing and current target tip separately. Local
+branch-deletion locks and remote leases bind the observed current tips.
+
 After separate owner authorization for the selected local cleanup actions:
 
 ```powershell
@@ -233,6 +240,34 @@ on the package branch before owner-authorized landing. Cleanup makes no target
 documentation commit or package move. A landed package remains `delivered` even
 when cleanup retains a candidate. Retry reuses matching proof without overwriting
 conflicting tags. Consumer migration and prompt installation remain slice C work.
+
+To resume an interrupted or retained closeout, keep the original `$base`,
+`$accepted` and `$landed` commit IDs and rerun preview with the same tuple. Copy
+the archive tag name from the report, then inspect its preserved annotation if
+you need to recover the values:
+
+```powershell
+# Example tag name; use the archiveTag.name printed for your package.
+$archiveTag = 'archive/001-example'
+git -C $repo cat-file tag "refs/tags/$archiveTag"
+pwsh -NoLogo -NoProfile -File ./workflow-kit.ps1 -Command closeout -RepoRoot $repo -PackageId $package -AcceptedRevision $accepted -BaseRevision $base -LandedRevision $landed -Preview -Json
+```
+
+The annotation's JSON records `baseRevision`, `acceptedRevision`, `landedRevision`
+and `targetBranch`. Use the original recorded landing, including for a squash;
+passing the latest target tip changes the proof tuple and can conflict with the
+existing tag. `-OwnerConfirmed` does not retarget an existing archive. After
+preview verifies the original tuple and retained candidates are reconciled, rerun
+only the already authorized apply actions above. A matching archive object is
+reused unchanged; do not delete or overwrite it to make a retry pass.
+
+A landing no longer contained in the target, an unavailable commit, a changed
+accepted/source/base tuple or conflicting annotation remains incomplete and
+needs owner reconciliation. Remote ancestry must be provable from local commit
+objects after an explicitly authorized ref query; closeout does not fetch missing
+objects automatically. Repositories declaring partial-clone/promisor settings
+are conservatively unsupported for closeout. Fetching or repairing history is an
+operator action, separate from retry or cleanup authorization.
 
 ## Reusable VS Code prompts
 

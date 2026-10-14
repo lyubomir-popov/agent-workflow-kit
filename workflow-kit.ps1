@@ -452,6 +452,7 @@ switch ($Command) {
             Write-Host "Base: $($report.baseRevision)"
             Write-Host "Accepted source: $($report.acceptedRevision)"
             Write-Host "Landed target: $($report.landedRevision)"
+            Write-Host "Current target tip: $($report.targetRevision)"
             if ($report.archiveTag) { Write-Host "Archive tag $($report.archiveTag.name): $($report.archiveTag.state)" }
             if ($report.localStatus) { Write-Host "Local outcome: $($report.localStatus)" }
             if ($report.remoteStatus) { Write-Host "Remote outcome: $($report.remoteStatus)" }

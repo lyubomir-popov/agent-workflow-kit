@@ -75,12 +75,17 @@ function Test-CloseoutFixturePath {
     return [string]::Equals([IO.Path]::GetFullPath($Left),[IO.Path]::GetFullPath($Right),$comparison)
 }
 
+function New-CloseoutFixtureDescendant {
+    param($Fixture,[string]$Parent,[string]$Message='Unrelated later target work')
+    return [string](Invoke-FixtureGit $Fixture @('commit-tree',"$Parent^{tree}",'-p',$Parent,'-m',$Message))
+}
+
 function Enable-CloseoutRemoteMock {
     param($Fixture)
     $null=Invoke-FixtureGit $Fixture @('remote','add','origin','https://example.invalid/never-contact-this-fixture.git')
     $null=Invoke-FixtureGit $Fixture @('update-ref','refs/remotes/origin/feat/001-example',$Fixture.Accepted)
     $script:remoteFixture=$Fixture
-    $script:remoteState=@{Target=$Fixture.Landed; Source=$Fixture.Accepted; Tag='absent'; TagObject=$null; FailPush=$false; FailDelete=$false; FailQuery=$false; QueryCount=0; ChangeAfterTag=''; ChangeAtDelete=''; OmitUnchangedLeaseChecks=$false; MoveLocalTagAtCapture=$false; ArchiveDateOverride=$null}
+    $script:remoteState=@{Target=$Fixture.Landed; Source=$Fixture.Accepted; Tag='absent'; TagObject=$null; FailPush=$false; FailDelete=$false; FailQuery=$false; QueryCount=0; ChangeAfterTag=''; ChangeAtDelete=''; AdvanceAfterTag=$null; AdvanceAtDelete=$null; OmitUnchangedLeaseChecks=$false; MoveLocalTagAtCapture=$false; ArchiveDateOverride=$null}
     $script:networkCalls=@()
     Mock Invoke-WorkflowCloseoutGit {
         if ($script:remoteState.ArchiveDateOverride -and $Arguments -contains 'tag' -and $Arguments -contains '-a') {
@@ -99,6 +104,7 @@ function Enable-CloseoutRemoteMock {
             $script:remoteState.QueryCount++
             if ($script:remoteState.FailQuery) { return [pscustomobject]@{ExitCode=1; Output=''; Error='fixture remote query unavailable'} }
             if ($script:remoteState.Tag -eq 'matching' -and $script:remoteState.QueryCount -gt 1) {
+                if ($script:remoteState.AdvanceAfterTag) { $script:remoteState.Target=$script:remoteState.AdvanceAfterTag }
                 switch ($script:remoteState.ChangeAfterTag) {
                     'target' {$script:remoteState.Target=$script:remoteFixture.Base}
                     'source' {$script:remoteState.Source=$script:remoteFixture.Base}
@@ -123,8 +129,14 @@ function Enable-CloseoutRemoteMock {
             if ($Arguments[-1].StartsWith(':refs/heads/')) {
                 if ($script:remoteState.ChangeAtDelete -eq 'target') { $script:remoteState.Target=$script:remoteFixture.Base }
                 elseif ($script:remoteState.ChangeAtDelete -eq 'tag') { $script:remoteState.Tag='conflicting' }
+                if ($script:remoteState.AdvanceAtDelete) { $script:remoteState.Target=$script:remoteState.AdvanceAtDelete }
                 if ($script:remoteState.FailDelete) { return [pscustomobject]@{ExitCode=1; Output=''; Error='fixture remote source lease rejected'} }
-                if (-not $script:remoteState.OmitUnchangedLeaseChecks -and ($script:remoteState.Target -cne $script:remoteFixture.Landed -or $script:remoteState.Tag -ne 'matching')) {
+                $leases=@($Arguments | Where-Object { $_.StartsWith('--force-with-lease=refs/heads/master:') })
+                $specs=@($Arguments | Where-Object { $_.EndsWith(':refs/heads/master') -and -not $_.StartsWith('--') })
+                $observed=if ($leases.Count -eq 1) {$leases[0].Substring('--force-with-lease=refs/heads/master:'.Length)} else {$null}
+                $noOp=if ($specs.Count -eq 1) {($specs[0] -split ':',2)[0]} else {$null}
+                if ($observed -cne $noOp -or -not $observed) { return [pscustomobject]@{ExitCode=1; Output=''; Error='fixture target refspec is not the exact observed-tip no-op'} }
+                if (-not $script:remoteState.OmitUnchangedLeaseChecks -and ($script:remoteState.Target -cne $observed -or $script:remoteState.Tag -ne 'matching')) {
                     return [pscustomobject]@{ExitCode=1; Output=''; Error='fixture atomic target/tag lease rejected'}
                 }
                 $script:remoteState.Source=$null
@@ -284,19 +296,6 @@ Describe 'Offline closeout proof and guarded local cleanup' {
         Test-Path -LiteralPath $fixture.DeliveryPath | Should Be $true
     }
 
-    It 'retains missing commits, missing source without archive proof and stale target evidence' {
-        $script:fixture=New-CloseoutFixture -NoWorktree
-        $parameters=$fixture.PreviewParameters.Clone(); $parameters.AcceptedRevision='missing-commit'
-        (Get-WorkflowCloseoutPreview @parameters).status | Should Be incomplete
-        Write-FixtureFile $fixture 'target-bookkeeping.txt' 'later'
-        Save-FixtureRevision $fixture
-        $parameters=$fixture.PreviewParameters
-        (Get-WorkflowCloseoutPreview @parameters).reasons -join ';' | Should Match 'current configured target'
-        $fixture.PreviewParameters.LandedRevision=[string](Invoke-FixtureGit $fixture @('rev-parse','HEAD'))
-        $null=Invoke-FixtureGit $fixture @('branch','-D','feat/001-example')
-        (Get-WorkflowCloseoutPreview @parameters).reasons -join ';' | Should Match 'source branch missing'
-    }
-
     It 'rejects a wrong squash base instead of proving a narrower changed path subset' {
         $script:fixture=New-CloseoutFixture -Squash
         $parameters=$fixture.PreviewParameters.Clone(); $parameters.BaseRevision=$fixture.Accepted
@@ -393,23 +392,6 @@ Describe 'Offline closeout proof and guarded local cleanup' {
         $report.results[1].reason | Should Match 'ordinary removal denied'
         Test-Path -LiteralPath $fixture.DeliveryPath | Should Be $true
         $script:mutationArguments -join ';' | Should Not Match '(--force|fetch|push|remote delete)'
-    }
-
-    It 'revalidates the configured target ref after archiving and retains source when landing changes' {
-        $script:fixture=New-CloseoutFixture
-        Mock Invoke-WorkflowCloseoutGit {
-            $result=& $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides
-            if ($Arguments -contains 'tag' -and $Arguments -contains '-a') {
-                Write-FixtureFile $script:fixture 'late-target.txt' 'target advanced after preview'
-                Save-FixtureRevision $script:fixture
-            }
-            return $result
-        }
-        $report=Invoke-CloseoutFixtureApply $fixture
-        $report.status | Should Be incomplete
-        $report.reasons -join ';' | Should Match 'current configured target'
-        Test-Path -LiteralPath $fixture.DeliveryPath | Should Be $true
-        [string](Invoke-FixtureGit $fixture @('rev-parse','feat/001-example')) | Should Be $fixture.Accepted
     }
 
     It 'resumes after removal succeeded and branch deletion was interrupted' {
@@ -1290,5 +1272,346 @@ exec __REAL_GIT__ "$@"
         Test-Path -LiteralPath $unrelated | Should Be $true
         $report.archiveTag.state | Should Be matching
         [string](Invoke-FixtureGit $fixture @('rev-parse','refs/heads/feat/unrelated')) | Should Be $fixture.Base
+    }
+}
+
+Describe 'Closeout immutable landing and advancing targets' {
+    BeforeEach {
+        $script:fixture=$null
+        $script:proofCalls=@()
+        Mock Invoke-WorkflowCloseoutGit {
+            if ($Arguments -contains 'ls-remote' -or $Arguments -contains 'push' -or $Arguments -contains 'fetch') { throw 'Fixture network command was not explicitly mocked; no actual query/push/fetch is permitted.' }
+            & $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides
+        }
+        Mock Get-WorkflowCloseoutWorktrees { & $script:closeoutWorktreeImplementation $RepoRoot }
+        Mock Start-WorkflowCloseoutProofLock { & $script:closeoutProofLockImplementation $RepoRoot $Preview }
+    }
+    AfterEach { Remove-WorkflowFixture $script:fixture }
+
+    It 'retains missing commits and missing unarchived source while accepting unrelated target descendants' {
+        $script:fixture=New-CloseoutFixture -NoWorktree
+        $parameters=$fixture.PreviewParameters.Clone(); $parameters.AcceptedRevision='missing-commit'
+        (Get-WorkflowCloseoutPreview @parameters).status | Should Be incomplete
+        Write-FixtureFile $fixture 'target-bookkeeping.txt' 'later'
+        Save-FixtureRevision $fixture
+        $target=[string](Invoke-FixtureGit $fixture @('rev-parse','HEAD'))
+        $parameters=$fixture.PreviewParameters
+        $preview=Get-WorkflowCloseoutPreview @parameters
+        $preview.status | Should Be eligible
+        $preview.landedRevision | Should Be $fixture.Landed
+        $preview.targetRevision | Should Be $target
+        $null=Invoke-FixtureGit $fixture @('branch','-D','feat/001-example')
+        (Get-WorkflowCloseoutPreview @parameters).reasons -join ';' | Should Match 'source branch missing'
+    }
+
+    It 'refreshes a descendant target tip after archiving without changing original landing evidence' {
+        $script:fixture=New-CloseoutFixture
+        Mock Invoke-WorkflowCloseoutGit {
+            $result=& $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides
+            if ($Arguments -contains 'tag' -and $Arguments -contains '-a') {
+                Write-FixtureFile $script:fixture 'late-target.txt' 'target advanced after preview'
+                Save-FixtureRevision $script:fixture
+            }
+            return $result
+        }
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be complete
+        $report.landedRevision | Should Be $fixture.Landed
+        $report.targetRevision | Should Not Be $fixture.Landed
+        $report.targetRevision | Should Be ([string](Invoke-FixtureGit $fixture @('rev-parse','master')))
+        Test-Path -LiteralPath $fixture.DeliveryPath | Should Be $false
+        $body=[string](Invoke-FixtureGit $fixture @('for-each-ref','--format=%(contents)','refs/tags/archive/001-example'))
+        ($body | ConvertFrom-Json).landedRevision | Should Be $fixture.Landed
+    }
+
+    It 'resumes ancestry and squash cleanup after interruption and target advancement using the same annotation object' {
+        foreach ($squash in @($false,$true)) {
+            $script:fixture=New-CloseoutFixture -Squash:$squash
+            Mock Invoke-WorkflowCloseoutGit {
+                if ($Arguments -contains 'branch' -and $Arguments -contains '-d') { return [pscustomobject]@{ExitCode=1; Output=''; Error='private interrupted branch deletion'} }
+                & $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides
+            }
+            $first=Invoke-CloseoutFixtureApply $fixture
+            $first.status | Should Be incomplete
+            Test-Path -LiteralPath $fixture.DeliveryPath | Should Be $false
+            $tag=[string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example'))
+            Write-FixtureFile $fixture 'after-interruption.txt' 'later work'
+            Save-FixtureRevision $fixture
+            $target=[string](Invoke-FixtureGit $fixture @('rev-parse','HEAD'))
+            Mock Invoke-WorkflowCloseoutGit { & $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides }
+            $retry=Invoke-CloseoutFixtureApply $fixture
+            $retry.status | Should Be complete
+            $retry.targetRevision | Should Be $target
+            $retry.landedRevision | Should Be $fixture.Landed
+            $retry.proofMethod | Should Be $(if ($squash) {'changed-path equality'} else {'ancestry'})
+            [string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example')) | Should Be $tag
+            (Invoke-CloseoutFixtureApply $fixture).status | Should Be complete
+            [string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example')) | Should Be $tag
+            Remove-WorkflowFixture $fixture; $script:fixture=$null
+        }
+    }
+
+    It 'proves squash landing before later catalog registration and reuses that landing on retry' {
+        $script:fixture=New-CloseoutFixture -Squash
+        $catalog=Join-Path $fixture.RepoRoot 'docs/specs.md'
+        $registration=[IO.File]::ReadAllText($catalog).Replace('## Archive',"| 002 | [Next package](../specs/002-next/spec.md) | ``feat/002-next`` |`n`n## Archive")
+        [IO.File]::WriteAllText($catalog,$registration,[Text.UTF8Encoding]::new($false))
+        Write-FixtureFile $fixture 'specs/002-next/spec.md' "# Next package`n**Feature branch**: ``feat/002-next```n**Lifecycle**: active`n"
+        Save-FixtureRevision $fixture
+        $target=[string](Invoke-FixtureGit $fixture @('rev-parse','master'))
+        $parameters=$fixture.PreviewParameters
+        $preview=Get-WorkflowCloseoutPreview @parameters
+        $preview.proofMethod | Should Be 'changed-path equality'
+        $preview.targetRevision | Should Be $target
+        $preview.landedRevision | Should Be $fixture.Landed
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be complete
+        $tag=[string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example'))
+        Write-FixtureFile $fixture 'another-registration.txt' 'later target work'
+        Save-FixtureRevision $fixture
+        $retry=Invoke-CloseoutFixtureApply $fixture
+        $retry.status | Should Be complete
+        $retry.proofMethod | Should Be 'changed-path equality'
+        $retry.landedRevision | Should Be $fixture.Landed
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example')) | Should Be $tag
+        [IO.File]::ReadAllText($catalog) | Should Be $registration
+    }
+
+    It 'retains a changed explicit landing tuple despite owner confirmation and guides reuse of the original tuple' {
+        $script:fixture=New-CloseoutFixture -NoWorktree
+        $null=Invoke-CloseoutFixtureApply $fixture -WorktreesOnly
+        $tag=[string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example'))
+        Write-FixtureFile $fixture 'new-target.txt' 'later'
+        Save-FixtureRevision $fixture
+        $wrong=$fixture.PreviewParameters.Clone(); $wrong.LandedRevision=[string](Invoke-FixtureGit $fixture @('rev-parse','HEAD')); $wrong.OwnerConfirmed=$true
+        $preview=Get-WorkflowCloseoutPreview @wrong
+        $preview.status | Should Be incomplete
+        $preview.archiveTag.state | Should Be conflicting
+        $preview.reasons -join ';' | Should Match 'original base/accepted/landed tuple'
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example')) | Should Be $tag
+        (Invoke-CloseoutFixtureApply $fixture).status | Should Be complete
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example')) | Should Be $tag
+    }
+
+    It 'retains rewound or unrelated targets and missing original landing even with owner confirmation' {
+        foreach ($kind in @('rewind','unrelated','missing-landing','missing-target')) {
+            $script:fixture=New-CloseoutFixture
+            $parameters=$fixture.PreviewParameters.Clone(); $parameters.OwnerConfirmed=$true; $parameters.Apply=$true; $parameters.AuthorizeLocalCleanup=$true; $parameters.RemoveWorktrees=$true; $parameters.DeleteLocalBranch=$true
+            if ($kind -eq 'rewind') { $null=Invoke-FixtureGit $fixture @('update-ref','refs/heads/master',$fixture.Base) }
+            elseif ($kind -eq 'unrelated') {
+                $unrelated=[string](Invoke-FixtureGit $fixture @('commit-tree',"$($fixture.Landed)^{tree}",'-m','Unrelated target root'))
+                $null=Invoke-FixtureGit $fixture @('update-ref','refs/heads/master',$unrelated)
+            } elseif ($kind -eq 'missing-landing') { $parameters.LandedRevision=('f'*40) }
+            else { $null=Invoke-FixtureGit $fixture @('update-ref','-d','refs/heads/master') }
+            $report=Invoke-WorkflowCloseout @parameters
+            $report.status | Should Be incomplete
+            $report.reasons -join ';' | Should Match 'original landed revision|commit is unavailable|no exact literal ref'
+            Test-Path -LiteralPath $fixture.DeliveryPath | Should Be $true
+            [string](Invoke-FixtureGit $fixture @('rev-parse','refs/heads/feat/001-example')) | Should Be $fixture.Accepted
+            (& $script:closeoutGitImplementation $fixture.RepoRoot @('show-ref','--verify','--quiet','refs/tags/archive/001-example')).ExitCode | Should Be 1
+            Remove-WorkflowFixture $fixture; $script:fixture=$null
+        }
+    }
+
+    It 'retains a stale captured local tip lock then retries with the advanced snapshot and same tag' {
+        $script:fixture=New-CloseoutFixture -Squash -NoWorktree
+        $script:nextTarget=New-CloseoutFixtureDescendant $fixture $fixture.Landed
+        Mock Start-WorkflowCloseoutProofLock {
+            $script:proofCalls+=,$Preview.targetRevision
+            $null=Invoke-FixtureGit $script:fixture @('update-ref','refs/heads/master',$script:nextTarget)
+            & $script:closeoutProofLockImplementation $RepoRoot $Preview
+        }
+        $first=Invoke-CloseoutFixtureApply $fixture
+        $first.status | Should Be incomplete
+        $first.results[-1].reason | Should Match 'proof-lock|proof verification'
+        $script:proofCalls[0] | Should Be $fixture.Landed
+        $tag=[string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example'))
+        Mock Start-WorkflowCloseoutProofLock {
+            $script:proofCalls+=,$Preview.targetRevision
+            & $script:closeoutProofLockImplementation $RepoRoot $Preview
+        }
+        $retry=Invoke-CloseoutFixtureApply $fixture
+        $retry.status | Should Be complete
+        $script:proofCalls[-1] | Should Be $script:nextTarget
+        $retry.landedRevision | Should Be $fixture.Landed
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example')) | Should Be $tag
+    }
+
+    It 'locks an advanced local target snapshot during deletion without locking or rewriting the original landing' {
+        $script:fixture=New-CloseoutFixture -Squash -NoWorktree
+        $script:capturedTarget=New-CloseoutFixtureDescendant $fixture $fixture.Landed
+        $script:nextTarget=New-CloseoutFixtureDescendant $fixture $script:capturedTarget
+        $null=Invoke-FixtureGit $fixture @('update-ref','refs/heads/master',$script:capturedTarget)
+        $script:lockedTargetAttempt=$null
+        Mock Invoke-WorkflowCloseoutGit {
+            if ($Arguments -contains 'branch' -and $Arguments -contains '-d') {
+                $script:lockedTargetAttempt=& $script:closeoutGitImplementation $RepoRoot @('update-ref','refs/heads/master',$script:nextTarget)
+            }
+            & $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides
+        }
+        $report=Invoke-CloseoutFixtureApply $fixture
+        $report.status | Should Be complete
+        $script:lockedTargetAttempt.ExitCode | Should Not Be 0
+        $report.targetRevision | Should Be $script:capturedTarget
+        $report.landedRevision | Should Be $fixture.Landed
+        [string](Invoke-FixtureGit $fixture @('rev-parse','master')) | Should Be $script:capturedTarget
+    }
+
+    It 'uses a locally known advanced remote target tip for the exact lease and no-op refspec without rewinding it' {
+        $script:fixture=New-CloseoutFixture -Squash
+        $remoteTarget=New-CloseoutFixtureDescendant $fixture $fixture.Landed
+        Enable-CloseoutRemoteMock $fixture
+        $script:remoteState.Target=$remoteTarget
+        $report=Invoke-CloseoutRemoteFixtureApply $fixture
+        $report.status | Should Be complete
+        $script:remoteState.Target | Should Be $remoteTarget
+        $script:remoteState.Source | Should BeNullOrEmpty
+        $delete=@($script:networkCalls | Where-Object { $_ -match ':refs/heads/feat/001-example$' })
+        $delete.Count | Should Be 1
+        $delete[0] | Should Match ([regex]::Escape("--force-with-lease=refs/heads/master:$remoteTarget"))
+        $delete[0] | Should Match ([regex]::Escape("$remoteTarget`:refs/heads/master"))
+        $delete[0] | Should Not Match ([regex]::Escape("$($fixture.Landed):refs/heads/master"))
+        [string](Invoke-FixtureGit $fixture @('rev-parse','master')) | Should Be $fixture.Landed
+        $report.landedRevision | Should Be $fixture.Landed
+    }
+
+    It 'refreshes an advanced remote snapshot between archive preservation and remote source deletion' {
+        $script:fixture=New-CloseoutFixture
+        $firstTarget=New-CloseoutFixtureDescendant $fixture $fixture.Landed
+        $secondTarget=New-CloseoutFixtureDescendant $fixture $firstTarget 'Second unrelated target advance'
+        Enable-CloseoutRemoteMock $fixture
+        $script:remoteState.Target=$firstTarget; $script:remoteState.AdvanceAfterTag=$secondTarget
+        $report=Invoke-CloseoutRemoteFixtureApply $fixture
+        $report.status | Should Be complete
+        $script:remoteState.Target | Should Be $secondTarget
+        $delete=@($script:networkCalls | Where-Object { $_ -match ':refs/heads/feat/001-example$' })
+        $delete[0] | Should Match ([regex]::Escape("--force-with-lease=refs/heads/master:$secondTarget"))
+        $delete[0] | Should Match ([regex]::Escape("$secondTarget`:refs/heads/master"))
+        $report.landedRevision | Should Be $fixture.Landed
+    }
+
+    It 'retains unknown or unrelated remote targets without fetching while independent local cleanup completes' {
+        foreach ($kind in @('unknown','unrelated','rewound')) {
+            $script:fixture=New-CloseoutFixture
+            Enable-CloseoutRemoteMock $fixture
+            if ($kind -eq 'unknown') { $script:remoteState.Target=('f'*40) }
+            elseif ($kind -eq 'rewound') { $script:remoteState.Target=$fixture.Base }
+            else { $script:remoteState.Target=[string](Invoke-FixtureGit $fixture @('commit-tree',"$($fixture.Landed)^{tree}",'-m','Unrelated remote root')) }
+            $report=Invoke-CloseoutRemoteFixtureApply $fixture
+            $report.status | Should Be incomplete
+            $report.localStatus | Should Be complete
+            $report.remoteStatus | Should Be incomplete
+            @($script:networkCalls | Where-Object { $_ -match '^push ' }).Count | Should Be 0
+            $script:remoteState.Source | Should Be $fixture.Accepted
+            $script:networkCalls -join ';' | Should Not Match 'fetch'
+            Remove-WorkflowFixture $fixture; $script:fixture=$null
+        }
+    }
+
+    It 'reports deletion incomplete when a no-op server omits a target lease and an ancestry-valid descendant replaces its snapshot' {
+        $script:fixture=New-CloseoutFixture
+        $firstTarget=New-CloseoutFixtureDescendant $fixture $fixture.Landed
+        $nextTarget=New-CloseoutFixtureDescendant $fixture $firstTarget 'Concurrent descendant target advance'
+        Enable-CloseoutRemoteMock $fixture
+        $script:remoteState.Target=$firstTarget; $script:remoteState.AdvanceAtDelete=$nextTarget; $script:remoteState.OmitUnchangedLeaseChecks=$true
+        $report=Invoke-CloseoutRemoteFixtureApply $fixture
+        $report.status | Should Be incomplete
+        $report.remoteStatus | Should Be incomplete
+        $script:remoteState.Source | Should BeNullOrEmpty
+        $script:remoteState.Target | Should Be $nextTarget
+        $report.results[-1].reason | Should Match 'deletion succeeded but proof changed; local archive retained; owner reconciliation required: captured target/tag snapshot changed'
+        $tag=[string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example'))
+        $report.archiveTag.state | Should Be matching
+        $pushCount=@($script:networkCalls | Where-Object { $_ -match '^push ' }).Count
+        $script:remoteState.AdvanceAtDelete=$null
+        (Invoke-CloseoutRemoteFixtureApply $fixture).status | Should Be complete
+        @($script:networkCalls | Where-Object { $_ -match '^push ' }).Count | Should Be $pushCount
+        [string](Invoke-FixtureGit $fixture @('rev-parse','refs/tags/archive/001-example')) | Should Be $tag
+    }
+
+    It 'retains every declared partial-clone or promisor configuration before reading missing objects or fetching' {
+        foreach ($declaration in @(@('extensions.partialclone','origin'),@('remote.origin.promisor','true'),@('remote.origin.promisor','false'),@('remote.origin.partialclonefilter','blob:none'))) {
+            $script:fixture=New-CloseoutFixture
+            $null=Invoke-FixtureGit $fixture @('remote','add','origin','https://example.invalid/no-fixture-fetch.git')
+            if ($declaration[0] -eq 'extensions.partialclone') { $null=Invoke-FixtureGit $fixture @('config','core.repositoryformatversion','1') }
+            $null=Invoke-FixtureGit $fixture @('config',$declaration[0],$declaration[1])
+            $script:proofCalls=@()
+            Mock Invoke-WorkflowCloseoutGit {
+                $script:proofCalls+=,($Arguments -join ' ')
+                if ($Arguments -contains 'fetch' -or $Arguments -contains 'push' -or $Arguments -contains 'ls-remote' -or $Arguments -contains 'rev-parse' -or $Arguments -contains 'cat-file' -or $Arguments -contains 'merge-base' -or $Arguments -contains 'show' -or $Arguments -contains 'ls-tree') { throw 'Declared promisor fixture reached a forbidden object/network command' }
+                & $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides
+            }
+            $parameters=$fixture.PreviewParameters.Clone(); $parameters.AcceptedRevision=('f'*40)
+            $preview=Get-WorkflowCloseoutPreview @parameters
+            $preview.status | Should Be incomplete
+            $preview.reasons -join ';' | Should Match 'declared partial-clone/promisor repositories have unsupported offline proof'
+            $script:proofCalls.Count | Should Be 1
+            $script:proofCalls[0] | Should Match '^config --get-regexp '
+            $caller=[Environment]::GetEnvironmentVariable('GIT_NO_LAZY_FETCH','Process')
+            (New-WorkflowCloseoutGitStartInfo $fixture.RepoRoot @('cat-file','-t',('f'*40))).Environment['GIT_NO_LAZY_FETCH'] | Should Be '1'
+            [Environment]::GetEnvironmentVariable('GIT_NO_LAZY_FETCH','Process') | Should Be $caller
+            Test-Path -LiteralPath $fixture.DeliveryPath | Should Be $true
+            Remove-WorkflowFixture $fixture; $script:fixture=$null
+        }
+    }
+
+    It 'keeps advanced target preview and unauthorized remote flags offline by default' {
+        $script:fixture=New-CloseoutFixture
+        Write-FixtureFile $fixture 'target-later.txt' 'unrelated later target work'
+        Save-FixtureRevision $fixture
+        $target=[string](Invoke-FixtureGit $fixture @('rev-parse','master'))
+        Enable-CloseoutRemoteMock $fixture
+        $parameters=$fixture.PreviewParameters
+        $preview=Get-WorkflowCloseoutPreview @parameters
+        $preview.targetRevision | Should Be $target
+        $preview.landedRevision | Should Be $fixture.Landed
+        $script:networkCalls.Count | Should Be 0
+        $unauthorized=$parameters.Clone(); $unauthorized.Apply=$true; $unauthorized.PushArchiveTag=$true; $unauthorized.DeleteRemoteBranch=$true; $unauthorized.Remote='origin'
+        (Invoke-WorkflowCloseout @unauthorized).status | Should Be incomplete
+        $script:networkCalls.Count | Should Be 0
+        Test-Path -LiteralPath $fixture.DeliveryPath | Should Be $true
+        [string](Invoke-FixtureGit $fixture @('rev-parse','master')) | Should Be $target
+    }
+}
+
+Describe 'Closeout separate local and remote authorization' {
+    BeforeEach {
+        $script:fixture=$null
+        Mock Invoke-WorkflowCloseoutGit {
+            if ($Arguments -contains 'ls-remote' -or $Arguments -contains 'push' -or $Arguments -contains 'fetch') { throw 'Fixture network command was not explicitly mocked; no actual query/push/fetch is permitted.' }
+            & $script:closeoutGitImplementation $RepoRoot $Arguments $EnvironmentOverrides
+        }
+        Mock Get-WorkflowCloseoutWorktrees { & $script:closeoutWorktreeImplementation $RepoRoot }
+        Mock Start-WorkflowCloseoutProofLock { & $script:closeoutProofLockImplementation $RepoRoot $Preview }
+    }
+    AfterEach { Remove-WorkflowFixture $script:fixture }
+
+    It 'performs authorized mocked remote reconciliation while retaining both unauthorized local actions' {
+        $script:fixture=New-CloseoutFixture
+        Enable-CloseoutRemoteMock $fixture
+        $heads=[string](Invoke-FixtureGit $fixture @('for-each-ref','--format=%(refname) %(objectname)','refs/heads/'))
+        $status=& $script:closeoutGitImplementation $fixture.DeliveryPath @('status','--porcelain','--untracked-files=all')
+        $bytes=[IO.File]::ReadAllText((Join-Path $fixture.DeliveryPath 'added.txt'))
+        $parameters=$fixture.PreviewParameters.Clone()
+        $parameters.Apply=$true; $parameters.RemoveWorktrees=$true; $parameters.DeleteLocalBranch=$true
+        $parameters.AuthorizeRemoteChanges=$true; $parameters.Remote='origin'; $parameters.PushArchiveTag=$true; $parameters.DeleteRemoteBranch=$true
+        $report=Invoke-WorkflowCloseout @parameters
+        $report.status | Should Be incomplete
+        $report.localStatus | Should Be incomplete
+        $report.remoteStatus | Should Be complete
+        @($report.results | Where-Object { $_.action -eq 'remove worktree' -and $_.status -eq 'retained' -and $_.reason -match 'explicit local cleanup authorization' }).Count | Should Be 1
+        @($report.results | Where-Object { $_.action -eq 'delete local branch' -and $_.status -eq 'retained' -and $_.reason -match 'explicit local cleanup authorization' }).Count | Should Be 1
+        @($report.results | Where-Object { $_.action -eq 'push archive tag' -and $_.status -eq 'complete' }).Count | Should Be 1
+        @($report.results | Where-Object { $_.action -eq 'delete remote branch' -and $_.status -eq 'complete' }).Count | Should Be 1
+        $script:remoteState.Source | Should BeNullOrEmpty
+        $script:remoteState.Tag | Should Be matching
+        $report.archiveTag.state | Should Be matching
+        [string](Invoke-FixtureGit $fixture @('for-each-ref','--format=%(refname) %(objectname)','refs/heads/')) | Should Be $heads
+        Test-Path -LiteralPath $fixture.DeliveryPath | Should Be $true
+        [IO.File]::ReadAllText((Join-Path $fixture.DeliveryPath 'added.txt')) | Should Be $bytes
+        (& $script:closeoutGitImplementation $fixture.DeliveryPath @('status','--porcelain','--untracked-files=all')).Output | Should Be $status.Output
+        Assert-MockCalled Invoke-WorkflowCloseoutGit -Times 0 -Exactly -Scope It -ParameterFilter {
+            ($Arguments -contains 'worktree' -and $Arguments -contains 'remove') -or ($Arguments -contains 'branch' -and $Arguments -contains '-d')
+        }
     }
 }

@@ -186,3 +186,27 @@ No author/delegated check constitutes Opus or owner acceptance.
    target=main, manual T045, zero workers. Worktree/index and dce8394/53fc575
    range whitespace and the staged contract hook pass. The request is 24 lines,
    3130 UTF-8 bytes, within its 30-line/6144-byte budget. CP3 remains pending.
+
+## CP3 correction round, 2026-10-14
+
+Received [Cline review](../reviews/2026-10-13-opus-slice-b-review.md) of af8ed58:
+accept with bounded corrections CP3-R1/R2/R3. The reviewer records Cline, with
+model identity unattested; this evidence does not call it verified Opus.
+Reviewer-reported full result: 258 passed, 0 failed, 0 skipped in 1635.53s;
+strict lint, zero-worker dry run and dce8394 range clean; main/master unchanged.
+Those are the reviewer's checks, distinct from the implementer's runs below.
+
+The implementer selects the recommended corrections inside the existing approved
+slice B scope. CP3 stays pending, with no claim of owner clearance or acceptance.
+Original landing/source/base proof stays immutable while target-tip snapshots
+serve locks/leases. Unknown or removed landing ancestry retains cleanup; archive
+tags are not deleted or retargeted to make retries pass. BQA-06 remains explicit,
+and Linux/remote CI/new-package prerequisites are unchanged. Review-base for this
+round: 9e1819c; retain dce8394/53fc575 range checks as well.
+
+Review-save validation (code unchanged from 9e1819c):
+`Passed: 258 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0`;
+`Tests completed in 1421.33s`. Strict lint: 0 errors, 0 warnings, 1 info.
+Dry run: target=main, manual T046, zero workers. Worktree/index and reviewed
+range whitespace checks pass; main/master remain 864cad5, main an ancestor.
+The review's Cline attribution and unattested model identity are preserved.

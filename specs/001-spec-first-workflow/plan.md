@@ -114,7 +114,13 @@ human judgment. Hook installation and host limitations are reported explicitly.
 
 ## Slice B plan for owner approval
 
-Status: code/fixture implementation complete, 2026-10-13; pending CP3 owner-run review.
+Status: initial code/fixture implementation complete, 2026-10-13; CP3 corrections
+received from Cline on 2026-10-14, with model identity unattested. CP3 stays pending.
+The implementer takes the review's recommended correction route inside slice B:
+keep the original landing tuple, require its ancestry in the current target, and
+bind local locks/remote leases to separately captured current tips. Tag proof and
+source/landing comparisons remain immutable; unknown ancestry retains cleanup.
+T046–T048 add fixtures and retry instructions before returning to the owner.
 Owner: Codex (Spec 001 implementer). [CP3 request](reviews/2026-10-13-opus-slice-b-review-request.md)
 pins the final code at af8ed58; [evidence](evidence/slice-b-validation.md) records checks.
 Authority: [owner plan approval](reviews/2026-10-12-slice-b-plan-approval.md), extending

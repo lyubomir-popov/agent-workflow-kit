@@ -3,7 +3,9 @@
 function Invoke-FixtureCommitCheck {
     param($Fixture)
     $output = & pwsh -NoLogo -NoProfile -File (Join-Path $script:KitRoot 'workflow-hook.ps1') -RepoRoot $Fixture.RepoRoot 2>&1
-    return [pscustomobject]@{ExitCode=$LASTEXITCODE; Output=($output -join "`n")}
+    $text = ($output -join "`n") -replace '(?m)^\s*\|\s?', ''
+    $text = $text -replace '\s+', ' '
+    return [pscustomobject]@{ExitCode=$LASTEXITCODE; Output=$text}
 }
 
 Describe 'Local commit checks validate the staged governing contract' {

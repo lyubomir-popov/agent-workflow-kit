@@ -24,7 +24,7 @@ Code changes also run the covering test files:
 | `.github/**` | `CI` |
 
 ```powershell
-pwsh -NoLogo -NoProfile -File ./tests/run-tests.ps1 -Path ./tests/Closeout.Tests.ps1, ./tests/Carryover.Tests.ps1
+pwsh -NoLogo -NoProfile -Command "& ./tests/run-tests.ps1 -Path @('./tests/Closeout.Tests.ps1', './tests/Carryover.Tests.ps1')"
 ```
 
 A model change touching shared parsing can widen this set. When in doubt, add

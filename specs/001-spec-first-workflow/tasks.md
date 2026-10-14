@@ -1,10 +1,10 @@
 # Current work
 
-**Next tasks**: T045 (manual owner decision), then T051.
+**Next tasks**: T045 (manual owner decision).
 **Blockers**: New package creation requires slice A on main. Linux/remote CI need an owner push.
 **Checkpoint links**: [slice gates](spec.md#checkpoints); [lean direction and handover](reviews/2026-10-14-lean-direction-handover.md).
 **Entry checkpoint**: CP1
-**Validation**: [tiered commands](quickstart.md) (FR-038); [slice B evidence](evidence/slice-b-validation.md).
+**Validation**: [tiered commands](quickstart.md) (FR-038); [CP3 summary](evidence/cp3-validation-summary.md).
 
 ## Setup and foundation
 
@@ -116,7 +116,7 @@ CP3-R1/R2/R3, applied within slice B scope.
 - [x] T048 Run required acceptance checks, save correction dispositions/evidence and refresh the owner handoff (manual) (gate: CP2).
 - [x] T050 Adopt the owner's lean direction: proportional validation and record economy (FR-038/039), flexible reviewer identity (FR-037), frozen remote closeout (FR-019/024), Git-based migration rollback (FR-030); tier AGENTS/quickstart; save the [handover](reviews/2026-10-14-lean-direction-handover.md) (manual) (gate: CP2).
 - [ ] T045 Owner decision on slice B at code 8569b12: accept or name remaining blockers, saving the reviewer's actual identity per FR-037. Record-only commits after 8569b12 do not need a new review ([correction request](reviews/2026-10-14-cp3-correction-review-request.md)) (manual) (gate: CP2).
-- [ ] T051 Make hook test assertions robust to wrapped error output: 7 Hook/HookScope cases fail locally where the expected message is line-wrapped (likely console width). Test-only change; run only those two files (manual) (gate: CP2).
+- [x] T051 Make hook test assertions robust to wrapped error output while preserving message and exit-code checks; run Hook/HookScope only ([validation](evidence/cp3-validation-summary.md)) (manual) (gate: CP2).
 
 ## Carryovers and later slices
 

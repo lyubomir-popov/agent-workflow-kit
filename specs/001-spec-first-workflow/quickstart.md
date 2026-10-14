@@ -12,6 +12,8 @@ git diff --cached --check
 git diff --check 53fc575..HEAD
 # Slice B implementation starts at the accepted plan:
 git diff --check dce8394..HEAD
+# CP3 bounded corrections start at the reviewed handoff:
+git diff --check 9e1819c..HEAD
 ```
 
 Tests create local fixture repositories in a unique OS temporary directory;
@@ -27,5 +29,6 @@ Closeout preview/apply and required action authorizations are documented in
 packages are cleaned up during validation; this session performs no live cleanup,
 network push, merge, unattended worker run or slice C work. Read the saved
 [slice B evidence](evidence/slice-b-validation.md) and
-[CP3 owner-run request](reviews/2026-10-13-opus-slice-b-review-request.md).
-Implementation stops at pending CP3; its review has not been launched.
+[CP3 correction request](reviews/2026-10-14-cp3-correction-review-request.md).
+Implementation stops at pending CP3. Cline findings were received with model
+identity unattested; no new external review has been launched after corrections.

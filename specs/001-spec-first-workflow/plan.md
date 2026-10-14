@@ -120,10 +120,13 @@ The implementer takes the review's recommended correction route inside slice B:
 keep the original landing tuple, require its ancestry in the current target, and
 bind local locks/remote leases to separately captured current tips. Tag proof and
 source/landing comparisons remain immutable; unknown ancestry retains cleanup.
-T046/T047/T049 corrections and focused fixtures are complete; T048 performs full
-acceptance checks and saves the correction handoff before returning to the owner.
-Owner: Codex (Spec 001 implementer). [CP3 request](reviews/2026-10-13-opus-slice-b-review-request.md)
-pins the final code at af8ed58; [evidence](evidence/slice-b-validation.md) records checks.
+T046/T047/T049 corrections and focused fixtures are complete; T048 records the
+271-case full acceptance result and returns the corrected code to the owner.
+Owner: Codex (Spec 001 implementer). [Correction request](reviews/2026-10-14-cp3-correction-review-request.md)
+pins code at 8569b125980cf2f630829ec71565df9909c7896a; [dispositions](reviews/2026-10-14-cp3-author-correction-dispositions.md)
+map R1/R2/R3 and independent author QA Q1. [Evidence](evidence/slice-b-validation.md)
+records checks. T045 remains the manual owner review/acceptance and identity
+judgment; this author handoff neither clears CP3 nor attests the Cline model.
 Authority: [owner plan approval](reviews/2026-10-12-slice-b-plan-approval.md), extending
 the [CP2 planning-only acceptance](reviews/2026-10-12-cp2-owner-planning-acceptance.md).
 Requirements: FR-019–024, relevant FR-008/010/013/018, SC-005/006 and the five

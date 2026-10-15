@@ -3,16 +3,17 @@
   Workflow-kit validator and drift reporter.
 
 .DESCRIPTION
-  Provides three commands:
+  Provides four commands:
     lint - validate a repo that uses the agent-workflow-kit conventions.
     diff - report canonical workflow-file drift between this kit and a target repo.
     closeout - preview or explicitly apply authorized delivered-package cleanup.
+    migrate - preview read-only legacy-to-spec-first migration dispositions.
 
   Output is human-readable by default. Use -Json for machine-readable findings.
 #>
 
 param(
-    [ValidateSet('lint', 'diff', 'closeout')]
+    [ValidateSet('lint', 'diff', 'closeout', 'migrate')]
     [string]$Command = 'lint',
     [string]$RepoRoot = $PWD,
     [string]$KitRoot = $PSScriptRoot,
@@ -289,6 +290,7 @@ function Get-CanonicalMirrorFiles {
         'workflow-scheduler.ps1',
         'workflow-preservation.ps1',
         'workflow-closeout.ps1',
+        'workflow-migration.ps1',
         'workflow-hook.ps1',
         '.githooks/pre-commit',
         'install-vscode-prompts.ps1',
@@ -425,13 +427,14 @@ function Write-WorkflowReport {
     }
 }
 
-$resolvedRepoRoot = Resolve-RepoPath $RepoRoot
-$resolvedKitRoot = Resolve-RepoPath $KitRoot
-$script:ReportRepoRoot = $resolvedRepoRoot
-$script:WorkflowMode = 'legacy'
-try { if (Get-WorkflowConfig $resolvedRepoRoot) { $script:WorkflowMode = 'spec-first' } } catch { $script:WorkflowMode = 'invalid' }
+if ($MyInvocation.InvocationName -ne '.') {
+  $resolvedRepoRoot = Resolve-RepoPath $RepoRoot
+  $resolvedKitRoot = Resolve-RepoPath $KitRoot
+  $script:ReportRepoRoot = $resolvedRepoRoot
+  $script:WorkflowMode = 'legacy'
+  try { if (Get-WorkflowConfig $resolvedRepoRoot) { $script:WorkflowMode = 'spec-first' } } catch { $script:WorkflowMode = 'invalid' }
 
-switch ($Command) {
+  switch ($Command) {
     'lint' {
         Write-WorkflowReport -Findings (Test-WorkflowRepo -RepoRoot $resolvedRepoRoot) -Json:$Json -Strict:$Strict
     }
@@ -440,6 +443,23 @@ switch ($Command) {
         $findings += Test-WorkflowRepo -RepoRoot $resolvedRepoRoot
         $findings += Test-WorkflowDrift -KitRoot $resolvedKitRoot -RepoRoot $resolvedRepoRoot
         Write-WorkflowReport -Findings $findings -Json:$Json -Strict:$Strict
+    }
+    'migrate' {
+        if ($Apply) { throw 'migration-incomplete: -Apply is not supported; use -Preview.' }
+        if (-not $Preview) { throw 'migration-incomplete: specify -Preview; migration is read-only.' }
+        . (Join-Path $PSScriptRoot 'workflow-migration.ps1')
+        $report=Get-WorkflowMigrationPreview -RepoRoot $resolvedRepoRoot -KitRoot $resolvedKitRoot
+        if ($Json) { $report | ConvertTo-Json -Depth 8 }
+        else {
+            Write-Host "Migration preview: $($report.mode); $($report.status)"
+            foreach ($disposition in $report.dispositions) {
+                Write-Host "Disposition $($disposition.source): $($disposition.state); $($disposition.action) -> $($disposition.destination); $($disposition.reason)"
+            }
+            foreach ($finding in $report.findings) {
+                Write-Host ("[{0}] {1} {2} - {3}" -f $finding.severity.ToUpperInvariant(), $finding.rule, $finding.path, $finding.message)
+            }
+        }
+        if ($report.status -eq 'incomplete') { exit 1 }
     }
     'closeout' {
         if (-not $PackageId) { throw 'closeout-incomplete: specify -PackageId.' }
@@ -474,4 +494,5 @@ switch ($Command) {
         }
         if ($report.status -eq 'incomplete') { exit 1 }
     }
+  }
 }

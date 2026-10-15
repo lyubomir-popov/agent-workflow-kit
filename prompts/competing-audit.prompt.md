@@ -6,18 +6,25 @@ model: claude-opus-4.7
 
 # Competing audit — two subagents, one synthesis
 
-## Retired root-state guard
+## Workflow mode
 
-Before this legacy procedure, read the repository's AGENTS.md. If STATUS.md,
-TODO.md, or HISTORY.md is a 2–3 line retirement placeholder pointing to
-`docs/specs.md`, stop the legacy procedure and follow AGENTS/catalog/package
-owners instead. Never recreate or expand retired files, drain unread handoffs,
-write feature handovers into instructions, or bypass an owner checkpoint.
-Full shared dual-mode conversion and installation remain a later authorized step.
+Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
+including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1`;
+do not coerce strings or other values. Stop if the JSON is
+malformed, is not an object, or contains a present invalid or unsupported
+version. Do not infer the mode from root files or placeholders. Execute only the
+matching route below; version 1 must not execute Legacy procedure.
+
+## Version 1 route
+
+Resolve the target and its governing `AGENTS.md`, catalog entry, and package records first. Run two independent reviews of the requested artifact and synthesize a deduplicated plan. Respect package lifecycle, checkpoint, and write scope, and keep findings in the authorized owner record.
+
+## Legacy procedure
 
 Run a high-stakes review of a single target artifact (a talk script, a spec, a design proposal, an architectural decision, a feature plan, anything where one perspective is not enough) by **dispatching two heavy-tier subagents in parallel on different model families**, collecting their independent reports, and synthesising the result into a triaged, deduplicated, prioritised action plan.
 
 The point is not to ask the same model twice. It's to weaponise the disagreement between two strong models that fail in different ways.
+
 
 ## When to use this
 
@@ -28,6 +35,7 @@ The point is not to ask the same model twice. It's to weaponise the disagreement
 
 If only one heavy model is available, run this prompt as a single-subagent audit instead and note it in the synthesis. Don't run two copies of the same model — the divergence is the value.
 
+
 ## Pre-flight — orchestrator does this before dispatching
 
 1. **Identify the target.** Confirm exactly which file or set of files is the artifact under review. Write the absolute path(s) into the dispatch prompt verbatim.
@@ -36,6 +44,7 @@ If only one heavy model is available, run this prompt as a single-subagent audit
 4. **Decide the report shape.** What sections you need from each subagent — at minimum: things to fix (priority-tagged), things to add, things to cut, open questions for the user, and a one-line verdict. Add domain-specific sections as needed.
 5. **Choose the two models.** Read agent-loop.ps1's TierDispatchMap; select capable heavy-tier reviewers from distinct families where available. Record the actual pairing in the synthesis.
 6. **Decide where the synthesis lands.** A new dated file under `docs/` or equivalent, or appended to an existing planning doc. Don't let the subagent reports themselves become the plan — they are inputs to a synthesis the orchestrator writes.
+
 
 ## Dispatch — two parallel subagent calls
 
@@ -58,6 +67,7 @@ For each subagent, the prompt must include:
 6. **Spot-check requirement.** *"Before you assert any concrete claim about [the codebase / the repos / the external source], read the actual file and quote the line. If you can't verify it, say so."*
 7. **Where to write the report.** Each subagent writes its own file with its model name in the filename, e.g. `docs/audit-opus47.md` and `docs/audit-gpt55.md`. Don't have them edit the target artifact itself.
 8. **Return-message contract.** *"Return a short message back to me with: where you wrote the report, your one-sentence verdict, the single thing you most want me to challenge the other reviewer on, and the single thing you are least confident about."*
+
 
 ## Synthesis — orchestrator does this once both reports return
 
@@ -82,15 +92,18 @@ This is the heavy work. Do not skip steps.
    - **Provenance** — which models, which dates, which input artifacts, paths to the two raw reports.
 6. **Surface the open questions to the user before doing anything destructive.** Do not edit the target artifact based on the synthesis until the user has answered the open questions. The point of the audit is to make the user better-informed, not to ship a fix on the strength of two model votes.
 
+
 ## Optional follow-up — competing rewrite
 
 Once the user has resolved the open questions, you can run a parallel competing rewrite using the same two models. Same dispatch shape, but the prompt now says *"first full rewrite of [TARGET]"* and includes the synthesis as the contract. Each subagent writes to a separate `*.draft.md` file. The orchestrator then merges the best lines from each, tracking provenance.
 
 This is a separate prompt run; do not chain it into the audit run automatically. The user should decide whether the audit warrants a competing rewrite or a single careful pass.
 
+
 ## Cost discipline
 
 Two heavy-tier runs is expensive. Use this prompt only when the artifact justifies it. For routine review, dispatch a single heavy subagent or use the standard tier. The honest test: if the user would not personally review both reports word-for-word, don't run two of them.
+
 
 ## Report back to the user
 

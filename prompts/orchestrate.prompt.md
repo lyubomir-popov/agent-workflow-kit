@@ -6,10 +6,20 @@ model: claude-opus-4.7
 
 # Orchestrate
 
-Read the repository's AGENTS and owning work record before dispatch. If root
-STATUS/TODO/HISTORY are 2–3 line retirement placeholders pointing to docs/specs.md,
-their procedures are retired: follow AGENTS and the package owners; never
-recreate them. Shared full dual-mode conversion/installation remains later work.
+## Workflow mode
+
+Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
+including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1`;
+do not coerce strings or other values. Stop if the JSON is
+malformed, is not an object, or contains a present invalid or unsupported
+version. Do not infer the mode from root files or placeholders. Execute only the
+matching route below; version 1 must not execute Legacy procedure.
+
+## Version 1 route
+
+Read `AGENTS.md`, `docs/specs.md`, and the relevant package `spec.md` and `tasks.md`. Decompose authorized work by complexity, dispatch bounded tasks with exact scope, validate returns, and respect lifecycle/checkpoint gates. Keep findings in package reviews. Do not inspect retired root workflow state.
+
+## Legacy procedure
 
 ## Complexity and model ownership
 

@@ -6,14 +6,20 @@ model: claude-opus-4.7
 
 # Repo health audit
 
-## Retired root-state guard
+## Workflow mode
 
-Before this legacy procedure, read the repository's AGENTS.md. If STATUS.md,
-TODO.md, or HISTORY.md is a 2–3 line retirement placeholder pointing to
-`docs/specs.md`, stop the legacy procedure and follow AGENTS/catalog/package
-owners instead. Never recreate or expand retired files, drain unread handoffs,
-write feature handovers into instructions, or bypass an owner checkpoint.
-Full shared dual-mode conversion and installation remain a later authorized step.
+Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
+including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1`;
+do not coerce strings or other values. Stop if the JSON is
+malformed, is not an object, or contains a present invalid or unsupported
+version. Do not infer the mode from root files or placeholders. Execute only the
+matching route below; version 1 must not execute Legacy procedure.
+
+## Version 1 route
+
+Use `AGENTS.md`, `docs/specs.md`, the relevant package records, `README.md`, and actual source as audit inputs. Assess domain usefulness, architecture, and drift; report strengths and ranked next moves. Keep findings in the owning package and create a report only when requested and within its write scope.
+
+## Legacy procedure
 
 Produce a strategic, high-level health audit of the current repo as if you were seeing it for the first time, wearing **two hats simultaneously**:
 
@@ -21,6 +27,7 @@ Produce a strategic, high-level health audit of the current repo as if you were 
 2. **The software architect** — looking at code structure, separation of concerns, test discipline, and architectural drift.
 
 Focus on **high-level usefulness, vision alignment, and architectural drift**, not glitches or line-level bugs.
+
 
 ## Model ownership
 
@@ -35,6 +42,7 @@ Read that owner when selecting models; do not copy a preference table here.
 3. Note the current test count if the repo declares tests (`npm test`, `pytest`, etc.). Do not run them — just count.
 4. Check if there are sibling files under `docs/analyses/` (or equivalent). That folder is the right home for the report; create it if it doesn't exist.
 
+
 ## Audit
 
 Produce a single comprehensive report with these sections:
@@ -48,9 +56,11 @@ Produce a single comprehensive report with these sections:
 
 Be willing to call out that the engine has outrun the data, that the vision overpromises in one specific place, that one folder needs splitting, that a recurring uncommitted file should be decided on. **Honest critique is the point.** Do not hedge.
 
+
 ## Persist the report
 
 Write the full audit to `docs/analyses/YYYY-MM-DD-repo-health.md` (use the actual current date). If a report from today already exists, append `-v2` rather than overwrite.
+
 
 ## Route findings into the workflow
 
@@ -62,6 +72,7 @@ For each item in **Recommended next moves** and any concrete drift in the table:
 
 Do not duplicate the report's content into `TODO.md`. The TODO entries should be **terse, actionable bullets** that link back to the report for context.
 
+
 ## Commit
 
 Single commit at the end:
@@ -71,6 +82,7 @@ docs: add YYYY-MM-DD health report; route findings into TODO/ROADMAP
 ```
 
 Use explicit `git add` paths (the report file, `TODO.md`, `ROADMAP.md`, and `HISTORY.md` if touched). Never `git add -A`. Push to `origin/main` (or the repo's default branch).
+
 
 ## Report back
 

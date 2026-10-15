@@ -19,7 +19,9 @@ Code changes also run the covering test files:
 | `workflow-scheduler.ps1` | `Scheduler`, `Worker`, `Preservation` |
 | `agent-loop.ps1` | `Worker`, `Scheduler` |
 | `workflow-hook.ps1` | `Hook`, `HookScope` |
-| `workflow-model.ps1`, `workflow-checks.ps1`, `workflow-kit.ps1` | `Workflow`, `Hook`, `Carryover` |
+| `workflow-model.ps1`, `workflow-checks.ps1` | `Workflow`, `Hook`, `Carryover` |
+| `workflow-kit.ps1` | `Migration`, `Workflow`, `Hook`, `Carryover` |
+| `workflow-migration.ps1` | `Migration` |
 | `.specify/scripts/powershell/*` | `SpecKit`, `Workflow` |
 | `.github/**` | `CI` |
 

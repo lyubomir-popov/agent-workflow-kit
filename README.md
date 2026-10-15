@@ -50,19 +50,46 @@ without `-RequireTasks`. Vendor skill files are unchanged.
 
 ## Slice and consumer boundary
 
-The first delivery slice covers kit-local ownership, lifecycle/checks, scheduler
-gates and Spec Kit integration. Closeout belongs to slice B; full migration
-tooling and dual-mode prompt conversion belong to slice C. Each slice requires
-its owner checkpoint before the next begins; read package gates for current
-authorization. No README statement replaces their state.
+The versioned workflow covers ownership, lifecycle checks, scheduler gates,
+Spec Kit integration, closeout and migration diagnostics. Read the package's
+checkpoint table for phase authority and AGENTS for operational scope.
 
 Repositories without `workflowModelVersion` retain legacy behavior. Existing
 `canonicalMirrorMode: external` alone does not activate spec-first mode; malformed
 new config fails. Consumer rollout requires separate authorization and must
 preserve local product rules and external-kit ownership. Do not copy placeholders
 into a consumer and claim completed migration. Preview/disposition legacy content
-before activation; the complete adoption/rollback procedure is a later slice.
-Installing user-level prompts is a separate authorization, not self-hosting.
+before activation. Migration stays a human and agent review process; installing
+user-level prompts remains a separate authorization, not self-hosting.
+
+## Migrate a consumer repository
+
+`migrate` is a read-only preview. It reports the detected mode, each legacy
+file's proposed disposition, router conflicts, and tracked scratch paths. It
+does not apply changes or merge prose. Run it from the kit checkout:
+
+```powershell
+$repo = '<path-to-consumer-repo>'
+$kit = '<path-to-agent-workflow-kit>'
+pwsh -NoLogo -NoProfile -File "$kit/workflow-kit.ps1" -Command migrate -RepoRoot $repo -KitRoot $kit -Preview
+pwsh -NoLogo -NoProfile -File "$kit/workflow-kit.ps1" -Command migrate -RepoRoot $repo -KitRoot $kit -Preview -Json
+```
+
+Review the complete preview, then create a dedicated migration branch. Copy the
+kit's existing `.specify/templates/overrides/spec-template.md` and
+`tasks-template.md` into the consumer. Merge the required version-1 fields into
+its `.workflow-kit.json`, preserving unknown product fields, external mirror
+settings, target and scratch policy, and repository-specific budgets. Reconcile
+product prose and routers in `AGENTS.md` and `README.md` manually using the
+section mapping in FR-036; keep product rules that remain local. Resolve every
+reported router conflict and preserve any useful state before retiring old
+owners.
+
+After each coherent migration step, rerun preview, strict lint, and scheduler
+dry run. Make ordinary, reviewable commits on the migration branch. To roll back,
+use `git revert` for committed changes or discard the unlanded branch; there is
+no custom Apply command, journal, or recovery protocol. Prompt installation and
+consumer rollout still require their separately authorized steps.
 
 ## Validation and drift checks
 
@@ -243,7 +270,7 @@ The final delivery commit sets lifecycle `delivered` and archives the catalog ro
 on the package branch before owner-authorized landing. Cleanup makes no target
 documentation commit or package move. A landed package remains `delivered` even
 when cleanup retains a candidate. Retry reuses matching proof without overwriting
-conflicting tags. Consumer migration and prompt installation remain slice C work.
+conflicting tags. Consumer migration and prompt installation require their own authorization.
 
 To resume an interrupted or retained closeout, keep the original `$base`,
 `$accepted` and `$landed` commit IDs and rerun preview with the same tuple. Copy
@@ -275,10 +302,10 @@ operator action, separate from retry or cleanup authorization.
 
 ## Reusable VS Code prompts
 
-Canonical definitions live in `prompts/`. Current source guards retire legacy
-root-state procedures when they encounter placeholders; full dual-mode
-conversion and installing refreshed shared prompts await separate authorization.
-Existing consumer prompt bodies remain available until that transition.
+Canonical definitions live in `prompts/`. Every source selects its legacy or
+version-1 procedure from `.workflow-kit.json`; malformed or unsupported versions
+stop explicitly. The installer only copies prompt files and is not part of
+migration.
 
 | Command | Purpose |
 |---|---|
@@ -287,7 +314,7 @@ Existing consumer prompt bodies remain available until that transition.
 | /audit-workflow | Mechanical workflow drift inspection |
 | /run-validation | Run declared validation and report results |
 | /overnight | Authorized bounded scheduler launch; honor owner checkpoints |
-| /proceed-autonomously | Legacy alias for /overnight |
+| /proceed-autonomously | Alias for /overnight; scheduler follows repository mode |
 | /orchestrate | Tier/complexity routing and bounded delegated work |
 | /repo-health-audit | Saved domain/architecture audit when requested |
 | /audit-diagram-generator | Targeted diagram-generator architecture audit |

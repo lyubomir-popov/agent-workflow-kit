@@ -6,16 +6,23 @@ model: claude-opus-4.7
 
 # diagram-generator repo audit
 
-## Retired root-state guard
+## Workflow mode
 
-Before this legacy procedure, read the repository's AGENTS.md. If STATUS.md,
-TODO.md, or HISTORY.md is a 2–3 line retirement placeholder pointing to
-`docs/specs.md`, stop the legacy procedure and follow AGENTS/catalog/package
-owners instead. Never recreate or expand retired files, drain unread handoffs,
-write feature handovers into instructions, or bypass an owner checkpoint.
-Full shared dual-mode conversion and installation remain a later authorized step.
+Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
+including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1`;
+do not coerce strings or other values. Stop if the JSON is
+malformed, is not an object, or contains a present invalid or unsupported
+version. Do not infer the mode from root files or placeholders. Execute only the
+matching route below; version 1 must not execute Legacy procedure.
+
+## Version 1 route
+
+Read `AGENTS.md`, `docs/specs.md`, and the active package owners before auditing. Compare the frame-YAML to TypeScript to editable-SVG direction with the implementation, including Python legacy traces, force layout, and duplicate sources of truth. Use current product and architecture sources; keep the audit read-only unless asked to persist it, and route any report through the owning package.
+
+## Legacy procedure
 
 Perform a **read-only** audit of the **diagram-generator** repo (the workspace must be that repo, or a multi-root workspace that includes it). Another agent or human may be working in parallel — do **not** modify, commit, or fix anything unless the user explicitly asks you to persist the report.
+
 
 ## Intended architecture (benchmark)
 
@@ -27,6 +34,7 @@ The user's mental model for this repo:
 4. Python is narrowing to preview hosting, YAML save helpers, and transitional parity — **not** new layout or render features.
 
 Audit against this benchmark and against `.github/copilot-instructions.md` (TS-first mandate).
+
 
 ## Model ownership
 
@@ -41,6 +49,7 @@ Read that owner when selecting models; do not copy a preference table here.
 3. Note git dirtiness and in-flight work from another session — flag it, don't fix it.
 4. Check force-layout state: `scripts/preview/force.js`, `preview_server.py` force routes, `scripts/diagrams/force/`, `force_preview.py`, `force_layout.py`.
 
+
 ## Audit questions (answer all)
 
 1. **Repo health** — maintainability, tests, build hygiene, doc freshness.
@@ -50,6 +59,7 @@ Read that owner when selecting models; do not copy a preference table here.
 5. **Double work** — Python + TS parity maintenance; intentional migration vs permanent burden.
 6. **Duplicate sources of truth** — JSON sidecars, localStorage, prebuilt SVGs, draw.io exports vs YAML.
 7. **Force layout** — Is the force editor lane working? What examples existed? What must be restored in **TypeScript** (not Python)?
+
 
 ## Report structure
 
@@ -64,9 +74,11 @@ Read that owner when selecting models; do not copy a preference table here.
 
 Be specific: name files, folders, line counts where useful. Honest critique is the point.
 
+
 ## Persist (when user asks)
 
 Write the full report to `docs/architecture/repo-health-audit-YYYY-MM-DD.md` (use the actual date). Do not route into `TODO.md` unless the user asks.
+
 
 ## Constraints
 

@@ -6,16 +6,23 @@ model: gpt-5.4-mini
 
 # Sync all repos
 
-## Retired root-state guard
+## Workflow mode
 
-Before this legacy procedure, read the repository's AGENTS.md. If STATUS.md,
-TODO.md, or HISTORY.md is a 2–3 line retirement placeholder pointing to
-`docs/specs.md`, stop the legacy procedure and follow AGENTS/catalog/package
-owners instead. Never recreate or expand retired files, drain unread handoffs,
-write feature handovers into instructions, or bypass an owner checkpoint.
-Full shared dual-mode conversion and installation remain a later authorized step.
+Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
+including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1`;
+do not coerce strings or other values. Stop if the JSON is
+malformed, is not an object, or contains a present invalid or unsupported
+version. Do not infer the mode from root files or placeholders. Execute only the
+matching route below; version 1 must not execute Legacy procedure.
+
+## Version 1 route
+
+Inspect each repository's `AGENTS.md`, catalog, package owners, and versioned config. Summarize its dirty and unpublished state; make commits only within explicit owner scope, stage explicit paths, and push only when the user authorized publishing for that repository. Do not bypass package gates.
+
+## Legacy procedure
 
 Commit and push every repo in the current multi-root workspace so the full working state is available on another machine.
+
 
 ## Procedure
 
@@ -24,6 +31,7 @@ Commit and push every repo in the current multi-root workspace so the full worki
 3. For any repo that has unpushed commits (including the one just created), run `git push`. If the branch has no upstream, use `git push --set-upstream origin <branch>`.
 4. After all repos are processed, run a final verification pass: check that every repo reports clean and pushed.
 5. Print a summary table showing each repo and its final status.
+
 
 ## Rules
 

@@ -21,7 +21,7 @@ is verified locally; CI checks Windows and Linux. No performance claim is needed
 
 | Principle | Before and after design |
 |---|---|
-| I Owner scope/review | CP1/CP2 accepted; subsequent owner continuation approves B code/fixtures; stop at pending CP3 without operational mutations or unrequested external review. |
+| I Owner scope/review | Phase authority follows [checkpoint records](spec.md#checkpoints) and the linked owner approvals; operational scope follows AGENTS. |
 | II One owner per fact | Catalog routes; spec owns lifecycle/gates; tasks own execution; shared parser, no sidecar state. |
 | III Preserve work | Read-only checks; preserve failed workers; marked, contained scratch only; Git history retains legacy content. |
 | IV Proportional verification | Fixture acceptance/failure tests for paths that can lose work; FR-038 tiers: record-only commits run lint/dry run/diff checks, code commits add covering test files, one full suite per checkpoint plus CI. |
@@ -206,28 +206,21 @@ human judgment. Hook installation and host limitations are reported explicitly.
 
 ## Slice B plan for owner approval
 
-Status: implementation and CP3 corrections complete at 8569b12; owner decision
-is T045. Remote reconciliation is frozen as experimental (FR-019).
-The implementer takes the review's recommended correction route inside slice B:
-keep the original landing tuple, require its ancestry in the current target, and
-bind local locks/remote leases to separately captured current tips. Tag proof and
+Completion and authority: [owner acceptance](reviews/2026-10-15-cp3-owner-acceptance.md).
+Remote policy follows FR-019. The retained slice B design keeps the original
+landing tuple, requires its ancestry in the current target, and binds local
+locks/remote leases to separately captured current tips. Tag proof and
 source/landing comparisons remain immutable; unknown ancestry retains cleanup.
-T046/T047/T049 corrections and focused fixtures are complete; T048 records the
-271-case full acceptance result and returns the corrected code to the owner.
-Owner: Codex (Spec 001 implementer). [Correction request](reviews/2026-10-14-cp3-correction-review-request.md)
-pins code at 8569b125980cf2f630829ec71565df9909c7896a; [dispositions](reviews/2026-10-14-cp3-author-correction-dispositions.md)
-map R1/R2/R3 and independent author QA Q1. [Evidence](evidence/slice-b-validation.md)
-records checks. T045 remains the manual owner review/acceptance and identity
-judgment; this author handoff neither clears CP3 nor attests the Cline model.
+Owner: Codex (Spec 001 implementer). [Dispositions](reviews/2026-10-14-cp3-author-correction-dispositions.md)
+map R1/R2/R3 and author QA Q1 to code; the [CP3 summary](evidence/cp3-validation-summary.md)
+owns validation results and reviewer identity remains in the saved records.
 Authority: [owner plan approval](reviews/2026-10-12-slice-b-plan-approval.md), extending
 the [CP2 planning-only acceptance](reviews/2026-10-12-cp2-owner-planning-acceptance.md).
 Requirements: FR-019–024, relevant FR-008/010/013/018, SC-005/006 and the five
 carryovers below. The owner approved the plan at dce8394 by replying "continue"
 to its handoff. T036 records approval; T037–T044 declare implementation and fixture
-validation work, all manual. The earlier planning commit changed no code, hooks,
-CI, tags, branches or worktrees. Code work may now proceed; operational mutations
-outside isolated fixtures remain separately authorized.
-Slice C remains behind CP3; no migration or prompt installation is included.
+validation work. This section retains the B implementation approach; adoption
+authority and scope are linked from the C section above.
 
 ### Closeout interface and evidence
 

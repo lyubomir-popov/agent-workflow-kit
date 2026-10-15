@@ -1,18 +1,24 @@
 ---
-description: "Legacy alias for /overnight (spec-kit unattended scheduler)."
+description: "Alias for /overnight; scheduler mode follows workflowModelVersion."
 mode: agent
 model: gpt-5.4-mini
 ---
 
 # Proceed autonomously
 
-## Retired root-state guard
+## Workflow mode
 
-Before this legacy procedure, read the repository's AGENTS.md. If STATUS.md,
-TODO.md, or HISTORY.md is a 2–3 line retirement placeholder pointing to
-`docs/specs.md`, stop the legacy procedure and follow AGENTS/catalog/package
-owners instead. Never recreate or expand retired files, drain unread handoffs,
-write feature handovers into instructions, or bypass an owner checkpoint.
-Full shared dual-mode conversion and installation remain a later authorized step.
+Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
+including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1`;
+do not coerce strings or other values. Stop if the JSON is
+malformed, is not an object, or contains a present invalid or unsupported
+version. Do not infer the mode from root files or placeholders. Execute only the
+matching route below; version 1 must not execute Legacy procedure.
 
-Legacy alias for `/overnight`. Follow `prompts/overnight.prompt.md` exactly — the unattended scheduler now runs in **SpecKit** mode, not the old TODO.md one-task loop.
+## Version 1 route
+
+For version `1`, this command remains an alias for `/overnight`. Follow `prompts/overnight.prompt.md`, which selects the SpecKit scheduler; do not start a second workflow here.
+
+## Legacy procedure
+
+Legacy alias for `/overnight`. Follow `prompts/overnight.prompt.md`; its absent-version route selects the legacy TODO scheduler.

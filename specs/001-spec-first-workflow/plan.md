@@ -62,18 +62,100 @@ Save a bounded CP2 request and transient inbox link after validated implementati
 commit/catalog archive, exact merge proof, annotated archive tags, preservation
 and idempotent cleanup. `delivered` is terminal; no target documentation write.
 
-**C**, after CP3 owner clearance, kept narrow:
-- Read-only `migrate -Preview` in `workflow-kit.ps1` that reuses the existing
-  lint/model; lists legacy file/section dispositions, tracked scratch and conflicts.
-- Apply writes the kit templates and `.workflow-kit.json` as ordinary commits on
-  a migration branch; rollback is `git revert` or branch deletion. No journal.
-- Prompt dual mode keys on `workflowModelVersion` (already used by lint and
-  launchers); `/freshen-status` and similar legacy names alias or deprecate.
-- Fixtures: one migrated and one unmigrated example, plus an external-kit config.
-  Target: under 400 production lines and a focused test file under 5 minutes.
-- Out of scope: consumer edits, prompt installation, remote closeout, new
-  guard classes. Installing prompts and removing placeholders are separate owner
-  steps. Stop at CP4.
+**C** uses the bounded adoption design below after its separate plan approval.
+Its scope and exit are owned by [the checkpoint table](spec.md#checkpoints),
+[AGENTS](../../AGENTS.md), and the [lean handover](reviews/2026-10-14-lean-direction-handover.md).
+
+<a id="slice-c-adoption-plan-for-owner-approval"></a>
+## Slice C adoption plan for owner approval
+
+### Preview contract
+
+```powershell
+pwsh -NoLogo -NoProfile -File ./workflow-kit.ps1 -Command migrate `
+  -RepoRoot <repo> -KitRoot <kit> -Preview [-Json]
+```
+`-Preview` is required for `migrate`; `-Apply` is not a migration option, and
+the command is read-only. `workflow-kit.ps1` owns routing/rendering; a small
+`workflow-migration.ps1` owns inspection and returns data only. It reuses
+`Get-WorkflowConfig`, `Test-WorkflowRepo`, Git tracked-file inventory and the
+existing canonical mirror comparison rather than creating another state model.
+An absent `workflowModelVersion` is legacy, a valid version 1 is spec-first, and
+an invalid version is an explicit error. `canonicalMirrorMode: external` alone
+therefore remains legacy.
+
+Human and JSON output share a small report: `mode`, `status`, `dispositions`
+and existing-style `findings`. Each disposition names its repo-relative source,
+observed state, proposed action/destination and reason. Mechanical blockers produce
+`incomplete`; passing checks produce `ready` for owner review. Preview does not
+certify prose reconciliation or complete a migration. Versioned config alone
+cannot hide missing templates or conflicting live execution owners.
+
+The legacy-file inventory explicitly covers `STATUS.md`, `TODO.md`, `HISTORY.md`,
+`.github/agents/agent.md`, `AGENTS.md`, `CLAUDE.md`,
+`.github/copilot-instructions.md`, `README.md`, `INBOX.md`, `AGENT-INBOX.md`,
+`ROADMAP.md`, `docs/specs.md`, `.specify/feature.json`, and prompt sources found
+in the repository. The section inventory implements the FR-036 mapping as data:
+recognized legacy instruction sections receive their named owners. Other product
+prose is retained for owner review; an unfamiliar heading is not itself a blocker.
+Router checks flag simultaneous task owners, a live resume agent, tracked Spec
+Kit cursor, incompatible validators/scheduler routes, missing destinations and
+retired-file recreation. Git inventory reports tracked paths under conventional
+`tmp`, `temp`, `.tmp`, or `scratch` components without deleting or ignoring them.
+
+### Apply and rollback procedure
+
+The CLI stops at preview. After inspecting its report and receiving adoption
+authorization, the owner or assigned agent creates a dedicated migration branch
+and makes reviewable commits, resolving any listed blockers there. First copy the kit's
+`.specify/templates/overrides/spec-template.md` and `tasks-template.md`. Then
+merge `workflowModelVersion: 1` and the required FR-035 fields into the existing
+`.workflow-kit.json`, preserving unknown product fields, `canonicalMirrorMode`,
+target/scratch policy and repository-specific host budgets. External mode keeps
+shared scripts, launchers and prompts owned by the external kit.
+
+The agent then moves useful prose to the preview's destinations, retaining and
+reconciling consumer-specific AGENTS/README product rules in place, resolves
+router conflicts, and records retire/preserve decisions in the branch changes.
+This is human/agent editing, not semantic merge code.
+Run preview again, strict lint and scheduler dry run before committing each
+coherent migration step. A remaining conflict or lint error leaves the migration
+incomplete. Rollback uses ordinary `git revert` for committed migration changes
+or discards the unlanded branch; there is no journal, recovery file or custom
+merge protocol. Removal of the kit's own retirement placeholders follows the
+separately authorized prompt activation described by FR-037.
+
+### Prompt compatibility
+
+All 13 `prompts/*.prompt.md` sources select their procedure by reading
+`workflowModelVersion`: version 1 uses AGENTS/catalog/package owners, absence
+keeps the current legacy body, and invalid configuration stops. In versioned
+mode `/freshen-status` reports deprecation and routes to `/whats-next`; it never
+rewrites `STATUS.md`. `/whats-next`, `/audit-workflow`,
+`/audit-diagram-generator`, and `/repo-health-audit` stop reading or writing the
+retired root owners. `/overnight` selects the spec scheduler for version 1 and
+the existing TODO scheduler for legacy repositories;
+`/proceed-autonomously` remains its documented alias. The other prompt sources
+replace the placeholder heuristic with the same explicit mode selection. The
+installer stays a copier and is never invoked by migration.
+
+### Implementation size and acceptance
+
+Keep migration production additions below 400 PowerShell lines across
+`workflow-migration.ps1` and `workflow-kit.ps1`. Include the new library in the
+existing canonical mirror inventory. Retain the existing suite count/runtime as
+the baseline; do not rerun a passing file merely to collect baseline evidence.
+Measure the new migration lines and focused run; report rather than expand scope
+if it exceeds five minutes or suite growth exceeds the FR-038 threshold.
+One `tests/Migration.Tests.ps1` reuses `Fixture.Helpers.ps1` and covers
+one fully migrated fixture, one unmigrated fixture, and one external-kit fixture,
+including read-only snapshots, all disposition classes, tracked scratch,
+conflicts, arbitrary config-field preservation, static dual-mode prompt contracts
+and incomplete status. Prompt checks establish source contracts, not LLM compliance.
+Code commits run this focused file plus directly affected
+coverage. Run the full suite once on final Slice C code before the CP4 handoff;
+CI repeats it after an authorized push. Documentation-only changes use the
+quick checks in [quickstart](quickstart.md).
 
 ## Validation and limits
 

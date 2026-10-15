@@ -1,10 +1,10 @@
 # Current work
 
-**Next tasks**: T056 (manual final validation and handoff).
+**Next tasks**: T057 (manual owner final acceptance).
 **Blockers**: none for approved kit implementation; delivery prerequisites remain in [plan](plan.md#approval-and-delivery-boundaries).
 **Checkpoint links**: [slice gates](spec.md#checkpoints); [lean direction and handover](reviews/2026-10-14-lean-direction-handover.md).
 **Entry checkpoint**: CP3
-**Validation**: [tiered commands](quickstart.md) (FR-038); [planning handoff](reviews/2026-10-15-slice-c-plan-request.md).
+**Validation**: [tiered commands](quickstart.md) (FR-038); [final adoption summary](evidence/slice-c-validation.md).
 
 ## Setup and foundation
 
@@ -136,7 +136,8 @@ implementer); vendor skill edits remain outside scope.
 - [x] T053 [US5] Add preview-only `migrate -Preview` routing/reporting in `workflow-kit.ps1` and read-only inventory in `workflow-migration.ps1`; reuse model/lint, register canonical mirror inventory, and report the [planned dispositions and mechanical blockers](plan.md#slice-c-adoption-plan-for-owner-approval) within the production budget (manual) (gate: CP3).
 - [x] T054 [US5] Convert all 13 source prompts to explicit workflow-version dual mode and document the [ordinary Git adoption procedure](../../README.md#migrate-a-consumer-repository); preserve legacy procedures, external/product ownership, compatibility aliases and separate prompt activation (manual) (gate: CP3).
 - [x] T055 [US5] Add `tests/Migration.Tests.ps1` with local fixture helpers for migrated, unmigrated and external-kit examples; validate the [planned cases and budgets](plan.md#slice-c-adoption-plan-for-owner-approval) plus directly affected coverage (manual) (gate: CP3).
-- [ ] T056 Run strict lint, scheduler dry run and whitespace checks, then one final full suite on Slice C code and CI after an authorized push; save one CP4 evidence summary and bounded owner request using the actual counts/runtime and known gaps (manual) (gate: CP3).
+- [x] T056 Complete local final-code validation and save the [single adoption summary](evidence/slice-c-validation.md) and [acceptance request](reviews/2026-10-16-cp4-acceptance-request.md); record CI as an owner-push follow-up (manual) (gate: CP3).
+- [ ] T057 Owner final acceptance of the adoption component at c13d402: choose any reviewer or none, accept or name bounded corrections, and save the actual identity and accepted revision ([request](reviews/2026-10-16-cp4-acceptance-request.md)) (manual) (gate: CP3).
 
 ## Dependencies and execution strategy
 

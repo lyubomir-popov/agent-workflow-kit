@@ -1,7 +1,7 @@
 # Current work
 
-**Next tasks**: T052 (manual owner plan approval).
-**Blockers**: T052 approval is required before Slice C implementation.
+**Next tasks**: T053 (manual implementation).
+**Blockers**: none for approved kit implementation; delivery prerequisites remain in [plan](plan.md#approval-and-delivery-boundaries).
 **Checkpoint links**: [slice gates](spec.md#checkpoints); [lean direction and handover](reviews/2026-10-14-lean-direction-handover.md).
 **Entry checkpoint**: CP3
 **Validation**: [tiered commands](quickstart.md) (FR-038); [planning handoff](reviews/2026-10-15-slice-c-plan-request.md).
@@ -132,7 +132,7 @@ implementer); vendor skill edits remain outside scope.
 
 ## Slice C adoption
 
-- [ ] T052 OWNER PLAN APPROVAL: approve or amend the bounded Slice C design and authorize T053–T056 ([request](reviews/2026-10-15-slice-c-plan-request.md)) (manual) (gate: CP3).
+- [x] T052 Record the [owner's approval of adoption implementation at 48ba3a5](reviews/2026-10-16-slice-c-plan-approval.md) and scope T053–T056 (manual) (gate: CP3).
 - [ ] T053 [US5] After T052, add preview-only `migrate -Preview` routing/reporting in `workflow-kit.ps1` and read-only inventory in new `workflow-migration.ps1`; reuse model/lint, register the library in canonical mirror inventory, and report the [planned dispositions and mechanical blockers](plan.md#slice-c-adoption-plan-for-owner-approval) within the 400-line production budget (manual) (gate: CP3).
 - [ ] T054 [US5] After T053, convert all 13 `prompts/*.prompt.md` sources to `workflowModelVersion` dual mode and document the owner/agent branch apply procedure in `README.md`: copy the two `.specify/templates/overrides/*-template.md` files, merge required version fields into `.workflow-kit.json` while preserving arbitrary product/external-mirror fields and consumer AGENTS/README prose, reconcile routers, validate and commit; deprecate `/freshen-status` to `/whats-next`, retain `/proceed-autonomously` as the `/overnight` alias, and leave prompt installation as the existing separate procedure (manual) (gate: CP3).
 - [ ] T055 [US5] Reuse recorded suite baselines; add `tests/Migration.Tests.ps1` with minimal helper additions for migrated, unmigrated and external-kit fixtures, covering the [planned acceptance cases](plan.md#slice-c-adoption-plan-for-owner-approval); measure added production lines and focused runtime, run directly affected coverage, and report budget overruns per FR-038 (manual) (gate: CP3).

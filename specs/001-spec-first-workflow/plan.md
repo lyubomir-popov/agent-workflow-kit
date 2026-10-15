@@ -69,6 +69,8 @@ Its scope and exit are owned by [the checkpoint table](spec.md#checkpoints),
 <a id="slice-c-adoption-plan-for-owner-approval"></a>
 ## Slice C adoption plan for owner approval
 
+Authority: [owner implementation approval of 48ba3a5](reviews/2026-10-16-slice-c-plan-approval.md).
+
 ### Preview contract
 
 ```powershell

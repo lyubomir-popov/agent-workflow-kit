@@ -135,8 +135,9 @@ keeps the current legacy body, and invalid configuration stops. In versioned
 mode `/freshen-status` reports deprecation and routes to `/whats-next`; it never
 rewrites `STATUS.md`. `/whats-next`, `/audit-workflow`,
 `/audit-diagram-generator`, and `/repo-health-audit` stop reading or writing the
-retired root owners. `/overnight` selects the spec scheduler for version 1 and
-the existing TODO scheduler for legacy repositories;
+retired root owners. `/overnight` selects the bounded spec scheduler for version 1;
+legacy repositories retain its existing SpecKit scheduler, operations safeguards
+and overrides, using `-Workflow Todo` only when explicitly requested.
 `/proceed-autonomously` remains its documented alias. The other prompt sources
 replace the placeholder heuristic with the same explicit mode selection. The
 installer stays a copier and is never invoked by migration.

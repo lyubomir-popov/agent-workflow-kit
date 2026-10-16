@@ -21,4 +21,4 @@ For version `1`, this command remains an alias for `/overnight`. Follow `prompts
 
 ## Legacy procedure
 
-Legacy alias for `/overnight`. Follow `prompts/overnight.prompt.md`; its absent-version route selects the legacy TODO scheduler.
+Legacy alias for `/overnight`. Follow `prompts/overnight.prompt.md`; its absent-version route keeps the existing SpecKit scheduler and accepts `-Workflow Todo` only when explicitly requested.

@@ -24,7 +24,7 @@ Read `AGENTS.md`, `docs/specs.md`, and the active package owners before auditing
 Perform a **read-only** audit of the **diagram-generator** repo (the workspace must be that repo, or a multi-root workspace that includes it). Another agent or human may be working in parallel — do **not** modify, commit, or fix anything unless the user explicitly asks you to persist the report.
 
 
-## Intended architecture (benchmark)
+### Intended architecture (benchmark)
 
 The user's mental model for this repo:
 
@@ -36,13 +36,13 @@ The user's mental model for this repo:
 Audit against this benchmark and against `.github/copilot-instructions.md` (TS-first mandate).
 
 
-## Model ownership
+### Model ownership
 
 Use the heavy tier for synthesis and the standard/light tier for mechanical
 follow-up. Concrete preferences live in agent-loop.ps1's TierDispatchMap.
 Read that owner when selecting models; do not copy a preference table here.
 
-## Pre-flight
+### Pre-flight
 
 1. Read `README.md`, `STATUS.md`, `TODO.md`, `HISTORY.md`, `docs/specs.md`, `DIAGRAM.md`, and any `docs/architecture*` material.
 2. Map languages and packages: `packages/layout-engine/`, `scripts/preview/`, `scripts/*.py`, `specs/`.
@@ -50,7 +50,7 @@ Read that owner when selecting models; do not copy a preference table here.
 4. Check force-layout state: `scripts/preview/force.js`, `preview_server.py` force routes, `scripts/diagrams/force/`, `force_preview.py`, `force_layout.py`.
 
 
-## Audit questions (answer all)
+### Audit questions (answer all)
 
 1. **Repo health** — maintainability, tests, build hygiene, doc freshness.
 2. **Staleness** — abandoned scripts, docs contradicting code, orphaned routes.
@@ -61,7 +61,7 @@ Read that owner when selecting models; do not copy a preference table here.
 7. **Force layout** — Is the force editor lane working? What examples existed? What must be restored in **TypeScript** (not Python)?
 
 
-## Report structure
+### Report structure
 
 1. **TL;DR** — three to five sentences; single biggest concern.
 2. **Priority: restore force layout (TypeScript)** — dedicated section: current breakage, lost examples, required TS path, how to surface demos again.
@@ -75,12 +75,12 @@ Read that owner when selecting models; do not copy a preference table here.
 Be specific: name files, folders, line counts where useful. Honest critique is the point.
 
 
-## Persist (when user asks)
+### Persist (when user asks)
 
 Write the full report to `docs/architecture/repo-health-audit-YYYY-MM-DD.md` (use the actual date). Do not route into `TODO.md` unless the user asks.
 
 
-## Constraints
+### Constraints
 
 - **Read-only** by default. No commits unless explicitly requested.
 - Do not run mutating validation unless the user asks.

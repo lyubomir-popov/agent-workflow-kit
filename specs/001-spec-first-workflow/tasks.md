@@ -133,17 +133,17 @@ implementer); vendor skill edits remain outside scope.
 ## Slice C adoption
 
 - [x] T052 Record the [owner's approval of adoption implementation at 48ba3a5](reviews/2026-10-16-slice-c-plan-approval.md) and scope T053–T056 (manual) (gate: CP3).
-- [x] T053 [US5] Add preview-only `migrate -Preview` routing/reporting in `workflow-kit.ps1` and read-only inventory in `workflow-migration.ps1`; reuse model/lint, register canonical mirror inventory, and report the [planned dispositions and mechanical blockers](plan.md#slice-c-adoption-plan-for-owner-approval) within the production budget (manual) (gate: CP3).
-- [x] T054 [US5] Convert all 13 source prompts to explicit workflow-version dual mode and document the [ordinary Git adoption procedure](../../README.md#migrate-a-consumer-repository); preserve legacy procedures, external/product ownership, compatibility aliases and separate prompt activation (manual) (gate: CP3).
-- [x] T055 [US5] Add `tests/Migration.Tests.ps1` with local fixture helpers for migrated, unmigrated and external-kit examples; validate the [planned cases and budgets](plan.md#slice-c-adoption-plan-for-owner-approval) plus directly affected coverage (manual) (gate: CP3).
-- [x] T056 Complete local final-code validation and save the [single adoption summary](evidence/slice-c-validation.md) and [acceptance request](reviews/2026-10-16-cp4-acceptance-request.md); record CI as an owner-push follow-up (manual) (gate: CP3).
+- [x] T053 [US5] Add preview-only `migrate -Preview` routing/reporting in `workflow-kit.ps1` and read-only inventory in `workflow-migration.ps1`; reuse model/lint, register canonical mirror inventory, and report the [planned dispositions and mechanical blockers](plan.md#slice-c-adoption-plan-for-owner-approval) within the 400-line production budget (manual) (gate: CP3).
+- [x] T054 [US5] Convert all 13 source prompts to workflow-version dual mode and document the [ordinary Git adoption procedure](../../README.md#migrate-a-consumer-repository): copy both override templates, merge required config fields preserving arbitrary product/external ownership and consumer prose, reconcile routers, validate and commit; preserve legacy procedures, deprecate freshen-status to whats-next, retain proceed-autonomously as the overnight alias and leave prompt installation separate (manual) (gate: CP3).
+- [x] T055 [US5] Reuse recorded suite baselines; add `tests/Migration.Tests.ps1` with local fixture helpers for migrated, unmigrated and external-kit examples; validate the [planned cases and budgets](plan.md#slice-c-adoption-plan-for-owner-approval), measure added production lines and focused runtime, run directly affected coverage and report budget overruns per FR-038 (manual) (gate: CP3).
+- [x] T056 Run strict lint, scheduler dry run and whitespace checks and one final full suite on Slice C code; save the [single adoption summary](evidence/slice-c-validation.md) and [acceptance request](reviews/2026-10-16-cp4-acceptance-request.md) with actual counts/runtime and known gaps. CI after an authorized push remains open as T059 (manual) (gate: CP3).
 - [ ] T057 Owner final acceptance of the adoption component at c13d402: choose any reviewer or none, accept or name bounded corrections, and save the actual identity and accepted revision ([request](reviews/2026-10-16-cp4-acceptance-request.md)) (manual) (gate: CP3).
 
 ## CP4 bounded corrections and delivery follow-ups
 
 - [ ] T058 Correct the [received CP4 findings](reviews/2026-10-16-cp4-adversarial-review.md): preserve legacy prompt behavior, make mode boundaries explicit, inspect migration blockers before activation, fix console-dependent Git decoding/assertions, restore task obligations, and update dispositions/evidence after focused coverage and one final full suite (manual) (gate: CP3).
 - [ ] T059 Run and record CI after an owner-authorized push; retains the unfinished remote part of T056 (manual) (gate: CP3).
-- [ ] T060 After separately authorized owner prompt installation, remove STATUS/TODO/HISTORY catalog placeholders and their temporary README wording, and record the tracked tmp/hello.txt and tmp/world.txt preserve/retire decision (FR-006/037) (manual) (gate: CP3).
+- [ ] T060 After separately authorized owner prompt installation, remove STATUS/TODO/HISTORY catalog placeholders and their temporary README wording (FR-006/037) (manual) (gate: CP3).
 
 ## Dependencies and execution strategy
 

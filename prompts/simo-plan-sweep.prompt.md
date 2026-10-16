@@ -60,7 +60,7 @@ Planning rules:
 - If there are meaningful risks, dependencies, or unknowns, surface them explicitly rather than hiding them inside a phase.
 - Keep the plan actionable and concrete, not aspirational.
 
-## Commit policy (required in every execution plan)
+### Commit policy (required in every execution plan)
 
 The execution plan, checklist, and sketch must all state:
 

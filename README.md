@@ -68,6 +68,12 @@ user-level prompts remains a separate authorization, not self-hosting.
 file's proposed disposition, router conflicts, and tracked scratch paths. It
 does not apply changes or merge prose. Run it from the kit checkout:
 
+The preview checks migration blockers before activation as well as after it.
+`ready` means no detected mechanical blockers; it does not certify completed
+adoption or prompt behavior. Prompt words and script function names are routing
+sentinels only; external-kit routes need separate inspection. Legacy lint's
+requirements for files being retired do not determine migration readiness.
+
 ```powershell
 $repo = '<path-to-consumer-repo>'
 $kit = '<path-to-agent-workflow-kit>'

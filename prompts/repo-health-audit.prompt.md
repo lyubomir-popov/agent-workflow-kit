@@ -29,13 +29,13 @@ Produce a strategic, high-level health audit of the current repo as if you were 
 Focus on **high-level usefulness, vision alignment, and architectural drift**, not glitches or line-level bugs.
 
 
-## Model ownership
+### Model ownership
 
 Use the heavy tier for synthesis and the standard/light tier for mechanical
 follow-up. Concrete preferences live in agent-loop.ps1's TierDispatchMap.
 Read that owner when selecting models; do not copy a preference table here.
 
-## Pre-flight
+### Pre-flight
 
 1. Read `STATUS.md`, `README.md`, `ROADMAP.md`, `TODO.md`, `HISTORY.md`, `docs/specs.md`, and any `docs/vision/*.md`.
 2. Sample the actual code surface: list top-level source folders, count rule/module files, peek at the largest one.
@@ -43,7 +43,7 @@ Read that owner when selecting models; do not copy a preference table here.
 4. Check if there are sibling files under `docs/analyses/` (or equivalent). That folder is the right home for the report; create it if it doesn't exist.
 
 
-## Audit
+### Audit
 
 Produce a single comprehensive report with these sections:
 
@@ -57,12 +57,12 @@ Produce a single comprehensive report with these sections:
 Be willing to call out that the engine has outrun the data, that the vision overpromises in one specific place, that one folder needs splitting, that a recurring uncommitted file should be decided on. **Honest critique is the point.** Do not hedge.
 
 
-## Persist the report
+### Persist the report
 
 Write the full audit to `docs/analyses/YYYY-MM-DD-repo-health.md` (use the actual current date). If a report from today already exists, append `-v2` rather than overwrite.
 
 
-## Route findings into the workflow
+### Route findings into the workflow
 
 For each item in **Recommended next moves** and any concrete drift in the table:
 
@@ -73,7 +73,7 @@ For each item in **Recommended next moves** and any concrete drift in the table:
 Do not duplicate the report's content into `TODO.md`. The TODO entries should be **terse, actionable bullets** that link back to the report for context.
 
 
-## Commit
+### Commit
 
 Single commit at the end:
 
@@ -84,7 +84,7 @@ docs: add YYYY-MM-DD health report; route findings into TODO/ROADMAP
 Use explicit `git add` paths (the report file, `TODO.md`, `ROADMAP.md`, and `HISTORY.md` if touched). Never `git add -A`. Push to `origin/main` (or the repo's default branch).
 
 
-## Report back
+### Report back
 
 Three-bullet summary in chat:
 - where the report landed

@@ -6,6 +6,15 @@ model: gpt-5.4-mini
 
 # Sync all repos
 
+## Shared safety
+
+Apply these rules in either mode: do not force-push, rebase, or amend existing
+commits. Process repositories sequentially. If a push fails for reasons other
+than a missing upstream, report the failure and continue only within authorized
+repository scope; do not bypass authentication or diverged-history failures.
+Before acting on each repository, select its mode from its own config and use
+only that matching procedure; the caller's mode does not govern other repos.
+
 ## Workflow mode
 
 Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
@@ -17,14 +26,14 @@ matching route below; version 1 must not execute Legacy procedure.
 
 ## Version 1 route
 
-Inspect each repository's `AGENTS.md`, catalog, package owners, and versioned config. Summarize its dirty and unpublished state; make commits only within explicit owner scope, stage explicit paths, and push only when the user authorized publishing for that repository. Do not bypass package gates.
+Inspect each repository's `AGENTS.md`, catalog, package owners, and versioned config. Summarize its dirty and unpublished state; make commits only within explicit owner scope, stage explicit paths, and push only when the user authorized publishing for that repository. Apply Shared safety and do not bypass package gates. Determine the workflow mode separately for each repository before choosing its procedure.
 
 ## Legacy procedure
 
 Commit and push every repo in the current multi-root workspace so the full working state is available on another machine.
 
 
-## Procedure
+### Procedure
 
 1. For each workspace folder, check `git status --short` and `git rev-list --count @{u}..HEAD` (to detect unpushed commits).
 2. For any repo that has uncommitted changes (tracked or untracked), stage everything with `git add -A` and commit with the message `docs: sync all working state for machine transfer`.
@@ -33,7 +42,7 @@ Commit and push every repo in the current multi-root workspace so the full worki
 5. Print a summary table showing each repo and its final status.
 
 
-## Rules
+### Rules
 
 - Do not force-push.
 - Do not rebase or amend existing commits.

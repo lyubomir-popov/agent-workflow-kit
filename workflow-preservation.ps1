@@ -2,9 +2,21 @@
 # Integration proof and accepted-revision package holds belong to the caller.
 function Get-WorkflowPreservationGitRecords {
     param([string]$WorktreePath, [string[]]$Arguments)
-    $lines=@(& git -C $WorktreePath @Arguments 2>$null)
-    if ($LASTEXITCODE) { throw "preservation-unknown: Git inventory failed: $($Arguments -join ' ')." }
-    return @(($lines -join "`n") -split "`0" | Where-Object { $_ -ne '' })
+    # Git's NUL-delimited path output is UTF-8, independent of the host console.
+    $start=[Diagnostics.ProcessStartInfo]::new('git')
+    $start.UseShellExecute=$false; $start.CreateNoWindow=$true
+    $start.RedirectStandardOutput=$true; $start.RedirectStandardError=$true
+    $start.StandardOutputEncoding=[Text.UTF8Encoding]::new($false,$true)
+    foreach ($argument in (@('-C',$WorktreePath)+$Arguments)) { $start.ArgumentList.Add($argument) }
+    $process=[Diagnostics.Process]::new(); $process.StartInfo=$start
+    try {
+        if (-not $process.Start()) { throw 'Git inventory could not start.' }
+        $errorOutput=$process.StandardError.ReadToEndAsync()
+        $output=$process.StandardOutput.ReadToEnd()
+        $process.WaitForExit(); $null=$errorOutput.GetAwaiter().GetResult()
+        if ($process.ExitCode) { throw "preservation-unknown: Git inventory failed: $($Arguments -join ' ')." }
+        return @($output -split "`0" | Where-Object { $_ -ne '' })
+    } finally { $process.Dispose() }
 }
 
 function Get-WorkflowPreservationHolds {

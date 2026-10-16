@@ -82,6 +82,38 @@ Describe 'Shared preservation inventory' {
         ($inventory.Reasons -join ';') | Should Match 'tracked/index changes'
     }
 
+    It 'preserves exact Unicode Git paths under a non-UTF8 console without changing its encoding' {
+        $trackedPath='node_modules/notes δ.txt'
+        $untrackedPath='notes λ.txt'
+        Write-FixtureFile $fixture $trackedPath 'Tracked owned bytes.'
+        Save-FixtureRevision $fixture
+        Write-FixtureFile $fixture $untrackedPath 'Untracked owner note.'
+        $originalConsoleEncoding=[Console]::OutputEncoding
+        $originalOutputEncoding=$OutputEncoding
+        try {
+            [Console]::OutputEncoding=[Text.Encoding]::GetEncoding(437)
+            $OutputEncoding=[Text.Encoding]::GetEncoding(437)
+            $tracked=@(Get-WorkflowPreservationGitRecords $fixture.RepoRoot @('ls-files','-z'))
+            $untracked=@(Get-WorkflowPreservationGitRecords $fixture.RepoRoot @('ls-files','--others','--exclude-standard','-z'))
+            ($tracked -contains $trackedPath) | Should Be $true
+            ($untracked -contains $untrackedPath) | Should Be $true
+            $inventory=Get-WorkflowPreservationInventory $fixture.RepoRoot $fixture.RepoRoot $config
+            ($inventory.TrackedPaths -contains $trackedPath) | Should Be $true
+            ($inventory.ProtectedTrackedPaths -contains $trackedPath) | Should Be $true
+            ($inventory.ProtectedPaths -contains $trackedPath) | Should Be $true
+            ($inventory.UntrackedPaths -contains $untrackedPath) | Should Be $true
+            ($inventory.ProtectedPaths -contains $untrackedPath) | Should Be $true
+            $inventory.DisposableDirectories.Count | Should Be 0
+            [Console]::OutputEncoding.CodePage | Should Be 437
+            $OutputEncoding.CodePage | Should Be 437
+        } finally {
+            [Console]::OutputEncoding=$originalConsoleEncoding
+            $OutputEncoding=$originalOutputEncoding
+        }
+        [Console]::OutputEncoding.CodePage | Should Be $originalConsoleEncoding.CodePage
+        $OutputEncoding.CodePage | Should Be $originalOutputEncoding.CodePage
+    }
+
     It 'detects a nested link without traversing its target' {
         $external=Join-Path $fixture.TempRoot 'outside'
         $null=New-Item -ItemType Directory -Path (Join-Path $external 'evidence') -Force

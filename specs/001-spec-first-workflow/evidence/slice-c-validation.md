@@ -1,49 +1,62 @@
 # Adoption validation summary
 
-Code revision: `c13d402456a63217d8848d5bb2bb6155e2553890`; review base: `917e12b`.
-Authority: [approved plan](../reviews/2026-10-16-slice-c-plan-approval.md).
+Final correction code: `27f452cadba3b93c689714164d16136f8b934588`; compared range: `098835a..27f452cadba3b93c689714164d16136f8b934588`.
+Authority: [approved adoption plan](../reviews/2026-10-16-slice-c-plan-approval.md).
+Received findings and per-ID outcomes: [review](../reviews/2026-10-16-cp4-adversarial-review.md),
+[dispositions](../reviews/2026-10-16-cp4-author-dispositions.md).
 Runtime: Windows, PowerShell 7.6.6, Git 2.52, Pester 3.4.
-Author assessment: implementation ready for the owner's final acceptance decision;
-this is author integration evidence, not an independent checkpoint review.
+Author assessment: bounded corrections ready for the owner's final acceptance;
+no independent checkpoint review or acceptance is claimed.
 
-| Check | Final result |
+| Check | Final corrected-code result |
 |---|---|
-| `tests/run-tests.ps1 -Path ./tests/Migration.Tests.ps1` | 8 passed, 0 failed; 9.23s |
-| `Workflow`, `Hook`, `Carryover` covering files | 59 passed, 0 failed; 102.27s |
-| `tests/run-tests.ps1`, final code | Passed: 279 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0; 1012.6 seconds |
+| Migration focused file | 12 passed, 0 failed; 12.73s |
+| Preservation covering file | 14 passed, 0 failed; 18.85s |
+| One final full suite after corrections | Passed: 284 Failed: 0 Skipped: 0 Pending: 0 Inconclusive: 0; 1100.34 seconds |
 | Strict lint | 0 errors, 0 warnings, 1 semantic-limit info |
 | Scheduler dry run | target=main; manual T057; zero workers |
-| Kit self-preview, `migrate -Preview -Json` | spec-first / ready; 34 dispositions; Git status unchanged |
-| Worktree/index and `917e12b..HEAD` whitespace | clean |
+| Kit self-preview | spec-first / ready; 34 dispositions; no errors |
+| Worktree/index and `098835a..HEAD` whitespace | clean |
 
-## Acceptance coverage
+## Coverage and budgets
 
-- FR-030: read-only file/section/router/config/template dispositions; exact Unicode
-  tracked scratch; branch/HEAD/index/content snapshots unchanged; incomplete
-  conflicting owners, missing templates and invalid config; Preview required,
-  Apply rejected. Ordinary Git migration/rollback is documented in README.
-- FR-031: all 13 source prompts explicitly distinguish missing version/config,
-  JSON integer 1 and invalid config. Freshen-status deprecates to whats-next;
-  proceed-autonomously remains an overnight alias. Versioned routes use package
-  owners; legacy procedures remain available. Static contracts do not prove LLM compliance.
-- FR-032: migrated, unmigrated and external-kit fixture families; unknown product
-  prose preserved; arbitrary config fields and external ownership retained.
-  Intentional catalog placeholders remain until separate prompt activation.
-- FR-038/039, SC-010: 205 added production PowerShell lines (176 library + 29 CLI),
-  below 400; one 326-line migration test file with eight cases, below five minutes.
-  One full final-code suite; one current evidence summary and acceptance request.
-  Passing suites were not rerun merely to refresh records.
+- FR-030: read-only snapshots retain branch, HEAD, index and content. Both legacy
+  and versioned preview expose resume-agent, tracked-cursor, prompt/script routes,
+  competing task owners and missing destinations before activation. Git/config
+  failures are incomplete; Preview required, Apply rejected. Every disposition
+  action is asserted. Legacy lint's obsolete required-file checks are excluded.
+- FR-031: legacy overnight retains the SpecKit scheduler, preflight, operations
+  safeguards and overrides; Todo is explicit opt-in. All 13 prompt sources have
+  explicit boundaries. Both modes retain shared orchestration/audit contracts;
+  version 1 cannot fall into legacy root-owner or stage/push-everything procedures.
+- FR-032: migrated, unmigrated and external-kit fixtures preserve unknown product
+  prose/config and external ownership. IBM437 tests verify exact Unicode Git
+  inventory and preservation; diagnostic tests cover coloured wrapped output.
+- FR-038/039, SC-010: migration production additions are 208 lines across the
+  179-line library and 29 added CLI lines, below 400. The shared UTF-8 defect fix
+  adds 15 lines elsewhere (223 added production lines overall). The focused
+  437-line migration file takes 12.73s, below five minutes. One full suite on final
+  correction code; passing suites were not rerun just to refresh evidence.
 
-Compared with the retained CP3 baseline of 271 tests / 2396.89 seconds, this run
-has 279 tests (2.95% count growth) and -57.75% observed runtime
-change. The reported runtime-growth threshold was not exceeded. Timings vary; no causal performance improvement is claimed.
+The original c13d402 run passed 279 tests locally, but the received review
+reproduced two host-dependent focused failures. That earlier result did not
+establish console independence; the new regressions and results above replace
+its unqualified coverage claim. Against the retained CP3 baseline of 271 tests /
+2396.89s, final count growth is 4.80% and observed runtime change is -54.09%.
+Timings vary; no causal performance improvement is claimed.
 
-## Remaining limits and ownership
+## Mechanical limits and delivery ownership
 
-Linux and remote CI have not run; CI awaits an owner-authorized push. BQA-06
-remains owner/provider policy; experimental remote closeout is excluded from
-rollout. New packages await delivery of A+B to main. Prompt installation, consumer
-adoption and delivery/remote branch administration remain separately scoped by
-[AGENTS](../../../AGENTS.md). Earlier vendor whitespace and self-hosted code-integrity
-limits remain as previously recorded; no vendor files changed.
-Current lifecycle and checkpoint state are owned by [spec.md](../spec.md#checkpoints).
+Prompt words and function names are sentinels, not proof of behavioral compatibility
+or LLM compliance. External-kit routes are not inspected; ready means no detected
+mechanical migration blockers, not completed adoption. Prose placement remains
+owner/agent judgment.
+
+Linux/remote CI awaits owner-authorized push (T059). BQA-06 remains owner/provider
+policy; experimental remote closeout stays excluded from rollout. New packages
+await delivery of A+B to main. T060 owns placeholder removal after separately
+authorized owner prompt installation. Tracked scratch is explicitly preserved in
+the dispositions. Main/master remain unchanged; no installation, consumer edits,
+live workers, cleanup, merge or push occurred. Prior vendor whitespace and
+self-hosted code-integrity limits remain as previously recorded.
+Lifecycle/checkpoint state is owned by [spec.md](../spec.md#checkpoints).

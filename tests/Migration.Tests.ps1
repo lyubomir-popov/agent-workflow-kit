@@ -138,8 +138,15 @@ function Invoke-MigrationCli {
         '-Command','migrate','-RepoRoot',$Fixture.RepoRoot,'-KitRoot',$script:KitRoot) + $ExtraArguments
     $output = & pwsh @arguments 2>&1
     $raw = @($output) -join "`n"
-    $diagnostic = ($raw -replace '(?m)^\s*\|\s?', '') -replace '\s+', ' '
+    $diagnostic = ConvertFrom-MigrationDiagnostic $raw
     return [pscustomobject]@{ ExitCode=$LASTEXITCODE; Raw=$raw; Diagnostic=$diagnostic }
+}
+
+function ConvertFrom-MigrationDiagnostic {
+    param([string]$Text)
+    # Unwrap ConciseView like the T051 hook checks, including coloured output.
+    $text = $Text -replace '\x1b\[[0-9;]*m', ''
+    return ($text -replace '(?m)^\s*\|\s?', '') -replace '\s+', ' '
 }
 
 Describe 'Read-only migration preview contract' {
@@ -162,6 +169,7 @@ Describe 'Read-only migration preview contract' {
         @($report.findings | Where-Object severity -eq 'error').Count | Should Be 0
         @($report.findings | Where-Object rule -eq 'migration-retired-owner').Count | Should Be 0
         @($report.findings | Where-Object rule -eq 'migration-retired-placeholder').Count | Should Be 3
+        @(Get-MigrationDisposition $report 'prompts/whats-next.prompt.md')[0].action | Should Be 'review-dual-mode'
         foreach ($relative in @('STATUS.md','TODO.md','HISTORY.md')) {
             $placeholder = @(Get-MigrationDisposition $report $relative)[0]
             $placeholder.state | Should Be 'tracked'
@@ -184,19 +192,32 @@ Describe 'Read-only migration preview contract' {
             '.github/agents/agent.md','.github/copilot-instructions.md','prompts/legacy-only.prompt.md',
             'tmp/notes δ.txt')
         $before = Get-MigrationFixtureSnapshot $fixture $paths
-        $report = Get-WorkflowMigrationPreview -RepoRoot $fixture.RepoRoot -KitRoot $script:KitRoot
+        $encoding = [Console]::OutputEncoding
+        try {
+            [Console]::OutputEncoding = [Text.Encoding]::GetEncoding(437)
+            $report = Get-WorkflowMigrationPreview -RepoRoot $fixture.RepoRoot -KitRoot $script:KitRoot
+        } finally { [Console]::OutputEncoding = $encoding }
 
         $report.mode | Should Be 'legacy'
-        $report.status | Should Be 'ready'
+        $report.status | Should Be 'incomplete'
         $status = @(Get-MigrationDisposition $report 'STATUS.md')[0]
         $status.state | Should Be 'tracked'
         $status.action | Should Be 'retire-after-reconcile'
         $status.destination | Should Be 'docs/specs.md and package spec.md/tasks.md'
         @(Get-MigrationDisposition $report 'TODO.md')[0].destination | Should Be 'package tasks.md or ROADMAP.md'
         @(Get-MigrationDisposition $report 'HISTORY.md')[0].action | Should Be 'retire-preserve-git'
+        @(Get-MigrationDisposition $report '.github/agents/agent.md')[0].action | Should Be 'retire'
+        @(Get-MigrationDisposition $report 'CLAUDE.md')[0].action | Should Be 'reduce-to-adapter'
+        @(Get-MigrationDisposition $report 'docs/specs.md')[0].action | Should Be 'convert-to-catalog'
+        @(Get-MigrationDisposition $report '.workflow-kit.json')[0].action | Should Be 'add-workflow-model-version'
+        @(Get-MigrationDisposition $report 'prompts/legacy-only.prompt.md')[0].action | Should Be 'add-mode-selection'
+        @(Get-MigrationDisposition $report 'INBOX.md')[0].action | Should Be 'retain-reconcile'
+        @(Get-MigrationDisposition $report '.github/copilot-instructions.md')[0].action | Should Be 'migrate-sections'
+        @(Get-MigrationDisposition $report '.specify/feature.json')[0].action | Should Be 'none'
         @(Get-MigrationDisposition $report 'AGENTS.md')[0].action | Should Be 'review-in-place'
         @(Get-MigrationDisposition $report 'README.md')[0].destination | Should Be 'README.md'
         @($report.dispositions | Where-Object { $_.state -eq 'recognized-heading' }).Count | Should BeGreaterThan 0
+        @($report.dispositions | Where-Object action -eq 'move-or-reconcile').Count | Should BeGreaterThan 0
         $unknown = @($report.dispositions | Where-Object { $_.state -eq 'unfamiliar-heading' -and $_.source -match 'Product-specific deployment invariant' })
         $unknown.Count | Should Be 1
         $unknown[0].action | Should Be 'preserve-for-review'
@@ -205,7 +226,9 @@ Describe 'Read-only migration preview contract' {
         $scratch.Count | Should Be 1
         $scratch[0].path | Should Be 'tmp/notes δ.txt'
         @($report.dispositions | Where-Object source -eq 'tmp/notes δ.txt').Count | Should Be 1
-        @($report.findings | Where-Object { $_.severity -eq 'error' }).Count | Should Be 0
+        @($report.findings | Where-Object rule -eq 'migration-resume-agent').Count | Should Be 1
+        @($report.findings | Where-Object rule -eq 'migration-retired-owner').Count | Should Be 3
+        @($report.findings | Where-Object { $_.rule -eq 'migration-live-route' -and $_.path -eq 'prompts/legacy-only.prompt.md' }).Count | Should Be 1
         Assert-MigrationFixtureSnapshot $fixture $before $paths
     }
 
@@ -216,7 +239,7 @@ Describe 'Read-only migration preview contract' {
         $legacyBytes = [Convert]::ToBase64String([IO.File]::ReadAllBytes($configPath))
         $legacy = Get-WorkflowMigrationPreview -RepoRoot $fixture.RepoRoot -KitRoot $script:KitRoot
         $legacy.mode | Should Be 'legacy'
-        $legacy.status | Should Be 'ready'
+        $legacy.status | Should Be 'incomplete'
         [Convert]::ToBase64String([IO.File]::ReadAllBytes($configPath)) | Should Be $legacyBytes
         (Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json).productSettings.deploymentRing | Should Be 'fixture-only'
         @($legacy.findings | Where-Object rule -eq 'canonical-file-missing').Count | Should Be 0
@@ -257,23 +280,76 @@ Describe 'Migration blockers and CLI guards' {
         $missing.mode | Should Be 'spec-first'
         $missing.status | Should Be 'incomplete'
         @($missing.findings | Where-Object { $_.rule -eq 'migration-destination' -and $_.path -match 'tasks-template' }).Count | Should BeGreaterThan 0
+        @(Get-MigrationDisposition $missing '.specify/templates/overrides/tasks-template.md')[0].action | Should Be 'create'
 
         Write-FixtureFile $fixture '.workflow-kit.json' '{"workflowModelVersion":99}'
         $invalid = Get-WorkflowMigrationPreview -RepoRoot $fixture.RepoRoot -KitRoot $script:KitRoot
         $invalid.mode | Should Be 'invalid'
         $invalid.status | Should Be 'incomplete'
         @($invalid.findings | Where-Object { $_.rule -eq 'workflow-config' -and $_.severity -eq 'error' }).Count | Should BeGreaterThan 0
+        @(Get-MigrationDisposition $invalid '.workflow-kit.json')[0].action | Should Be 'repair'
+    }
+
+    It 'reports pre-activation blockers in legacy and versioned modes without changing their owners' {
+        Set-MigrationFixtureLegacy $fixture
+        Write-FixtureFile $fixture '.specify/feature.json' '{"branch":"feat/001-example"}'
+        $null = Invoke-FixtureGit $fixture @('add','--force','.specify/feature.json')
+        Write-FixtureFile $fixture 'workflow-kit.ps1' '# Legacy validator without mode routing.'
+        Write-FixtureFile $fixture 'agent-loop.ps1' '# Legacy scheduler without mode routing.'
+        Write-FixtureFile $fixture 'workflow-scheduler.ps1' '# Legacy scheduler without mode routing.'
+        Remove-Item -LiteralPath (Join-Path $fixture.RepoRoot '.specify/templates/overrides/tasks-template.md') -Force
+        Save-FixtureRevision $fixture
+        foreach ($mode in @('legacy','spec-first')) {
+            if ($mode -eq 'spec-first') {
+                $config = Get-FixtureConfig $fixture
+                $config | Add-Member workflowModelVersion 1
+                Set-FixtureConfig $fixture $config
+            }
+            $before = Get-MigrationFixtureSnapshot $fixture @('.workflow-kit.json','.specify/feature.json')
+            $report = Get-WorkflowMigrationPreview -RepoRoot $fixture.RepoRoot -KitRoot $script:KitRoot
+            $report.mode | Should Be $mode
+            $report.status | Should Be 'incomplete'
+            foreach ($rule in @('migration-resume-agent','migration-feature-cursor','migration-destination')) {
+                @($report.findings | Where-Object { $_.rule -eq $rule -and $_.severity -eq 'error' }).Count | Should BeGreaterThan 0
+            }
+            foreach ($path in @('prompts/legacy-only.prompt.md','workflow-kit.ps1','agent-loop.ps1','workflow-scheduler.ps1')) {
+                @($report.findings | Where-Object { $_.rule -eq 'migration-live-route' -and $_.path -eq $path }).Count | Should Be 1
+            }
+            @(Get-MigrationDisposition $report '.specify/feature.json')[0].action | Should Be 'untrack-and-ignore'
+            @(Get-MigrationDisposition $report 'agent-loop.ps1')[0].action | Should Be 'replace-incompatible-route'
+            Assert-MigrationFixtureSnapshot $fixture $before @('.workflow-kit.json','.specify/feature.json')
+        }
+    }
+
+    It 'does not require retired root files before activation and reports Git inventory failure incomplete' {
+        Set-MigrationFixtureLegacy $fixture
+        foreach ($path in @('STATUS.md','TODO.md','HISTORY.md','.github/agents/agent.md','prompts/legacy-only.prompt.md')) {
+            Remove-Item -LiteralPath (Join-Path $fixture.RepoRoot $path) -Force
+        }
+        Save-FixtureRevision $fixture
+        $report = Get-WorkflowMigrationPreview -RepoRoot $fixture.RepoRoot -KitRoot $script:KitRoot
+        $report.mode | Should Be 'legacy'
+        $report.status | Should Be 'ready'
+        @($report.findings | Where-Object { $_.rule -eq 'required-file' -and $_.path -match 'STATUS|TODO|HISTORY' }).Count | Should Be 0
+
+        $notRepository = Join-Path $fixture.TempRoot 'not-a-repository'
+        $null = New-Item -ItemType Directory -Path $notRepository
+        $gitFailure = Get-WorkflowMigrationPreview -RepoRoot $notRepository -KitRoot $script:KitRoot
+        $gitFailure.status | Should Be 'incomplete'
+        @($gitFailure.findings | Where-Object { $_.rule -eq 'migration-git' -and $_.severity -eq 'error' }).Count | Should Be 1
     }
 
     It 'requires preview rejects apply and emits the report as JSON' {
         Set-MigrationFixtureMigrated $fixture
         $missingPreview = Invoke-MigrationCli $fixture
         $missingPreview.ExitCode | Should Be 1
-        $missingPreview.Diagnostic | Should Match 'migration-incomplete: specify -Preview; migration is read-only\.'
+        $missingPreview.Diagnostic | Should Match 'migration-incomplete:'
+        $missingPreview.Diagnostic | Should Match 'specify -Preview'
 
         $apply = Invoke-MigrationCli $fixture @('-Preview','-Apply')
         $apply.ExitCode | Should Be 1
-        $apply.Diagnostic | Should Match 'migration-incomplete: -Apply is not supported; use -Preview\.'
+        $apply.Diagnostic | Should Match 'migration-incomplete:'
+        $apply.Diagnostic | Should Match '-Apply is not supported'
 
         $preview = Invoke-MigrationCli $fixture @('-Preview','-Json')
         $preview.ExitCode | Should Be 0
@@ -281,6 +357,12 @@ Describe 'Migration blockers and CLI guards' {
         $report.mode | Should Be 'spec-first'
         $report.status | Should Be 'ready'
         @($report.PSObject.Properties.Name) -join ',' | Should Be 'mode,status,dispositions,findings'
+    }
+
+    It 'unwraps coloured narrow-console diagnostic continuation lines' {
+        $escape = [char]27
+        $wrapped = "${escape}[31mmigration-incomplete: specify -Preview;${escape}[0m`n${escape}[31m   | migration is read-only.${escape}[0m"
+        (ConvertFrom-MigrationDiagnostic $wrapped).Trim() | Should Be 'migration-incomplete: specify -Preview; migration is read-only.'
     }
 }
 
@@ -294,6 +376,8 @@ Describe 'Dual-mode prompt source contracts' {
             $text | Should Match 'workflowModelVersion'
             $text | Should Match '(?m)^## Version 1 route\s*$'
             $text | Should Match '(?m)^## Legacy procedure\s*$'
+            $legacyRoute = [regex]::Match($text,'(?ms)^## Legacy procedure\s*$(.*)').Groups[1].Value
+            $legacyRoute | Should Not Match '(?m)^## '
             $text | Should Match '(?is)absent.*legacy'
             $text | Should Match '(?is)(malformed|invalid).*\b(stop|fail)\b|\b(stop|fail)\b.*(malformed|invalid)'
             $text | Should Match '(?is)unsupported.*\b(stop|fail)\b|\b(stop|fail)\b.*unsupported'
@@ -305,6 +389,10 @@ Describe 'Dual-mode prompt source contracts' {
             if ($prompt.Name -ne 'freshen-status.prompt.md') {
                 $versionRoute | Should Not Match '(?i)\b(read|consult|update|write|recreate)\b[^\r\n]*(STATUS|TODO|HISTORY)\.md'
             }
+            if ($prompt.Name -eq 'sync-all-repos.prompt.md') {
+                $versionRoute | Should Not Match '(?i)git add -A|push every|push all'
+                $text | Should Match '(?is)## Shared.*?(force.push|force push)'
+            }
         }
     }
 
@@ -314,7 +402,13 @@ Describe 'Dual-mode prompt source contracts' {
         $freshen | Should Match '(?is)## Version 1 route.*?(do not|never).*?(create|update|write).*?STATUS\.md'
         $overnight = [IO.File]::ReadAllText((Join-Path $script:KitRoot 'prompts/overnight.prompt.md'))
         $overnight | Should Match '(?is)## Version 1 route.*?(SpecKit|spec.scheduler)'
-        $overnight | Should Match '(?is)## Legacy procedure.*?(-Workflow Todo|TODO scheduler)'
+        $legacyOvernight = [regex]::Match($overnight,'(?ms)^## Legacy procedure\s*$(.*)').Groups[1].Value
+        $legacyOvernight | Should Match '-Workflow SpecKit'
+        $legacyOvernight | Should Match '(?is)do not fall back.*?TODO.*?(user|explicit)'
+        $legacyOvernight | Should Match 'docs/operations\.md'
+        $legacyOvernight | Should Match '(?i)(pre.flight|before.*launch)'
+        $legacyOvernight | Should Match '(?i)(login|authentication|auth)'
+        $legacyOvernight | Should Match '(?im)^### Overrides'
         $alias = [IO.File]::ReadAllText((Join-Path $script:KitRoot 'prompts/proceed-autonomously.prompt.md'))
         $alias | Should Match '(?is)## Version 1 route.*?alias.*?/overnight'
         $alias | Should Match '(?is)## Legacy procedure.*?alias.*?/overnight'
@@ -322,5 +416,22 @@ Describe 'Dual-mode prompt source contracts' {
         foreach ($prompt in Get-ChildItem -LiteralPath (Join-Path $script:KitRoot 'prompts') -Filter '*.prompt.md' -File) {
             [IO.File]::ReadAllText($prompt.FullName) | Should Not Match '(?i)(invoke|run|execute)\s+[^\r\n]*install-vscode-prompts'
         }
+    }
+
+    It 'keeps shared orchestration and competing-audit procedures available to both routes' {
+        $orchestrate = [IO.File]::ReadAllText((Join-Path $script:KitRoot 'prompts/orchestrate.prompt.md'))
+        $audit = [IO.File]::ReadAllText((Join-Path $script:KitRoot 'prompts/competing-audit.prompt.md'))
+        foreach ($text in @($orchestrate,$audit)) {
+            $shared = [regex]::Match($text,'(?ms)^## Shared procedure\s*$(.*?)(?=^## Workflow mode\s*$)').Groups[1].Value
+            $shared | Should Not BeNullOrEmpty
+            foreach ($heading in @('Version 1 route','Legacy procedure')) {
+                $route = [regex]::Match($text,('(?ms)^## '+$heading+'\s*$(.*?)(?=^## |\z)')).Groups[1].Value
+                $route | Should Match '(?i)shared procedure'
+            }
+        }
+        $orchestrateShared = [regex]::Match($orchestrate,'(?ms)^## Shared procedure\s*$(.*?)(?=^## Workflow mode\s*$)').Groups[1].Value
+        $orchestrateShared | Should Match '(?i)dispatch'
+        $orchestrateShared | Should Match 'TierDispatchMap'
+        $audit | Should Match '(?is)## Shared procedure.*?(independent|competing).*?(findings|report).*?## Workflow mode'
     }
 }

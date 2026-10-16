@@ -61,15 +61,15 @@ function Get-WorkflowMigrationPreview {
             if ($placeholder) { $action='preserve-placeholder'; $reason='Keep the catalog pointer until separately authorized prompt activation retires it.' }
         }
         $dispositions.Add((New-WorkflowMigrationDisposition $source $state $action $plan[2] $reason)) | Out-Null
-        if ($mode -eq 'spec-first' -and $placeholder) {
+        if ($placeholder) {
             Add-Finding $findings info migration-retired-placeholder $source 'Valid catalog placeholder is retained until separately authorized prompt activation.'
-        } elseif ($mode -eq 'spec-first' -and $source -in @('STATUS.md','TODO.md','HISTORY.md') -and $exists) {
-            Add-Finding $findings error migration-retired-owner $source 'Retired root execution owner remains in a versioned repository; reconcile and retire it.'
+        } elseif ($source -in @('STATUS.md','TODO.md','HISTORY.md') -and $exists) {
+            Add-Finding $findings error migration-retired-owner $source 'Root execution owner needs reconciliation before spec-first activation; preserve useful content and retire it.'
         }
-        if ($mode -eq 'spec-first' -and $source -eq '.github/agents/agent.md' -and $exists) {
+        if ($source -eq '.github/agents/agent.md' -and $exists) {
             Add-Finding $findings error migration-resume-agent $source 'Competing resume agent remains live; reconcile it into AGENTS.md and prompts, then retire it.'
         }
-        if ($mode -eq 'spec-first' -and $source -eq '.specify/feature.json' -and $tracked.ContainsKey($source)) {
+        if ($source -eq '.specify/feature.json' -and $tracked.ContainsKey($source)) {
             Add-Finding $findings error migration-feature-cursor $source 'Tracked Spec Kit cursor can compete with catalog/package selection; untrack and ignore it.'
         }
     }
@@ -81,7 +81,7 @@ function Get-WorkflowMigrationPreview {
             $state=if ($tracked.ContainsKey($source)) {'tracked'} elseif ($exists) {'untracked'} else {'absent'}
             $dispositions.Add((New-WorkflowMigrationDisposition $source $state $(if ($exists) {'review-in-place'} else {'create'}) $source 'Repo-owned package override required by the spec-first creation path.')) | Out-Null
         }
-        if ($mode -eq 'spec-first' -and -not $exists) {
+        if (-not $exists) {
             Add-Finding $findings error migration-destination $source 'Required spec-first destination or template is missing.'
         }
     }
@@ -125,13 +125,14 @@ function Get-WorkflowMigrationPreview {
             $dualMode=$text -match 'workflowModelVersion'
             $action=if ($dualMode) {'review-dual-mode'} else {'add-mode-selection'}
             $dispositions.Add((New-WorkflowMigrationDisposition $source $state $action $source 'Preserve the legacy procedure while selecting spec-first behavior from workflowModelVersion.')) | Out-Null
-            if ($mode -eq 'spec-first' -and $text -match '(STATUS|TODO|HISTORY)\.md' -and -not $dualMode) {
+            if ($text -match '(STATUS|TODO|HISTORY)\.md' -and -not $dualMode) {
                 Add-Finding $findings error migration-live-route $source 'Prompt routes to retired owners without an explicit workflowModelVersion mode selection.'
             }
         }
     }
 
-    $external=$config -and $config.PSObject.Properties.Name -contains 'canonicalMirrorMode' -and $config.canonicalMirrorMode -eq 'external'
+    $mirrorConfig=Get-WorkflowKitRepoConfig -RepoRoot $RepoRoot -Findings $findings
+    $external=$mirrorConfig -and $mirrorConfig.canonicalMirrorMode -eq 'external'
     $liveRoutes=@(
         @('workflow-kit.ps1','Get-WorkflowConfig','Test-SpecWorkflowRepo','select lint mode from workflowModelVersion'),
         @('agent-loop.ps1','Get-WorkflowConfig','workflow-scheduler\.ps1','route spec-first work through the gated scheduler'),
@@ -143,7 +144,7 @@ function Get-WorkflowMigrationPreview {
         $text=[IO.File]::ReadAllText($path); $compatible=$text -match $route[1] -and $text -match $route[2]
         $state=if ($tracked.ContainsKey($route[0])) {'tracked'} else {'untracked'}
         $dispositions.Add((New-WorkflowMigrationDisposition $route[0] $state $(if ($compatible) {'review-in-place'} else {'replace-incompatible-route'}) $route[0] $route[3])) | Out-Null
-        if ($mode -eq 'spec-first' -and -not $compatible) {
+        if (-not $compatible) {
             Add-Finding $findings error migration-live-route $route[0] 'Local validator or scheduler lacks the known spec-first routing sentinels.'
         }
     }
@@ -166,11 +167,13 @@ function Get-WorkflowMigrationPreview {
     }
 
     if ($mode -ne 'invalid') {
-        try { foreach ($finding in @(Test-WorkflowRepo $RepoRoot)) { $findings.Add($finding) | Out-Null } }
+        # Legacy lint requires owners that adoption retires; it is not readiness evidence.
+        try { if ($mode -eq 'spec-first') { foreach ($finding in @(Test-WorkflowRepo $RepoRoot)) { $findings.Add($finding) | Out-Null } } }
         catch { Add-Finding $findings error migration-lint '.' $_.Exception.Message }
         try { foreach ($finding in @(Test-WorkflowDrift -KitRoot $KitRoot -RepoRoot $RepoRoot)) { $findings.Add($finding) | Out-Null } }
         catch { Add-Finding $findings error migration-drift '.' $_.Exception.Message }
     }
+    Add-Finding $findings info migration-mechanical-limit '.' 'Ready means no detected mechanical migration blockers, not completed adoption. Prompt words and script function names are sentinels, not compatibility proof; external-kit routes are not inspected. Review prose and external kit behavior before activation.'
     $status=if (@($findings | Where-Object severity -eq 'error').Count) {'incomplete'} else {'ready'}
     [pscustomobject]@{ mode=$mode; status=$status; dispositions=@($dispositions); findings=@($findings) }
 }

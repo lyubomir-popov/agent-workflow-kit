@@ -1,7 +1,7 @@
 # Current work
 
-**Next tasks**: T057 (manual owner final acceptance); conditional delivery follow-ups T059/T060.
-**Blockers**: none for approved kit implementation; delivery prerequisites remain in [plan](plan.md#approval-and-delivery-boundaries).
+**Next tasks**: conditional delivery follow-ups T059/T060.
+**Blockers**: delivery prerequisites and authorization remain in [plan](plan.md#approval-and-delivery-boundaries).
 **Checkpoint links**: [slice gates](spec.md#checkpoints); [lean direction and handover](reviews/2026-10-14-lean-direction-handover.md).
 **Entry checkpoint**: CP3
 **Validation**: [tiered commands](quickstart.md) (FR-038); [final adoption summary](evidence/slice-c-validation.md).
@@ -137,7 +137,7 @@ implementer); vendor skill edits remain outside scope.
 - [x] T054 [US5] Convert all 13 source prompts to workflow-version dual mode and document the [ordinary Git adoption procedure](../../README.md#migrate-a-consumer-repository): copy both override templates, merge required config fields preserving arbitrary product/external ownership and consumer prose, reconcile routers, validate and commit; preserve legacy procedures, deprecate freshen-status to whats-next, retain proceed-autonomously as the overnight alias and leave prompt installation separate (manual) (gate: CP3).
 - [x] T055 [US5] Reuse recorded suite baselines; add `tests/Migration.Tests.ps1` with local fixture helpers for migrated, unmigrated and external-kit examples; validate the [planned cases and budgets](plan.md#slice-c-adoption-plan-for-owner-approval), measure added production lines and focused runtime, run directly affected coverage and report budget overruns per FR-038 (manual) (gate: CP3).
 - [x] T056 Run strict lint, scheduler dry run and whitespace checks and one final full suite on Slice C code; save the [single adoption summary](evidence/slice-c-validation.md) and [acceptance request](reviews/2026-10-16-cp4-acceptance-request.md) with actual counts/runtime and known gaps. CI after an authorized push remains open as T059 (manual) (gate: CP3).
-- [ ] T057 Owner final acceptance of the corrected adoption component at 27f452c: choose any reviewer or none, accept or name bounded corrections, and save the actual identity and accepted revision ([request](reviews/2026-10-16-cp4-acceptance-request.md)) (manual) (gate: CP3).
+- [x] T057 Record the [owner's acceptance of corrected adoption at 27f452c](reviews/2026-10-16-cp4-owner-acceptance.md), actual accepting identity and revision (manual) (gate: CP3).
 
 ## CP4 bounded corrections and delivery follow-ups
 

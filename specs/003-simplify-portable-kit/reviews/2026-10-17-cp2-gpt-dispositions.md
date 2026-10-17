@@ -4,6 +4,7 @@
 **Checkpoint**: CP2
 **Scope**: `003/spec-r1`, slice A
 **Reviewed revision**: `178bb95` plus the remediation diff; final integrated revision in the CP2 request.
+**Integrated revision**: `716823f475b8f8b0a537f93372f353b150c41295`
 
 Response to the [independent findings](2026-10-17-cp2-gpt-findings.md).
 

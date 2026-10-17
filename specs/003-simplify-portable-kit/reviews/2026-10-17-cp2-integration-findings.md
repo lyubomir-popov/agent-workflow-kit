@@ -1,7 +1,7 @@
 # CP2 orchestrator integration findings
 
 **Reviewer**: GPT orchestrator (self-review, not Opus)
-**Reviewed revision**: `178bb95` plus the slice A remediation diff; final code revision in the CP2 request.
+**Reviewed revision**: `716823f475b8f8b0a537f93372f353b150c41295`
 **Verdict**: accept
 **Scope**: `003/spec-r1`, slice A only; CP2 remains owner-pending.
 

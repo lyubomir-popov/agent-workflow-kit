@@ -1,10 +1,10 @@
 # Current work
 
-**Next tasks**: T005-T006, slice A verification/handoff only; stop at CP2.
-**Blockers**: none; later slices require owner checkpoint clearance.
+**Next tasks**: Opus/owner review of [CP2 request](reviews/2026-10-17-cp2-request.md); implementation stopped at CP2.
+**Blockers**: CP2 review and owner clearance before T007; see the checkpoint owner below.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
-**Validation**: package review evidence will record results once at CP2.
+**Validation**: [CP2 evidence](reviews/2026-10-17-cp2-validation.md).
 
 ## Planning
 
@@ -15,8 +15,8 @@
 - [x] T002 [S] Write failing Python fixtures for landing styles, discovery and every cleanup keep reason (gate: CP1).
 - [x] T003 [H] Implement config, Git metadata discovery, landing checks and `wt new|ls|clean` (FR-001-004, FR-010-014) (gate: CP1).
 - [x] T004 [S] Add portable launchers, composing hooks and AGENTS template with fixture coverage (FR-002, FR-015-016) (gate: CP1).
-- [ ] T005 [X] Run fixture checks and read-only real inventory comparison; add the Python CI matrix (SC-002-003) (gate: CP1).
-- [ ] T006 [H] Save independent findings/dispositions, validation and CP2 request; commit locally and stop (gate: CP1).
+- [x] T005 [X] Run fixture checks and read-only real inventory comparison; add the Python CI matrix (SC-002-003) (gate: CP1).
+- [x] T006 [H] Save independent findings/dispositions, validation and CP2 request; commit locally and stop (gate: CP1).
 
 ## Slice B: workflow core
 

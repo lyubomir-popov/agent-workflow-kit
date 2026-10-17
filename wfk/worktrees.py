@@ -60,14 +60,9 @@ def discover(roots):
             path = Path(folder)
             if '.git' in dirs or '.git' in files:
                 add(path)
-            # Linked checkout descendants cannot contain an independent primary
-            # repository by convention; still inspect nested repositories in primary.
-            if '.git' in files:
-                dirs[:] = []
-            else:
-                dirs[:] = [d for d in dirs if d not in {
-                    '.git', 'node_modules', '__pycache__', '.venv', '.pytest_cache',
-                } and not (path / d).is_symlink()]
+            dirs[:] = [d for d in dirs if d not in {
+                '.git', 'node_modules', '__pycache__', '.venv', '.pytest_cache',
+            } and not (path / d).is_symlink()]
     return repos, warnings
 
 
@@ -260,7 +255,7 @@ def _keep_reason(row, primary_path, cwd):
 def _delete_branch(repo, row):
     branch = row['branch']
     target, _ = config.resolve_target(repo)
-    if not branch or branch == target or not landed(repo, branch, target):
+    if not branch or branch == config.local_target_branch(repo, target) or not landed(repo, branch, target):
         return 'branch is target or no longer landed'
     if any(r.get('branch') == 'refs/heads/' + branch for r in records(repo)):
         return 'branch is checked out elsewhere'
@@ -283,7 +278,7 @@ def clean(repos, apply=False, quiet=False, orphans=False, scratch_roots=None):
             continue
         repo = Path(row['repo'])
         if row['kind'] == 'branch':
-            if row['branch'] == row['target']:
+            if row['branch'] == config.local_target_branch(repo, row['target']):
                 row['reason'] = 'target branch'
                 continue
             row.update(action='delete-branch', reason='landed local branch without worktree')

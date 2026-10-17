@@ -39,6 +39,7 @@ def parser():
     install.add_argument('--apply', action='store_true')
     hook_run = hooks.add_parser('run', help=argparse.SUPPRESS)
     _options(hook_run)
+    hook_run.add_argument('--apply', action='store_true')
     for name in ('run', 'lint', 'new', 'init', 'prompts'):
         future = commands.add_parser(name, help='planned for a later authorized slice')
         future.add_argument('--json', action='store_true')
@@ -95,7 +96,7 @@ def main(argv=None):
             from . import hooks
             repo = repo_root(args.repo or Path.cwd())
             result = (hooks.install(repo, apply=args.apply) if args.operation == 'install'
-                      else hooks.run(repo))
+                      else hooks.run(repo, apply=args.apply))
         else:
             raise ValueError(f'{args.command} is not implemented in slice A; await its owner gate')
         for warning in result.get('warnings', []):

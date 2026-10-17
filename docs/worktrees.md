@@ -13,6 +13,10 @@ Create a checkout with `wfk wt new feature/example`. Its default path is
 host-specific folders. Use `--root <folder>` to discover repositories beneath
 one or more folders, `--size` for disk usage, and `--json` for structured output.
 Rows include worktrees and landed local branches that have no checkout.
+Discovery skips Git internals, `node_modules`, `.venv`, `__pycache__` and
+`.pytest_cache`, and does not follow directory symlinks. Pass an excluded
+repository itself as `--root` to inspect it explicitly. Access errors are
+reported; listing does not change Git ownership trust settings.
 
 `wfk wt clean` previews cleanup. `wfk wt clean --apply` removes clean landed
 worktrees through Git, deletes landed local branches when safe, and prunes
@@ -27,9 +31,16 @@ it does not enable recursive filesystem deletion.
 ## Automatic cleanup after local Git operations
 
 Preview `wfk hooks install --repo <repo>` and apply it with `--apply`. This adds
-`post-merge` and `post-rewrite` wrappers in Git's effective hooks directory,
-including an existing relative or absolute `core.hooksPath`. Installation never
-changes that setting. Both preview and apply support `--json`.
+`post-merge` and `post-rewrite` wrappers in Git's effective hooks directory for
+every currently available registered checkout, including an existing relative
+or absolute `core.hooksPath`. Shared directories are updated once. Installation
+never changes that setting. Both preview and apply support `--json`.
+
+A relative `core.hooksPath` can name a different directory in each checkout.
+After a host creates another worktree, rerun `wfk hooks install --apply` so that
+checkout receives its wrapper too. Unavailable registered checkouts are skipped.
+Hooks in an untracked relative directory keep a checkout untracked, so cleanup
+preserves it. Installation does not add ignore rules or hide owner hook files.
 
 Existing hooks are backed up beside the wrapper without overwriting a previous
 backup. They run first with their original arguments, stdin and working
@@ -39,7 +50,8 @@ unchanged. A non-executable existing hook on POSIX stays inactive.
 
 The wrapper checks the branch in the checkout where Git fired the hook. Only
 the resolved target branch runs `wfk wt clean --apply --quiet` for that repo.
-The internal callback is `wfk hooks run --repo <checkout>`.
+The callback command `wfk hooks run --repo <checkout>` previews that action;
+only `--apply` performs cleanup. Installed wrappers explicitly apply cleanup.
 
 No local Git hook fires when a PR merges remotely. Cleanup runs after the next
 local pull of the target branch, when Git invokes `post-merge` or `post-rewrite`.

@@ -77,3 +77,17 @@ def resolve_target(repo):
         if commit(repo, f'refs/heads/{name}'):
             return name, name
     return None, 'unknown'
+
+
+def local_target_branch(repo, target):
+    """Name the local counterpart of a local or remote target ref."""
+    if not target:
+        return None
+    resolved = git(repo, 'rev-parse', '--symbolic-full-name', '--verify',
+                   '--end-of-options', target, check=False)
+    ref = resolved.stdout.strip() if resolved.returncode == 0 else ''
+    if ref.startswith('refs/heads/'):
+        return ref.removeprefix('refs/heads/')
+    if ref.startswith('refs/remotes/'):
+        return ref.removeprefix('refs/remotes/').partition('/')[2] or None
+    return None

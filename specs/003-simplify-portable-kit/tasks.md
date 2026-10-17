@@ -46,5 +46,11 @@
   a limit for CP2 review, not an owner-accepted change to FR-014.
 - Missing paths cannot be distinguished from unmounted drives. Keep their
   registrations and skip pruning in a repo with unavailable worktrees.
+- Relative hooks directories need installation in future host-created checkouts.
+  If those files are untracked, cleanup keeps the checkout; installation does
+  not hide owner hook files with new ignore rules.
+- Root discovery skips dependency/cache directories and directory symlinks;
+  an excluded repository can be passed directly as a root. Ownership/access
+  failures limit real-machine coverage; see the final validation evidence.
 - macOS/Linux execution and Python 3.10 are covered by the added CI matrix;
   this local Windows session cannot claim those jobs have run.

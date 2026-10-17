@@ -31,18 +31,13 @@ def _wrapper(backup: Path | None, executable: bool) -> str:
     if backup is not None and executable:
         lines.append(f"{shlex.quote(backup.as_posix())} \"$@\" || :")
     program = (f"import sys; sys.path.insert(0, {str(KIT)!r}); "
-               "from pathlib import Path; from wfk.hooks import run; run(Path.cwd())")
+               "from pathlib import Path; from wfk.hooks import run; run(Path.cwd(), apply=True)")
     lines.append(f"{shlex.quote(Path(sys.executable).as_posix())} -c {shlex.quote(program)} >/dev/null 2>&1 || :")
     lines.append("exit 0")
     return "\n".join(lines) + "\n"
 
 
-def install(repo: Path, apply: bool = False) -> dict:
-    """Preview or install wrappers, backing up each original without overwriting."""
-    repo = git.repo_root(Path(repo))
-    hooks_path = Path(git.git(repo, "rev-parse", "--git-path", "hooks").stdout.strip())
-    hooks_dir = hooks_path if hooks_path.is_absolute() else repo / hooks_path
-    hooks_dir = hooks_dir.resolve()
+def _install_directory(hooks_dir: Path, apply: bool) -> list[dict]:
     items = []
     for name in HOOKS:
         hook = hooks_dir / name
@@ -78,8 +73,37 @@ def install(repo: Path, apply: bool = False) -> dict:
                 if Path(temporary).exists():
                     Path(temporary).unlink()
         items.append(item)
-    return {"repo": str(repo), "hooks_dir": str(hooks_dir), "apply": apply,
-            "items": items, "diagnostics": []}
+    return items
+
+
+def install(repo: Path, apply: bool = False) -> dict:
+    """Compose hooks in each available checkout's effective hooks directory."""
+    from . import worktrees
+
+    repo = git.repo_root(Path(repo))
+    common = git.common_dir(repo)
+    directories, diagnostics = {}, []
+    for record in worktrees.records(repo):
+        checkout = Path(record["worktree"])
+        if not checkout.is_dir():
+            diagnostics.append(f"Skipped unavailable checkout: {checkout}")
+            continue
+        try:
+            if git.common_dir(checkout) != common:
+                diagnostics.append(f"Skipped checkout belonging to another repository: {checkout}")
+                continue
+            path = Path(git.git(checkout, "rev-parse", "--git-path", "hooks").stdout.strip())
+            directory = (path if path.is_absolute() else checkout / path).resolve()
+            directories.setdefault(os.path.normcase(str(directory)), directory)
+        except (git.GitError, OSError) as error:
+            diagnostics.append(f"Skipped checkout {checkout}: {error}")
+    items = []
+    for directory in directories.values():
+        items.extend(_install_directory(directory, apply))
+    paths = [str(path) for path in directories.values()]
+    return {"repo": str(repo), "hooks_dir": paths[0] if paths else None,
+            "hooks_dirs": paths, "apply": apply, "items": items,
+            "diagnostics": diagnostics, "warnings": diagnostics}
 
 
 def _cleanup(repo: Path) -> None:
@@ -90,21 +114,18 @@ def _cleanup(repo: Path) -> None:
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
 
 
-def run(repo: Path) -> dict:
+def run(repo: Path, apply: bool = False) -> dict:
     """Best-effort callback using the checkout where Git fired the hook."""
     try:
         repo = git.repo_root(Path(repo))
         target, source = config.resolve_target(repo)
         branch = git.git(repo, "symbolic-ref", "--quiet", "--short", "HEAD", check=False)
-        target_branch = target
-        if target and target.startswith("refs/heads/"):
-            target_branch = target[len("refs/heads/"):]
-        elif target and target.startswith("refs/remotes/"):
-            target_branch = target[len("refs/remotes/"):].partition("/")[2]
-        elif target and source == "origin/HEAD":
-            target_branch = target.removeprefix("origin/")
+        target_branch = config.local_target_branch(repo, target)
         if target is None or branch.returncode or branch.stdout.strip() != target_branch:
             return {"repo": str(repo), "status": "skipped", "reason": "not on target", "target": target}
+        if not apply:
+            return {"repo": str(repo), "status": "would-clean", "dry_run": True,
+                    "target": target, "target_source": source}
         _cleanup(repo)
         return {"repo": str(repo), "status": "completed", "target": target, "target_source": source}
     except Exception as error:

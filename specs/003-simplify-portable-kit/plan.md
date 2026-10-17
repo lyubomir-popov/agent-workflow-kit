@@ -33,7 +33,7 @@ this single config owner; no duplicate model table.
 ## Slice A: worktree hygiene (CP1 to CP2)
 
 Discover repositories beneath configured/explicit roots by walking directories,
-skipping Git internals and linked checkout contents, deduplicating by Git common
+skipping Git internals and dependency caches, deduplicating by Git common
 directory. Ask each Git common directory for `worktree list --porcelain -z`;
 never infer linked worktree locations from directory names. Include landed local
 branches without a checkout. Status comes from porcelain Git output with

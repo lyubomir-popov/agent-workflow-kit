@@ -284,6 +284,31 @@ class WorktreeFixtures(unittest.TestCase):
         self.assertEqual({str(Path(row["path"]).resolve()) for row in configured if row["kind"] == "worktree"},
                          {str(path.resolve()) for path in (first, second, foreign, nested)})
 
+    def test_remote_target_preserves_local_target_branch_from_detached_primary(self):
+        for index, explicit in enumerate((False, True)):
+            with self.subTest(explicit_config=explicit):
+                repo = self.repo('remote-target-' + str(index))
+                self.git(repo, 'update-ref', 'refs/remotes/origin/main', 'HEAD')
+                self.git(repo, 'symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/main')
+                if explicit:
+                    self.repo_config(repo, targetBranch='refs/remotes/origin/main')
+                self.git(repo, 'checkout', '--detach')
+                self.git(repo, 'branch', 'landed-idle')
+                preview = self.items(repo, 'clean')
+                target = next(row for row in preview if row['kind'] == 'branch' and row['branch'] == 'main')
+                self.assertEqual(target['action'], 'keep', target)
+                self.items(repo, 'clean', '--apply')
+                self.assertTrue(self.git(repo, 'branch', '--list', 'main'))
+                self.assertFalse(self.git(repo, 'branch', '--list', 'landed-idle'))
+
+    def test_nested_repository_inside_linked_checkout_is_discovered(self):
+        repo = self.repo()
+        linked = self.worktree(repo, 'container')
+        nested = self.repo('host-native/container/independent')
+        rows = self.items(self.root, 'ls', '--root', linked)
+        for path in (repo, linked, nested):
+            self.by_path(rows, path)
+
     def test_orphan_without_git_owner_is_reported_and_preserved(self):
         repo = self.repo()
         scratch = self.root / "scratch"

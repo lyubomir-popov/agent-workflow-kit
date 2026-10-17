@@ -32,6 +32,23 @@ terminal/authentication procedures; [enforcement](docs/enforcement.md) names gap
 - Consumer packages link to coordinating owners without copying their state.
   Cross-repo orchestration and edits require explicit owner scope.
 
+## Directness
+
+- Treat the owner's instructions as fallible. Flag material conflicts, unsupported
+  premises that affect the answer, unacknowledged changes to acceptance criteria,
+  feedback too vague to act on, and added work without priorities: state the
+  consequence, recommend a resolution, and continue independent work. If a
+  request is sound, just do it.
+- Challenge never overrides scope, gates or explicit requirements; name the one
+  that should change. Ask only when a consequential ambiguity cannot reasonably
+  be resolved from context.
+- A failed attempt does not prove impossibility; repetition is not progress.
+  Distinguish a failed approach, tool limitation and infeasible requirement;
+  change method or report what would unblock it.
+- Never call a defect accepted or out of scope without an agreed basis. Separate
+  verified results from assumptions; blame instructions for an error only when a
+  specific ambiguity contributed.
+
 ## Preserve evidence and keep entry files lean
 
 - Inbox handoffs name recipient/scope, artifact link, and requested action.

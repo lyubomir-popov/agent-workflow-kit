@@ -1,11 +1,48 @@
 # Slice A validation evidence
 
 **Scope**: `003/spec-r1`, CP1 through CP2 only
-**Final code revision**: `716823f475b8f8b0a537f93372f353b150c41295`
-**Review base**: `de9c365c8b32e217f2acf0e39b9e9eb976bd0e9b`
+**Final code revision**: `6ed3022211a7e8697331b36fc6c6619075b75e58`
+**Remediation base**: `b6a375e0341bda8ca1d82f8ecdbf106fd70c016b`
+**Original slice code revision**: `716823f475b8f8b0a537f93372f353b150c41295`
+**Original review base**: `de9c365c8b32e217f2acf0e39b9e9eb976bd0e9b`
 **Local environment**: Windows, Git 2.52.0, Python 3.11.9, PowerShell 7
 
-## Test-first and fixture coverage
+## Opus remediation validation (latest)
+
+Required fixes follow [Opus round 2](2026-10-17-cp2-opus-findings.md) and its
+[matching dispositions](2026-10-17-cp2-opus-dispositions.md). No third round ran.
+Test-first regressions reproduced standalone branch deletion and fresh attached/
+detached worktree removal. The activity fixture initially had a setup error on
+Git's message-less first reflog entry; after correcting it, it failed on actual
+recent-worktree removal. The `.husky` fixture failed both preview and apply
+before hook preflight was repaired. These failures occurred in temp repos only.
+
+`python -m unittest discover -s tests_python -v`: **46 run, OK (skipped=1)**,
+80.231 seconds, on the final code. Tests cover default standalone preservation,
+explicit branch preview/apply, immutable default/custom protection, actual HEAD
+movement, recent HEAD/admin activity independently, old landed removal, missing
+logs, invalid grace values, checkout hook refusal, all-or-nothing installation,
+external/admin hook composition and the hook's omission of `--branches`.
+Earlier fixture expectations were updated to use actual committed/landed work;
+ordinary removal tests explicitly disable grace to isolate their own guard.
+
+- Mandatory full legacy `pwsh -NoLogo -NoProfile -File ./tests/run-tests.ps1`
+  on the remediation code: **284 passed, 0 failed, 0 skipped**, 1944.62 seconds.
+  One full run on this final code; subsequent changes are records only.
+- Strict lint, scheduler dry run, staged and unstaged whitespace checks pass.
+  A stale next-task header was caught and reconciled before the local commit.
+  The staged checker passed without bypass; no real worker was invoked.
+- `git diff --check b6a375e..HEAD` passes at the remediation commit.
+- Existing real-machine inventory below is retained as earlier evidence;
+  discovery was unchanged, so the broad scan was not rerun just to refresh it.
+- No real worktree/branch cleanup, hook installs, consumer writes or pushes.
+- Logging and unavailable-entry pruning are deferred minor findings, recorded
+  in tasks. All-ignored-file deletion is now explicit in docs and preview.
+- Orphan manual removal is the implementer's recommendation; the owner retains
+  the FR-014 amendment and CP2 decision. Disk size for ownerless orphans is not
+  yet calculated by the existing `--size` path.
+
+## Original slice test-first and fixture coverage
 
 The first config run failed with `ModuleNotFoundError: No module named wfk`.
 The worktree worker's full initial run executed 12 tests and produced 15 expected
@@ -13,7 +50,7 @@ failures (including landing-style subtests), all missing `wfk.__main__`. Hook
 fixtures initially ran 11 tests: 7 failures, 3 errors and 1 platform skip from
 missing implementation. Fixture setup/teardown succeeded.
 
-`python -m unittest discover -s tests_python -v` on the final code: **36 run,
+`python -m unittest discover -s tests_python -v` before Opus: **36 run,
 OK (skipped=1)** in 79.944 seconds. The POSIX launcher test is skipped on Windows.
 Fixtures exercise fast-forward, merge, squash and rebase landing; later commits;
 ignored output removal; dirty/untracked/locked/unlanded/primary/current/detached
@@ -53,10 +90,10 @@ push, merge or rebase was performed. Destructive fixtures used unique temporary
 directories; inventory's merge probes used temporary objects and optional Git
 locks were disabled.
 
-## Checkpoint checks
+## Original checkpoint checks (before Opus)
 
 - Full legacy `pwsh -NoLogo -NoProfile -File ./tests/run-tests.ps1`: **284 passed,
-  0 failed, 0 skipped**, in 1754.35 seconds. One full run on the final code.
+  0 failed, 0 skipped**, in 1754.35 seconds, on the original slice code.
 - Strict legacy lint and scheduler dry run: clean before code commits; zero
   worker invocations. The preview stops before T007 at uncleared CP2. Spec 001's
   pre-existing manual T059 remains unchanged.
@@ -70,5 +107,5 @@ locks were disabled.
   the working reviewed escalation path. No fallback altered machine settings.
 
 Known behavior limits and remaining owner decisions live in
-[tasks](../tasks.md#known-limits). CP2 remains pending for Opus/owner; slices B-D
+[tasks](../tasks.md#known-limits). CP2 remains pending for the owner; slices B-D
 are unimplemented and their gates are unchanged.

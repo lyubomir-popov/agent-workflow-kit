@@ -4,7 +4,7 @@
 **Checkpoint**: CP2
 **Scope**: `003/spec-r1`, slice A remediation only
 **Review base**: `b6a375e0341bda8ca1d82f8ecdbf106fd70c016b`
-**Integrated revision**: final source revision will be named in the owner handoff.
+**Integrated revision**: `6ed3022211a7e8697331b36fc6c6619075b75e58`
 
 Response to [round 2 Opus findings](2026-10-17-cp2-opus-findings.md). This is
 implementation and self-verification, not a third review or CP2 clearance.

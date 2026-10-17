@@ -7,4 +7,4 @@ unresolved handoffs until receipt and resolution or durable transfer.
 Receipt or durable transfer must preserve the package's full evidence.
 
 - Recipient: repository owner; Scope: `001/spec-r2` delivery follow-ups; Artifacts: [acceptance](specs/001-spec-first-workflow/reviews/2026-10-16-cp4-owner-acceptance.md), [tasks](specs/001-spec-first-workflow/tasks.md); Action: scope the push/CI and installation steps needed for T059/T060.
-- Recipient: GPT implementer; Scope: `003/spec-r1` slice A on `feat/003-simplify-portable-kit`; Artifact: [CP2 Opus findings](specs/003-simplify-portable-kit/reviews/2026-10-17-cp2-opus-findings.md); Action: fix findings 1–3 with fixtures, disposition 4–6, record validation, stop for owner CP2 decision.
+- Recipient: repository owner; Scope: `003/spec-r1` slice A on `feat/003-simplify-portable-kit`; Artifact: [CP2 remediation handoff](specs/003-simplify-portable-kit/reviews/2026-10-17-cp2-owner-handoff.md); Action: decide CP2 from saved dispositions/evidence, or explicitly request a targeted check; both review rounds are used.

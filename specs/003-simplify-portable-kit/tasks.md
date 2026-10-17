@@ -1,6 +1,6 @@
 # Current work
 
-**Next tasks**: T020, final validation/dispositions for [Opus remediation](reviews/2026-10-17-cp2-opus-findings.md); then stop for the owner.
+**Next tasks**: owner CP2 decision from the [remediation handoff](reviews/2026-10-17-cp2-owner-handoff.md); implementation stopped.
 **Blockers**: CP2 owner clearance before T007; both review rounds are used.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
@@ -22,7 +22,7 @@
 
 - [x] T018 [H] Add failing fixtures and fix standalone branch opt-in/protection plus fresh/recent worktree preservation (findings 1-2) (gate: CP1).
 - [x] T019 [S] Refuse automatic hook installation inside checkout files with a regression fixture (finding 3) (gate: CP1).
-- [ ] T020 [X] Disposition findings 4-6, run final validation, save evidence and stop for the CP2 owner decision (gate: CP1).
+- [x] T020 [X] Disposition findings 4-6, run final validation, save evidence and stop for the CP2 owner decision (gate: CP1).
 
 ## Slice B: workflow core
 
@@ -57,6 +57,9 @@
   and a listing warning are deferred, without claiming they were fixed.
 - Missing registrations remain preserved even when a parent exists. There is
   no explicit prune opt-in yet (Opus finding 5); owner pruning is manual.
+- Catalog-declared branch protection joins in slice B. Standalone branches are
+  kept by default now; before opting into `--branches`, add active package branch
+  patterns to `protectedBranches` explicitly.
 - HEAD/branch reflog evidence missing, malformed, disabled or reftable-only means
   kept. The grace clock is Git HEAD activity/admin mtime; ignored-file changes
   alone do not refresh it. All ignored files are deleted when removal applies,

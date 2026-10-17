@@ -11,7 +11,7 @@
 
 | ID | Gate | Verdict link | State |
 |---|---|---|---|
-| CP1 | Owner spec acceptance | [request](reviews/2026-10-17-cp1-request.md); findings awaited | pending |
+| CP1 | Owner spec acceptance | [request](reviews/2026-10-17-cp1-request.md); [owner acceptance](reviews/2026-10-17-cp1-owner-acceptance.md) | owner-cleared |
 | CP2 | Slice A review: worktree hygiene | not yet requested | pending |
 | CP3 | Slice B review: workflow core | not yet requested | pending |
 | CP4 | Slice C review: scheduler | not yet requested | pending |

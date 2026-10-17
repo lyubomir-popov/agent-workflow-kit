@@ -152,9 +152,9 @@ target is `main`; consumers use their own configured target.
 On failure, creation restores the original branch (or detached head), retains
 registration and partial artifacts, and reports any restoration failure alongside
 the creation failure. The target must already contain the versioned config and
-project overrides. This kit's main at `864cad5` predates slice A, so new packages,
-including Spec 002, cannot be created until slice A is delivered to main. CP2
-authorization remains package-owned; code implementation does not merge slice A early.
+project overrides. A target that predates those assets cannot create versioned
+packages until the accepted tooling is landed there. New package creation,
+including Spec 002, still needs its own owner scope.
 
 `agent-loop.ps1` dispatches isolated workers. `-Agent Auto` chooses Codex from
 a Codex environment and Copilot otherwise. In spec-first mode, discovery reads

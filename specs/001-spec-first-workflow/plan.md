@@ -338,10 +338,15 @@ Unattended execution, real cleanup, merging and pushing remain separately scoped
 owner actions; approving code work does not silently authorize them. CP3 guards
 slice C after slice B review and acceptance.
 
-New packages, including Spec 002, still wait for slice A to land on main. This
-plan does not propose an early merge. Main/master remain at 864cad5 and the remote
-default is unchanged. Owner steps remain delivery/push of main, switching the
-remote default, and retiring master. No remote CI success is claimed. The older
+On 2026-10-17 the owner authorized committing the AGENTS update and locally
+merging the accepted implementation into main if no task was due before landing.
+Only conditional T059 (CI after authorized push) and T060 (placeholder removal
+after authorized prompt installation) remain; neither is a pre-landing task.
+This integration makes the creation tooling available on main. Spec 001 remains
+active for those follow-ups; final package delivery/archive and cleanup are not
+part of this integration. New packages, including Spec 002, retain their separate
+authorization requirement. No push, remote-default change, branch retirement or
+prompt installation is authorized here. No remote CI success is claimed. The older
 whitespace baseline and CPA-r3 self-hosted code-integrity limit remain explicit
 gaps; cross-repository orchestration, consumer rollout and prompt installation
 are outside this plan.

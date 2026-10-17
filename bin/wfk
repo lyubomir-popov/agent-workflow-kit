@@ -1,0 +1,19 @@
+#!/bin/sh
+# Resolve the kit relative to this launcher, independent of the caller's cwd.
+WFK_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd) || exit 1
+if [ -n "${PYTHONPATH:-}" ]; then
+    PYTHONPATH="$WFK_ROOT:$PYTHONPATH"
+else
+    PYTHONPATH="$WFK_ROOT"
+fi
+export PYTHONPATH
+for WFK_PYTHON in python3 python; do
+    if command -v "$WFK_PYTHON" >/dev/null 2>&1 && "$WFK_PYTHON" -c 'import sys; sys.exit(sys.version_info < (3, 10))' >/dev/null 2>&1; then
+        exec "$WFK_PYTHON" -m wfk "$@"
+    fi
+done
+if command -v py >/dev/null 2>&1 && py -3 -c 'import sys; sys.exit(sys.version_info < (3, 10))' >/dev/null 2>&1; then
+    exec py -3 -m wfk "$@"
+fi
+echo 'wfk requires Python 3.10 or newer (python3, python, or py).' >&2
+exit 1

@@ -1,0 +1,21 @@
+name: Portable Python fixtures
+on:
+  push:
+  pull_request:
+jobs:
+  fixtures:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        python: ['3.10', '3.x']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Standard-library fixture suite
+        run: python -m unittest discover -s tests_python -v
+      - name: CLI help
+        run: python -m wfk --help

@@ -1,6 +1,6 @@
 # Current work
 
-**Next tasks**: T002-T006, slice A only; stop at CP2.
+**Next tasks**: T005-T006, slice A verification/handoff only; stop at CP2.
 **Blockers**: none; later slices require owner checkpoint clearance.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
@@ -12,9 +12,9 @@
 
 ## Slice A: worktree hygiene
 
-- [ ] T002 [S] Write failing Python fixtures for landing styles, discovery and every cleanup keep reason (gate: CP1).
-- [ ] T003 [H] Implement config, Git metadata discovery, landing checks and `wt new|ls|clean` (FR-001-004, FR-010-014) (gate: CP1).
-- [ ] T004 [S] Add portable launchers, composing hooks and AGENTS template with fixture coverage (FR-002, FR-015-016) (gate: CP1).
+- [x] T002 [S] Write failing Python fixtures for landing styles, discovery and every cleanup keep reason (gate: CP1).
+- [x] T003 [H] Implement config, Git metadata discovery, landing checks and `wt new|ls|clean` (FR-001-004, FR-010-014) (gate: CP1).
+- [x] T004 [S] Add portable launchers, composing hooks and AGENTS template with fixture coverage (FR-002, FR-015-016) (gate: CP1).
 - [ ] T005 [X] Run fixture checks and read-only real inventory comparison; add the Python CI matrix (SC-002-003) (gate: CP1).
 - [ ] T006 [H] Save independent findings/dispositions, validation and CP2 request; commit locally and stop (gate: CP1).
 
@@ -40,5 +40,11 @@
 
 ## Known limits
 
-None recorded yet. Preserve uncertain cases with a clear reason; do not add
-closeout proof machinery. Owner acceptance, not implementation, clears gates.
+- Orphans without a Git owner are listed and kept even with `--orphans`:
+  removal cannot use the required `git worktree remove`; manual recovery/removal
+  is needed. No recursive filesystem deletion fallback is implemented. This is
+  a limit for CP2 review, not an owner-accepted change to FR-014.
+- Missing paths cannot be distinguished from unmounted drives. Keep their
+  registrations and skip pruning in a repo with unavailable worktrees.
+- macOS/Linux execution and Python 3.10 are covered by the added CI matrix;
+  this local Windows session cannot claim those jobs have run.

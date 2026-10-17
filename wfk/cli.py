@@ -32,6 +32,7 @@ def parser():
     clean.add_argument('--apply', action='store_true')
     clean.add_argument('--quiet', action='store_true')
     clean.add_argument('--orphans', action='store_true')
+    clean.add_argument('--branches', action='store_true', help='also delete eligible standalone local branches')
     hooks = commands.add_parser('hooks', help='composing cleanup hooks').add_subparsers(
         dest='operation', required=True)
     install = hooks.add_parser('install', help='preview hook installation')
@@ -90,7 +91,7 @@ def main(argv=None):
             else:
                 result = worktrees.clean(repos, apply=args.apply, quiet=args.quiet,
                                          orphans=args.orphans,
-                                         scratch_roots=config.load()['scratchRoots'])
+                                         scratch_roots=config.load()['scratchRoots'], branches=args.branches)
             result['warnings'] = warnings + result['warnings']
         elif args.command == 'hooks':
             from . import hooks

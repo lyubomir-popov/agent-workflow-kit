@@ -10,6 +10,25 @@ from wfk import config
 
 
 class ConfigTests(unittest.TestCase):
+    def test_cleanup_defaults_and_invalid_grace_are_not_silently_accepted(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            path = root / 'user.json'
+            with patch.dict(os.environ, {'WFK_CONFIG': str(path)}):
+                value = config.load()
+                self.assertEqual(value['cleanupGraceHours'], 24)
+                self.assertIn('develop', value['protectedBranches'])
+                self.assertIn('release/*', value['protectedBranches'])
+                for raw in ('-1', 'true', '"0"', 'NaN', 'Infinity'):
+                    path.write_text('{"cleanupGraceHours":' + raw + '}', encoding='utf-8')
+                    with self.assertRaises(ValueError):
+                        config.load()
+                path.write_text('{"cleanupGraceHours":0,"protectedBranches":["keep/*"]}', encoding='utf-8')
+                value = config.load()
+                self.assertEqual(value['cleanupGraceHours'], 0)
+                self.assertIn('keep/*', value['protectedBranches'])
+                self.assertIn('main', value['protectedBranches'])
+
     def test_repo_paths_and_v1_diagnostics(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

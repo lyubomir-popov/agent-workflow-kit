@@ -1,7 +1,7 @@
 # Current work
 
-**Next tasks**: Opus/owner review of [CP2 request](reviews/2026-10-17-cp2-request.md); implementation stopped at CP2.
-**Blockers**: CP2 review and owner clearance before T007; see the checkpoint owner below.
+**Next tasks**: T020, final validation/dispositions for [Opus remediation](reviews/2026-10-17-cp2-opus-findings.md); then stop for the owner.
+**Blockers**: CP2 owner clearance before T007; both review rounds are used.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
 **Validation**: [CP2 evidence](reviews/2026-10-17-cp2-validation.md).
@@ -17,6 +17,12 @@
 - [x] T004 [S] Add portable launchers, composing hooks and AGENTS template with fixture coverage (FR-002, FR-015-016) (gate: CP1).
 - [x] T005 [X] Run fixture checks and read-only real inventory comparison; add the Python CI matrix (SC-002-003) (gate: CP1).
 - [x] T006 [H] Save independent findings/dispositions, validation and CP2 request; commit locally and stop (gate: CP1).
+
+## CP2 Opus remediation (owner-authorized, no third review)
+
+- [x] T018 [H] Add failing fixtures and fix standalone branch opt-in/protection plus fresh/recent worktree preservation (findings 1-2) (gate: CP1).
+- [x] T019 [S] Refuse automatic hook installation inside checkout files with a regression fixture (finding 3) (gate: CP1).
+- [ ] T020 [X] Disposition findings 4-6, run final validation, save evidence and stop for the CP2 owner decision (gate: CP1).
 
 ## Slice B: workflow core
 
@@ -46,9 +52,15 @@
   a limit for CP2 review, not an owner-accepted change to FR-014.
 - Missing paths cannot be distinguished from unmounted drives. Keep their
   registrations and skip pruning in a repo with unavailable worktrees.
-- Relative hooks directories need installation in future host-created checkouts.
-  If those files are untracked, cleanup keeps the checkout; installation does
-  not hide owner hook files with new ignore rules.
+- Hooks inside checkout files are refused with manual composition instructions.
+  Automatic hook failures are still silent (Opus finding 4); persistent logging
+  and a listing warning are deferred, without claiming they were fixed.
+- Missing registrations remain preserved even when a parent exists. There is
+  no explicit prune opt-in yet (Opus finding 5); owner pruning is manual.
+- HEAD/branch reflog evidence missing, malformed, disabled or reftable-only means
+  kept. The grace clock is Git HEAD activity/admin mtime; ignored-file changes
+  alone do not refresh it. All ignored files are deleted when removal applies,
+  including secrets, notes and tmp evidence (documented for finding 6).
 - Root discovery skips dependency/cache directories and directory symlinks;
   an excluded repository can be passed directly as a root. Ownership/access
   failures limit real-machine coverage; see the final validation evidence.

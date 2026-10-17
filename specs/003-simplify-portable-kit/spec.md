@@ -171,23 +171,35 @@ README.md; no existing file changes; a checklist names the manual merges.
 - **FR-012**: `wfk wt ls` MUST report orphan directories under configured
   scratch roots (defaults include the old `agent-loop-worktrees` temp folder)
   whose `.git` link points to a missing or unaware repository.
-- **FR-013**: A branch or detached commit is *landed* when it is an ancestor
-  of the target, or when `git merge-tree --write-tree <target> <rev>` produces
+- **FR-013**: A branch or detached checkout is *landed* only with reflog
+  evidence of actual HEAD/ref movement since creation, and either it is an ancestor
+  of the target or `git merge-tree --write-tree <target> <rev>` produces
   the target's own tree (covers squash and rebase landings). The target comes
   from repo config, then `origin/HEAD`, then `main`/`master`; output names
-  which. Unknown target means nothing is landed.
+  which. Unknown target or movement evidence means nothing is landed. Cleanup
+  MUST keep worktrees with activity in the last 24 hours by default,
+  configurable via `cleanupGraceHours`; activity is the newer of the newest
+  HEAD reflog timestamp and worktree admin-directory mtime.
 - **FR-014**: `wfk wt clean --apply` MUST remove only worktrees that are not the
   primary checkout or the current directory, not locked, have no tracked
   changes and no untracked non-ignored files, and are landed. It MUST use
   `git worktree remove` (no recursive filesystem deletion), then delete the
-  local branch when landed and not checked out elsewhere, then run
-  `git worktree prune`. Kept items list their reason. Remote branches are never
+  local branch when landed, unprotected and not checked out elsewhere, then run
+  `git worktree prune`. Standalone branches are listed only unless `--branches`
+  is explicitly requested; hooks MUST NOT request that flag. Always protect the
+  target and `main`, `master`, `develop`, `trunk`, `release/*`; configurable
+  `protectedBranches` adds patterns. Protected worktrees are also kept. Slice B
+  adds catalog-declared branch protection. Kept items list their reason. Remote branches are never
   touched. Orphan directories are removed only with `--orphans`, and only
   inside configured scratch roots.
 - **FR-015**: `wfk hooks install` MUST add `post-merge` and `post-rewrite`
   hooks that run `wfk wt clean --apply --quiet` for that repo when the target
   branch is checked out. It MUST compose with existing hooks, never change
-  `core.hooksPath`, and never fail the Git operation. Documentation MUST state
+  `core.hooksPath`, and never fail the Git operation.
+  Hook installation MUST refuse a resolved hooks directory inside any checkout's
+  ordinary files, such as `.husky`, without writing files, and print manual
+  composition instructions. Git administrative hook storage remains allowed.
+  Documentation MUST state
   that no Git hook fires when a PR merges remotely; cleanup runs at the next
   local pull of the target. `wfk run` also cleans its own worktrees at the end.
 - **FR-016**: The AGENTS template MUST tell agents to create worktrees with

@@ -12,17 +12,38 @@ Create a checkout with `wfk wt new feature/example`. Its default path is
 `wfk wt ls` reads the current repository's Git metadata, including checkouts in
 host-specific folders. Use `--root <folder>` to discover repositories beneath
 one or more folders, `--size` for disk usage, and `--json` for structured output.
-Rows include worktrees and landed local branches that have no checkout.
+Rows include worktrees and local branches contained in the target that have no
+checkout. A fresh branch/check-out without actual reflog movement is not landed.
 Discovery skips Git internals, `node_modules`, `.venv`, `__pycache__` and
 `.pytest_cache`, and does not follow directory symlinks. Pass an excluded
 repository itself as `--root` to inspect it explicitly. Access errors are
 reported; listing does not change Git ownership trust settings.
 
-`wfk wt clean` previews cleanup. `wfk wt clean --apply` removes clean landed
-worktrees through Git, deletes landed local branches when safe, and prunes
-stale metadata. The primary and current checkouts, locked or unavailable paths,
-tracked changes, untracked non-ignored files and uncertain landing evidence
-keep the checkout. Ignored build output can be removed with a landed checkout.
+`wfk wt clean` previews cleanup. `wfk wt clean --apply` removes eligible landed
+worktrees through Git and their unprotected local branches, then prunes when
+safe. Standalone branches are listed only; `wfk wt clean --branches` previews
+their deletion and `--branches --apply` opts in. Hooks never request `--branches`.
+The target, `main`, `master`, `develop`, `trunk`, `release/*` and additional
+`protectedBranches` patterns are always kept, including their worktrees.
+
+The primary and current checkouts, locked or unavailable paths, tracked changes,
+untracked non-ignored files and uncertain landing or HEAD movement evidence
+keep the checkout. A new worktree stays protected until its HEAD has actually
+moved, even with the grace period disabled. HEAD initialization/reset entries
+that repeat the same commit do not count. Missing reflogs (including expired or
+disabled logs or unsupported storage) keep work. Reftable-only reflogs are not
+currently read by this command.
+
+The default 24-hour activity grace also keeps recently active worktrees. Activity
+is the newer of the newest HEAD reflog event and the Git admin directory's mtime;
+`cleanupGraceHours` changes the interval, with `0` explicitly disabling this age
+guard. Movement, activity, status, landing and protection are rechecked before
+removal. Uncommitted activity visible only in ignored files does not refresh this
+Git activity clock.
+
+**Removal deletes ALL ignored files inside the worktree**, including `.env*`,
+secrets, local notes, `tmp/` evidence and build output. Ignored does not mean
+disposable. Both human and JSON preview reasons state this consequence.
 Remote branches are never deleted. Orphans are reported under configured
 scratch roots and kept for manual recovery when Git has no owner that can
 remove them safely. `--orphans` is an explicit opt-in for orphan handling;
@@ -31,22 +52,26 @@ it does not enable recursive filesystem deletion.
 ## Automatic cleanup after local Git operations
 
 Preview `wfk hooks install --repo <repo>` and apply it with `--apply`. This adds
-`post-merge` and `post-rewrite` wrappers in Git's effective hooks directory for
-every currently available registered checkout, including an existing relative
-or absolute `core.hooksPath`. Shared directories are updated once. Installation
-never changes that setting. Both preview and apply support `--json`.
+`post-merge` and `post-rewrite` wrappers in Git's effective administrative or
+external hooks directory. Shared directories are updated once. Installation
+never changes `core.hooksPath`. Both preview and apply support `--json`.
 
-A relative `core.hooksPath` can name a different directory in each checkout.
-After a host creates another worktree, rerun `wfk hooks install --apply` so that
-checkout receives its wrapper too. Unavailable registered checkouts are skipped.
-Hooks in an untracked relative directory keep a checkout untracked, so cleanup
-preserves it. Installation does not add ignore rules or hide owner hook files.
+Installation refuses when any effective hooks directory is inside a registered
+checkout's ordinary files, including relative `.husky`/`.githooks` paths and
+absolute paths inside another checkout. It refuses the whole operation before
+writing a wrapper or backup. Git's own `.git/hooks` storage is allowed. The error
+prints a target-guarded manual composition line for an existing hook, such as
+`[ "$(git symbolic-ref --quiet --short HEAD)" = main ] && wfk wt clean --apply --quiet || :`.
+Adapt `main` to the resolved target; keep machine-specific paths out of tracked
+hook files. Unavailable checkouts are skipped and reported.
 
 Existing hooks are backed up beside the wrapper without overwriting a previous
 backup. They run first with their original arguments, stdin and working
 directory. Cleanup still runs when an existing hook fails; wrapper failures
 never fail the Git operation. Repeating installation leaves managed wrappers
 unchanged. A non-executable existing hook on POSIX stays inactive.
+Automatic hook failures are currently silent; the callback can be run explicitly
+with `--json` for its status. Persistent hook logging is a known limit.
 
 The wrapper checks the branch in the checkout where Git fired the hook. Only
 the resolved target branch runs `wfk wt clean --apply --quiet` for that repo.
@@ -64,7 +89,9 @@ again from the new kit location.
 ## Configuration
 
 The repo's `.workflow-kit.json` accepts `workflowModelVersion: 2`,
-`targetBranch`, `worktreeRoot` and `scratchRoots`. User defaults live at
+`targetBranch`, `worktreeRoot`, `scratchRoots`, `protectedBranches` (additional
+glob patterns) and `cleanupGraceHours` (a finite nonnegative number, default 24).
+Protected defaults cannot be removed by configuration. User defaults live at
 `~/.config/wfk/config.json`, or the path named by `WFK_CONFIG`; user `repoRoots`
 set default discovery roots. Repo values override user defaults. Relative repo
 paths resolve from the repo; relative user paths resolve from the config's

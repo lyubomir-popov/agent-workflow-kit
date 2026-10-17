@@ -1,11 +1,15 @@
 """User defaults and per-repository settings, without migration side effects."""
 
 import json
+import math
 import os
 import tempfile
 from pathlib import Path
 
 from .git import commit, git
+
+
+PROTECTED_BRANCHES = ('main', 'master', 'develop', 'trunk', 'release/*')
 
 
 def _read(path):
@@ -20,13 +24,16 @@ def _read(path):
     version = value.get('workflowModelVersion', 2)
     if type(version) is not int or version not in (1, 2):
         raise ValueError(f'Unsupported workflowModelVersion in {path}: {version}')
-    for key in ('repoRoots', 'scratchRoots'):
+    for key in ('repoRoots', 'scratchRoots', 'protectedBranches'):
         if key in value and (not isinstance(value[key], list) or
                              any(not isinstance(p, str) for p in value[key])):
             raise ValueError(f'{key} must be a list of paths: {path}')
     for key in ('targetBranch', 'worktreeRoot'):
         if key in value and (not isinstance(value[key], str) or not value[key]):
             raise ValueError(f'{key} must be a nonempty string: {path}')
+    hours = value.get('cleanupGraceHours', 24)
+    if type(hours) not in (int, float) or not math.isfinite(hours) or hours < 0:
+        raise ValueError(f'cleanupGraceHours must be a finite nonnegative number: {path}')
     return value
 
 
@@ -41,11 +48,18 @@ def load(repo=None):
     local = _read(Path(repo) / '.workflow-kit.json') if repo is not None else {}
     result = dict(user, **local)
     result['warnings'] = []
+    result['protectedBranches'] = list(PROTECTED_BRANCHES)
+    result['cleanupGraceHours'] = 24
     for data, name in ((user, 'user config'), (local, 'repo config')):
         if data.get('workflowModelVersion') == 1:
             ignored = sorted(set(data) - {'workflowModelVersion', 'targetBranch'})
             if ignored:
                 result['warnings'].append(f'{name}: ignored v1 fields: {", ".join(ignored)}')
+        else:
+            result['protectedBranches'].extend(data.get('protectedBranches', []))
+            if 'cleanupGraceHours' in data:
+                result['cleanupGraceHours'] = data['cleanupGraceHours']
+    result['protectedBranches'] = list(dict.fromkeys(result['protectedBranches']))
     # Version-one-only fields never silently acquire version-two meaning.
     for key in ('repoRoots', 'scratchRoots', 'worktreeRoot'):
         source = local if key in local else user

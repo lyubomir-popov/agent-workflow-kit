@@ -77,13 +77,15 @@ def _install_directory(hooks_dir: Path, apply: bool) -> list[dict]:
 
 
 def install(repo: Path, apply: bool = False) -> dict:
-    """Compose hooks in each available checkout's effective hooks directory."""
+    """Compose effective hooks, refusing checkout files before any writes."""
     from . import worktrees
 
     repo = git.repo_root(Path(repo))
     common = git.common_dir(repo)
+    registrations = worktrees.records(repo)
+    checkouts = [Path(record["worktree"]).resolve() for record in registrations]
     directories, diagnostics = {}, []
-    for record in worktrees.records(repo):
+    for record in registrations:
         checkout = Path(record["worktree"])
         if not checkout.is_dir():
             diagnostics.append(f"Skipped unavailable checkout: {checkout}")
@@ -97,6 +99,21 @@ def install(repo: Path, apply: bool = False) -> dict:
             directories.setdefault(os.path.normcase(str(directory)), directory)
         except (git.GitError, OSError) as error:
             diagnostics.append(f"Skipped checkout {checkout}: {error}")
+    # Validate the whole installation before creating any hooks or backups.
+    # The common Git directory is administrative storage, even when the primary
+    # checkout contains it as .git; checkout files must never receive wrappers.
+    for directory in directories.values():
+        for checkout in checkouts:
+            administrative = common.is_relative_to(checkout) and directory.is_relative_to(common)
+            if directory.is_relative_to(checkout) and not administrative:
+                target, _ = config.resolve_target(repo)
+                target_branch = config.local_target_branch(repo, target) or "<target-branch>"
+                manual = ('[ "$(git symbolic-ref --quiet --short HEAD)" = '
+                          f'{shlex.quote(target_branch)} ] && wfk wt clean --apply --quiet || :')
+                raise ValueError(
+                    f"Refusing hook installation: effective hooks directory {directory} "
+                    "is inside a registered checkout; generated wrappers contain machine paths.\n"
+                    f"Manually compose into the existing hook, running from the checkout: {manual}")
     items = []
     for directory in directories.values():
         items.extend(_install_directory(directory, apply))

@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 
@@ -24,7 +25,9 @@ class WorktreeFixtures(unittest.TestCase):
         self.root = Path(self.temporary.name).resolve()
         self.config = self.root / "user" / "config.json"
         self.config.parent.mkdir()
-        self.config.write_text("{}", encoding="utf-8")
+        # Most cases test exclusions other than age; the grace regression uses
+        # the actual default independently, without waiting a day.
+        self.config.write_text('{"cleanupGraceHours":0}', encoding="utf-8")
         self.env = os.environ.copy()
         for name in ("GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_INDEX_FILE",
                      "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES"):
@@ -158,6 +161,75 @@ class WorktreeFixtures(unittest.TestCase):
         result = json.loads(self.cli(linked, "wt", "new", "next", "--json").stdout)
         self.assertEqual(Path(result["path"]).resolve(), self.root / "custom-worktrees" / "next")
 
+    def test_standalone_branches_require_opt_in_and_protected_names_survive(self):
+        repo = self.repo()
+        tree = self.landed(repo, 'ff', 'idle-topic')
+        self.git(repo, 'worktree', 'remove', tree)
+        names = ('main', 'master', 'develop', 'trunk', 'release/next', 'keep/custom')
+        for branch in names[1:]:
+            self.git(repo, 'branch', branch)
+        self.repo_config(repo, protectedBranches=['keep/*'])
+        preview = self.items(repo, 'clean')
+        self.assertEqual(next(r for r in preview if r['branch'] == 'idle-topic')['action'], 'keep')
+        self.items(repo, 'clean', '--apply')
+        self.assertTrue(self.git(repo, 'branch', '--list', 'idle-topic'))
+        preview = self.items(repo, 'clean', '--branches')
+        self.assertEqual(next(r for r in preview if r['branch'] == 'idle-topic')['action'], 'delete-branch')
+        self.assertTrue(self.git(repo, 'branch', '--list', 'idle-topic'))
+        self.items(repo, 'clean', '--branches', '--apply')
+        self.assertFalse(self.git(repo, 'branch', '--list', 'idle-topic'))
+        for branch in names:
+            self.assertTrue(self.git(repo, 'branch', '--list', branch), branch)
+
+    def test_brand_new_worktree_and_detached_head_are_not_landed(self):
+        repo = self.repo()
+        self.repo_config(repo, cleanupGraceHours=0)
+        created = json.loads(self.cli(self.root, 'wt', 'new', 'new-agent', '--repo', repo, '--json').stdout)
+        path = Path(created['path'])
+        detached = self.root / 'fresh-detached'
+        self.git(repo, 'worktree', 'add', '--detach', detached, 'HEAD')
+        rows = self.items(repo, 'clean', '--apply')
+        for checkout in (path, detached):
+            row = self.assert_kept(rows, checkout)
+            self.assertFalse(row['landed'], row)
+            self.assertIn('movement', row['reason'])
+            self.assertTrue(checkout.is_dir())
+
+    def age_activity(self, checkout, head_age, admin_age):
+        admin = Path(self.git(checkout, 'rev-parse', '--absolute-git-dir'))
+        log = admin / 'logs' / 'HEAD'
+        timestamp = int(time.time() - head_age)
+        entries = []
+        for line in log.read_bytes().splitlines():
+            header, separator, message = line.partition(b'\t')
+            identity, _, zone = header.rsplit(b' ', 2)
+            entries.append(identity + b' ' + str(timestamp).encode() + b' ' + zone + separator + message)
+        log.write_bytes(b'\n'.join(entries) + b'\n')
+        modified = time.time() - admin_age
+        os.utime(admin, (modified, modified))
+
+    def test_default_grace_uses_newest_head_activity_and_admin_mtime(self):
+        repo = self.repo()
+        tree = self.landed(repo, 'ff')
+        self.config.write_text('{}', encoding='utf-8')
+        old = 2 * 86400
+        for head_age, admin_age in ((0, old), (old, 0)):
+            self.age_activity(tree, head_age, admin_age)
+            row = self.assert_kept(self.items(repo, 'clean', '--apply'), tree)
+            self.assertIn('recent activity', row['reason'])
+        self.age_activity(tree, old, old)
+        self.assertEqual(self.by_path(self.items(repo, 'clean', '--apply'), tree)['action'], 'remove')
+        self.assertFalse(tree.exists())
+
+    def test_missing_head_reflog_keeps_even_old_landed_worktree(self):
+        repo = self.repo()
+        tree = self.landed(repo, 'ff')
+        admin = Path(self.git(tree, 'rev-parse', '--absolute-git-dir'))
+        (admin / 'logs' / 'HEAD').unlink()
+        row = self.assert_kept(self.items(repo, 'clean', '--apply'), tree)
+        self.assertIn('movement evidence', row['reason'])
+        self.assertFalse(row['landed'])
+
     def test_all_four_landing_styles_preview_then_remove_ignored_output(self):
         for style in ("ff", "merge", "squash", "rebase"):
             with self.subTest(style=style):
@@ -255,16 +327,17 @@ class WorktreeFixtures(unittest.TestCase):
 
     def test_landed_local_branch_without_checkout_is_listed_and_deleted(self):
         repo = self.repo()
-        self.git(repo, "branch", "landed-idle")
+        tree = self.landed(repo, 'ff', 'landed-idle')
+        self.git(repo, 'worktree', 'remove', tree)
         rows = self.items(repo)
         branch = [row for row in rows if row["kind"] == "branch" and row["branch"] == "landed-idle"]
         self.assertEqual(len(branch), 1)
         self.assertTrue(branch[0]["landed"])
-        preview = self.items(repo, "clean")
+        preview = self.items(repo, "clean", '--branches')
         self.assertEqual(next(row for row in preview if row["branch"] == "landed-idle")["action"],
                          "delete-branch")
         self.assertTrue(self.git(repo, "branch", "--list", "landed-idle"))
-        self.items(repo, "clean", "--apply")
+        self.items(repo, "clean", '--branches', "--apply")
         self.assertEqual(self.git(repo, "branch", "--list", "landed-idle"), "")
 
     def test_multiple_roots_and_user_roots_discover_git_metadata_locations(self):
@@ -288,16 +361,17 @@ class WorktreeFixtures(unittest.TestCase):
         for index, explicit in enumerate((False, True)):
             with self.subTest(explicit_config=explicit):
                 repo = self.repo('remote-target-' + str(index))
+                tree = self.landed(repo, 'ff', 'landed-idle')
+                self.git(repo, 'worktree', 'remove', tree)
                 self.git(repo, 'update-ref', 'refs/remotes/origin/main', 'HEAD')
                 self.git(repo, 'symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/main')
                 if explicit:
                     self.repo_config(repo, targetBranch='refs/remotes/origin/main')
                 self.git(repo, 'checkout', '--detach')
-                self.git(repo, 'branch', 'landed-idle')
-                preview = self.items(repo, 'clean')
+                preview = self.items(repo, 'clean', '--branches')
                 target = next(row for row in preview if row['kind'] == 'branch' and row['branch'] == 'main')
                 self.assertEqual(target['action'], 'keep', target)
-                self.items(repo, 'clean', '--apply')
+                self.items(repo, 'clean', '--branches', '--apply')
                 self.assertTrue(self.git(repo, 'branch', '--list', 'main'))
                 self.assertFalse(self.git(repo, 'branch', '--list', 'landed-idle'))
 

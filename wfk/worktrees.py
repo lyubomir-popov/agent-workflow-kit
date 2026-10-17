@@ -1,8 +1,10 @@
 """Git-metadata inventory and conservative, explicit worktree cleanup."""
 
 import os
+import fnmatch
 import re
 import tempfile
+import time
 from pathlib import Path
 
 from . import config
@@ -105,10 +107,41 @@ def _base(repo, target, source):
     return dict(kind='worktree', repo=str(repo), path=None, branch=None, commit=None,
                 tracked=False, untracked=False, locked=False, prunable=False,
                 landed=False, target=target, target_source=source, last_commit=None,
-                size_bytes=None, status='unknown', reason='')
+                size_bytes=None, status='unknown', reason='', moved=False,
+                activity_time=None, grace_hours=24)
 
 
-def _worktree(repo, record, target, source, size=False):
+def _reflog(path):
+    """Read actual OID movement and newest event time; unknown evidence keeps work."""
+    try:
+        moved, latest = False, None
+        for line in path.read_text(encoding='utf-8', errors='surrogateescape').splitlines():
+            header = line.partition('\t')[0]
+            old, new, _ = header.split(' ', 2)
+            if not re.fullmatch(r'[0-9a-f]{40}|[0-9a-f]{64}', old) or len(old) != len(new):
+                return False, None
+            if not re.fullmatch(r'[0-9a-f]+', new):
+                return False, None
+            timestamp = int(header.rsplit(' ', 2)[1])
+            latest = max(latest or timestamp, timestamp)
+            moved = moved or (int(old, 16) != 0 and old != new)
+        return moved, latest
+    except (OSError, ValueError):
+        return False, None
+
+
+def _branch_moved(repo, branch):
+    path = Path(git(repo, 'rev-parse', '--path-format=absolute', '--git-path',
+                    'logs/refs/heads/' + branch).stdout.strip())
+    return _reflog(path)[0]
+
+
+def _protected(repo, branch, target):
+    return branch and (branch == config.local_target_branch(repo, target) or any(
+        fnmatch.fnmatchcase(branch, pattern) for pattern in config.load(repo)['protectedBranches']))
+
+
+def _worktree(repo, record, target, source, size=False, grace_hours=24):
     row = _base(repo, target, source)
     row.update(path=record['worktree'], branch=record.get('branch', '').removeprefix(
         'refs/heads/') or None, commit=record.get('HEAD'),
@@ -116,7 +149,7 @@ def _worktree(repo, record, target, source, size=False):
     path = Path(row['path'])
     row['last_commit'] = git(repo, 'show', '-s', '--format=%cI', row['commit'],
                              check=False).stdout.strip() or None
-    row['landed'] = landed(repo, row['commit'], target)
+    row['grace_hours'] = grace_hours
     if not path.is_dir():
         row.update(status='unavailable', reason='directory unavailable; registration preserved')
         return row
@@ -124,6 +157,11 @@ def _worktree(repo, record, target, source, size=False):
         if common_dir(path) != common_dir(repo) or repo_root(path) != path.resolve():
             row.update(status='unknown', reason='worktree Git link does not match repository')
             return row
+        admin = Path(git(path, 'rev-parse', '--absolute-git-dir').stdout.strip())
+        row['moved'], activity = _reflog(admin / 'logs' / 'HEAD')
+        if activity is not None:
+            row['activity_time'] = max(activity, admin.stat().st_mtime)
+        row['landed'] = row['moved'] and landed(repo, row['commit'], target)
         result = git(path, 'status', '--porcelain=v1', '-z', '--untracked-files=all',
                      '--ignore-submodules=none')
         # Rename entries have a second NUL-delimited path; skip that path.
@@ -193,7 +231,7 @@ def inventory(repos, size=False, scratch_roots=None):
         checkout_records = records(repo)
         checked = {r.get('branch') for r in checkout_records}
         for record in checkout_records:
-            items.append(_worktree(repo, record, target, source, size))
+            items.append(_worktree(repo, record, target, source, size, settings['cleanupGraceHours']))
         refs = git(repo, 'for-each-ref', '--format=%(refname) %(objectname) %(committerdate:iso-strict)',
                    'refs/heads/').stdout.splitlines()
         for line in refs:
@@ -202,7 +240,9 @@ def inventory(repos, size=False, scratch_roots=None):
                 continue
             row = _base(repo, target, source)
             row.update(kind='branch', branch=ref.removeprefix('refs/heads/'), commit=sha,
-                       landed=True, last_commit=date[0] if date else None, status='no worktree')
+                       last_commit=date[0] if date else None, status='no worktree')
+            row['moved'] = _branch_moved(repo, row['branch'])
+            row['landed'] = row['moved']
             items.append(row)
     items.extend(_orphans(list(dict.fromkeys(scratch))))
     return dict(items=items, warnings=list(dict.fromkeys(warnings)))
@@ -247,16 +287,26 @@ def _keep_reason(row, primary_path, cwd):
         return 'untracked files'
     if not row['target']:
         return 'unknown target'
+    if _protected(Path(row['repo']), row['branch'], row['target']):
+        return 'protected branch'
+    if not row['moved']:
+        return 'no HEAD movement evidence since creation'
     if not row['landed']:
         return 'unlanded commits'
+    if row['activity_time'] is None:
+        return 'activity evidence unavailable'
+    if time.time() - row['activity_time'] < row['grace_hours'] * 3600:
+        return f"recent activity; {row['grace_hours']:g} hour grace period"
     return ''
 
 
 def _delete_branch(repo, row):
     branch = row['branch']
     target, _ = config.resolve_target(repo)
-    if not branch or branch == config.local_target_branch(repo, target) or not landed(repo, branch, target):
-        return 'branch is target or no longer landed'
+    if not branch or _protected(repo, branch, target):
+        return 'protected branch'
+    if not _branch_moved(repo, branch) or not landed(repo, branch, target):
+        return 'branch has no movement evidence or is no longer landed'
     if any(r.get('branch') == 'refs/heads/' + branch for r in records(repo)):
         return 'branch is checked out elsewhere'
     if commit(repo, branch) != row['commit']:
@@ -265,7 +315,7 @@ def _delete_branch(repo, row):
     return ''
 
 
-def clean(repos, apply=False, quiet=False, orphans=False, scratch_roots=None):
+def clean(repos, apply=False, quiet=False, orphans=False, scratch_roots=None, branches=False):
     result = inventory(repos, scratch_roots=scratch_roots)
     result['dry_run'] = not apply
     cwd = Path.cwd().resolve()
@@ -278,8 +328,14 @@ def clean(repos, apply=False, quiet=False, orphans=False, scratch_roots=None):
             continue
         repo = Path(row['repo'])
         if row['kind'] == 'branch':
-            if row['branch'] == config.local_target_branch(repo, row['target']):
-                row['reason'] = 'target branch'
+            if _protected(repo, row['branch'], row['target']):
+                row['reason'] = 'protected branch'
+                continue
+            if not branches:
+                row['reason'] = 'standalone branch listed only; --branches required'
+                continue
+            if not row['landed']:
+                row['reason'] = 'no branch movement evidence since creation'
                 continue
             row.update(action='delete-branch', reason='landed local branch without worktree')
             if apply:
@@ -291,7 +347,7 @@ def clean(repos, apply=False, quiet=False, orphans=False, scratch_roots=None):
         if reason:
             row['reason'] = reason
             continue
-        row.update(action='remove', reason='clean and landed')
+        row.update(action='remove', reason='clean and landed; removes ALL ignored files, including .env, notes and tmp/')
         if not apply:
             continue
         try:
@@ -302,12 +358,13 @@ def clean(repos, apply=False, quiet=False, orphans=False, scratch_roots=None):
                 row.update(action='keep', reason='registration changed during cleanup')
                 continue
             target, source = config.resolve_target(repo)
-            fresh = _worktree(repo, record, target, source)
+            fresh = _worktree(repo, record, target, source,
+                              grace_hours=config.load(repo)['cleanupGraceHours'])
             reason = _keep_reason(fresh, primary(repo), cwd)
             if reason or fresh['commit'] != row['commit']:
                 row.update(action='keep', reason=reason or 'commit changed during cleanup')
                 continue
-            # --force permits ignored build output; dirty/untracked files were excluded.
+            # --force removes ALL ignored files, including local secrets and notes.
             git(repo, 'worktree', 'remove', '--force', '--', row['path'])
             touched.add(repo)
             if row['branch']:

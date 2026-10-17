@@ -27,6 +27,7 @@ class HooksTests(unittest.TestCase):
                          "PYTHONPATH": str(KIT),
                          "GIT_AUTHOR_NAME": "Fixture", "GIT_AUTHOR_EMAIL": "fixture@example.invalid",
                          "GIT_COMMITTER_NAME": "Fixture", "GIT_COMMITTER_EMAIL": "fixture@example.invalid"})
+        (self.base / "user.json").write_text(json.dumps({"cleanupGraceHours": 0}), encoding="utf-8")
         self.git("init", "-b", "main")
         self.git("-c", "core.hooksPath=", "commit", "--allow-empty", "-m", "Initial")
         (self.repo / ".workflow-kit.json").write_text(
@@ -47,6 +48,24 @@ class HooksTests(unittest.TestCase):
         if apply:
             args.append("--apply")
         return self.cli(*args)
+
+    def land(self, worktree, target=None):
+        (worktree / "landed.txt").write_text("fixture work landed\n", encoding="utf-8")
+        self.git("-C", str(worktree), "add", "landed.txt")
+        self.git("-C", str(worktree), "-c", "core.hooksPath=", "commit", "-m", "Fixture work")
+        self.git("-C", str(target or self.repo), "-c", "core.hooksPath=", "merge", "--ff-only", "landed")
+
+    def assert_install_refused(self, apply):
+        args = [sys.executable, "-m", "wfk", "hooks", "install", "--repo", str(self.repo), "--json"]
+        if apply:
+            args.append("--apply")
+        result = subprocess.run(args, cwd=self.base, text=True, capture_output=True, env=self.env)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        error = json.loads(result.stdout)["error"]
+        self.assertIn("checkout", error)
+        self.assertIn("wfk wt clean --apply --quiet", error)
+        self.assertIn('"$(git symbolic-ref --quiet --short HEAD)" = main', error)
+        return error
 
     def test_install_previews_without_writing(self):
         result = self.install(apply=False)
@@ -71,11 +90,55 @@ class HooksTests(unittest.TestCase):
         self.assertEqual(Path(item["backup"]).read_bytes(), original)
         self.assertTrue(all(item["action"] == "unchanged" for item in second["items"]))
 
-    def test_relative_hooks_path_is_respected(self):
+    def test_husky_hooks_path_refuses_preview_and_apply_without_writing(self):
+        linked = self.base / "husky linked checkout"
+        self.git("worktree", "add", "-b", "topic", str(linked))
+        self.git("config", "core.hooksPath", ".husky")
+        hook = self.repo / ".husky/post-merge"
+        hook.parent.mkdir()
+        original = b"#!/bin/sh\nexit 7\n"
+        hook.write_bytes(original)
+        for apply in (False, True):
+            with self.subTest(apply=apply):
+                self.assert_install_refused(apply)
+                self.assertEqual(hook.read_bytes(), original)
+                self.assertEqual(list(hook.parent.iterdir()), [hook])
+                self.assertFalse((linked / ".husky").exists())
+        self.assertEqual(self.git("config", "--get", "core.hooksPath").stdout.strip(), ".husky")
+
+    def test_relative_hooks_path_inside_checkout_is_refused(self):
         self.git("config", "core.hooksPath", "custom hooks")
-        self.install()
-        self.assertTrue((self.repo / "custom hooks/post-merge").is_file())
+        self.assert_install_refused(False)
+        self.assert_install_refused(True)
+        self.assertFalse((self.repo / "custom hooks").exists())
         self.assertEqual(self.git("config", "--get", "core.hooksPath").stdout.strip(), "custom hooks")
+
+    def test_absolute_hooks_path_inside_any_registered_checkout_is_refused(self):
+        linked = self.base / "linked hook owner"
+        self.git("worktree", "add", "-b", "topic", str(linked))
+        for checkout in (self.repo, linked):
+            with self.subTest(checkout=checkout):
+                hooks = checkout / "absolute hooks"
+                self.git("config", "core.hooksPath", str(hooks))
+                self.assert_install_refused(False)
+                self.assert_install_refused(True)
+                self.assertFalse(hooks.exists())
+                self.assertEqual(self.git("config", "--get", "core.hooksPath").stdout.strip(), str(hooks))
+
+    def test_unsafe_linked_hooks_refuse_before_changing_safe_admin_hooks(self):
+        linked = self.base / "checkout with local hooks config"
+        self.git("worktree", "add", "-b", "topic", str(linked))
+        self.git("config", "extensions.worktreeConfig", "true")
+        self.git("-C", str(linked), "config", "--worktree", "core.hooksPath", ".husky")
+        hook = self.repo / ".git/hooks/post-merge"
+        original = b"#!/bin/sh\nexit 7\n"
+        hook.write_bytes(original)
+        before = sorted(path.name for path in hook.parent.iterdir())
+        for apply in (False, True):
+            self.assert_install_refused(apply)
+            self.assertEqual(hook.read_bytes(), original)
+            self.assertEqual(sorted(path.name for path in hook.parent.iterdir()), before)
+            self.assertFalse((linked / ".husky").exists())
 
     def test_absolute_hooks_path_is_respected(self):
         hooks = self.base / "shared hooks"
@@ -84,9 +147,16 @@ class HooksTests(unittest.TestCase):
         self.assertTrue((hooks / "post-rewrite").is_file())
         self.assertEqual(self.git("config", "--get", "core.hooksPath").stdout.strip(), str(hooks))
 
+    def test_explicit_git_admin_hooks_path_is_safe(self):
+        self.git("config", "core.hooksPath", ".git/hooks")
+        self.install()
+        self.assertTrue((self.repo / ".git/hooks/post-merge").is_file())
+        self.assertEqual(self.git("config", "--get", "core.hooksPath").stdout.strip(), ".git/hooks")
+
     def test_public_callback_previews_without_removing_worktree(self):
         worktree = self.base / "preview landed checkout"
         self.git("worktree", "add", "-b", "landed", str(worktree))
+        self.land(worktree)
         result = self.cli("hooks", "run", "--repo", str(self.repo), "--json")
         self.assertEqual(result["status"], "would-clean")
         self.assertTrue(worktree.is_dir())
@@ -95,32 +165,32 @@ class HooksTests(unittest.TestCase):
     def test_public_callback_cleans_only_with_explicit_apply(self):
         worktree = self.base / "apply landed checkout"
         self.git("worktree", "add", "-b", "landed", str(worktree))
+        self.land(worktree)
         result = self.cli("hooks", "run", "--repo", str(self.repo), "--apply", "--json")
         self.assertEqual(result["status"], "completed")
         self.assertFalse(worktree.exists())
 
-    def test_relative_hooks_path_installs_in_linked_target_and_composes(self):
+    def test_shared_absolute_hooks_path_installs_in_linked_target_and_composes(self):
         target = self.base / "linked target"
         landed = self.base / "linked landed"
         self.git("switch", "-c", "topic")
         self.git("worktree", "add", str(target), "main")
         self.git("worktree", "add", "-b", "landed", str(landed))
-        self.git("config", "core.hooksPath", "custom hooks")
-        (self.repo / ".git/info/exclude").write_text("custom hooks/\n", encoding="utf-8")
+        self.land(landed, target)
+        hooks = self.base / "shared custom hooks"
+        self.git("config", "core.hooksPath", str(hooks))
         original = b"#!/bin/sh\nprintf '%s' \"$1\" > previous-hook-ran\nexit 9\n"
-        for checkout in (self.repo, target):
-            hook = checkout / "custom hooks/post-merge"
-            hook.parent.mkdir()
-            hook.write_bytes(original)
-            hook.chmod(0o755)
+        hook = hooks / "post-merge"
+        hook.parent.mkdir()
+        hook.write_bytes(original)
+        hook.chmod(0o755)
         preview = self.install(apply=False)
-        self.assertEqual(len(preview["items"]), 6)
-        self.assertEqual((target / "custom hooks/post-merge").read_bytes(), original)
+        self.assertEqual(len(preview["items"]), 2)
+        self.assertEqual(hook.read_bytes(), original)
         result = self.install()
-        self.assertEqual(len(result["items"]), 6)
-        for checkout in (self.repo, target):
-            self.assertEqual((checkout / "custom hooks/post-merge.wfk-original").read_bytes(), original)
-        self.assertEqual(self.git("config", "--get", "core.hooksPath").stdout.strip(), "custom hooks")
+        self.assertEqual(len(result["items"]), 2)
+        self.assertEqual((hooks / "post-merge.wfk-original").read_bytes(), original)
+        self.assertEqual(self.git("config", "--get", "core.hooksPath").stdout.strip(), str(hooks))
         invoked = subprocess.run(["git", "-C", str(target), "hook", "run", "post-merge", "--", "argument with spaces"],
                                  capture_output=True, text=True, env=self.env)
         self.assertEqual(invoked.returncode, 0, invoked.stderr)
@@ -164,6 +234,16 @@ class HooksTests(unittest.TestCase):
             hooks.run(self.repo, apply=True)
             cleanup.assert_not_called()
 
+    def test_hook_cleanup_never_requests_standalone_branch_deletion(self):
+        from wfk import hooks
+        with mock.patch.object(hooks.subprocess, "run") as run:
+            hooks._cleanup(self.repo)
+        command = run.call_args.args[0]
+        self.assertEqual(command[:5], [sys.executable, "-m", "wfk", "wt", "clean"])
+        self.assertIn("--apply", command)
+        self.assertIn("--quiet", command)
+        self.assertNotIn("--branches", command)
+
     def test_callback_failure_is_never_a_git_failure(self):
         from wfk import hooks
         with mock.patch.dict(os.environ, self.env), mock.patch.object(hooks, "_cleanup", side_effect=OSError("fixture failure")):
@@ -192,6 +272,7 @@ class HooksTests(unittest.TestCase):
     def test_installed_hook_cleans_landed_fixture_worktree(self):
         worktree = self.base / "landed checkout"
         self.git("worktree", "add", "-b", "landed", str(worktree))
+        self.land(worktree)
         hook = self.repo / ".git/hooks/post-merge"
         hook.write_text("#!/bin/sh\nprintf ran > existing-hook-ran\nexit 9\n", encoding="utf-8")
         hook.chmod(0o755)
@@ -219,6 +300,7 @@ class HooksTests(unittest.TestCase):
         landed = self.base / "landed checkout"
         self.git("worktree", "add", "-b", "feature", str(worktree))
         self.git("worktree", "add", "-b", "landed", str(landed))
+        self.land(landed)
         self.install()
         result = subprocess.run(["git", "-C", str(worktree), "hook", "run", "post-merge", "--", "0"],
                                 capture_output=True, text=True, env=self.env)

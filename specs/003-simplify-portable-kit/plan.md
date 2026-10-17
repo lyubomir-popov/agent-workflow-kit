@@ -60,6 +60,31 @@ and guard cleanup by the resolved target branch. Hook failures never fail Git.
 Document that remote PR merges trigger no local hook; the next local target pull
 does. Ship an AGENTS template directing agents to `wfk wt new`.
 
+### CP2 corrections from the owner's Opus handoff
+
+Standalone branches are listed only unless `clean --branches --apply` is
+explicit. Always protect the target and `main`, `master`, `develop`, `trunk`,
+`release/*`; `protectedBranches` adds repo/user patterns. Hook cleanup omits
+`--branches`. Catalog branch protection joins in slice B.
+
+An initialized HEAD reflog alone is not evidence of work: require an actual
+nonzero old-to-new OID change before marking a checkout landed. Use branch
+reflogs for standalone branch candidates. Missing or unreadable evidence means
+kept. Cleanup also keeps activity newer than `cleanupGraceHours` (default 24),
+using the newest HEAD reflog timestamp and worktree admin directory mtime.
+Re-read those guards immediately before removal. Tests set grace to zero only
+when testing another exclusion/removal, and age fixture metadata explicitly
+when verifying the default grace. No persistent proof ledger is needed.
+
+Refuse hook installation when the effective directory falls inside any
+registered checkout's ordinary files (relative or absolute); Git's own admin
+directories remain allowed. Refuse before writing any wrapper or backup, and
+provide manual composition instructions. Silent hook failures and conservative
+pruning remain explicit minor limits. Document that force removal deletes all
+ignored files, including secrets and local evidence, and say so in preview.
+Two CP2 rounds are exhausted; remediation ends at the owner's evidence decision,
+without another independent review or automatic delta request.
+
 Use `unittest`, temporary Git repos, isolated config/home and fake identities.
 Write failing acceptance fixtures before implementation: all four landing styles,
 all safety exclusions, nonstandard paths, missing dirs, unknown targets, local

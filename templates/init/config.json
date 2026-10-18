@@ -1,0 +1,14 @@
+{
+  "workflowModelVersion": 2,
+  "autoLoadedFiles": [
+    {"path": "AGENTS.md", "hosts": ["copilot-chat", "copilot-cli", "codex", "claude-code"], "lines": 100, "bytes": 12288, "loading": "full"},
+    {"path": "CLAUDE.md", "hosts": ["claude-code", "copilot-chat"], "lines": 15, "bytes": 2048, "loading": "full"},
+    {"path": ".github/copilot-instructions.md", "hosts": ["copilot-chat", "copilot-cli"], "lines": 15, "bytes": 2048, "loading": "full"}
+  ],
+  "hostBudgets": [
+    {"host": "copilot-chat", "lines": 150, "bytes": 16384},
+    {"host": "copilot-cli", "lines": 150, "bytes": 16384},
+    {"host": "codex", "lines": 150, "bytes": 16384},
+    {"host": "claude-code", "lines": 150, "bytes": 16384}
+  ]
+}

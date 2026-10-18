@@ -63,3 +63,23 @@ Root STATUS/TODO/HISTORY placeholders were deleted as authorized. No consumer
 files, real inventory sweep, cleanup, hooks, user prompt installation, scheduler worker,
 push or merge has been performed. Git mutations occurred only in temporary test
 repositories and the authorized local implementation/record commits.
+
+## CP3 Opus remediation
+
+Base: `bb3ac5c` (saved round 2 findings). Scope: T023–T024, finding 1 and
+dispositions for findings 2–4. The final source is frozen while full validation
+runs; only handoff records may change. CP3 remains pending and slice C is untouched.
+
+Test-first: the three new adoption fixtures failed before implementation. Lint
+accepted the preserved 200-line AGENTS.md, the generated config lacked
+`autoLoadedFiles`, and preview/apply checklists did not name missing budget fields.
+The focused adoption suite now runs 27 tests, OK (one symlink capability skip),
+in 32.267 seconds. Existing config and both adapter preservation are covered.
+
+The complete Python suite passed: 112 tests in 183.395 seconds, OK (4 existing
+platform/capability skips). Python compilation and whitespace checks passed.
+Python lint reports 0 errors and 17 existing diagnostic/compatibility warnings.
+The required complete legacy suite is running on this final source. Its result
+and the local code revision will be recorded before handoff.
+No third review was started. See [dispositions](2026-10-18-cp3-opus-dispositions.md)
+for the required fix, deferred minors and workarounds.

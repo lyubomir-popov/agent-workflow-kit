@@ -88,6 +88,8 @@ class AdoptionFixtures(unittest.TestCase):
     def test_init_preserves_every_existing_file_and_lists_manual_merges(self):
         existing = {
             'AGENTS.md': b'owner instructions\r\n', 'INBOX.md': b'unread\n',
+            'CLAUDE.md': b'owner Claude guidance\r\n',
+            '.github/copilot-instructions.md': b'owner Copilot guidance\r\n',
             'AGENT-INBOX.md': b'unresolved\n', 'docs/specs.md': b'owner catalog\n',
             '.workflow-kit.json': b'{"workflowModelVersion":1,"targetBranch":"trunk"}\n',
             '.specify/templates/overrides/spec-template.md': b'custom template\n',
@@ -106,6 +108,52 @@ class AdoptionFixtures(unittest.TestCase):
         second = self.snapshot()
         adoption.initialize(self.repo, apply=True)
         self.assertEqual(self.snapshot(), second)
+
+    def test_init_preserves_oversized_agents_and_lint_rejects_200_lines(self):
+        from wfk.workflow import lint
+        original = b'Owner instructions\r\n' * 200
+        (self.repo / 'AGENTS.md').write_bytes(original)
+        adoption.initialize(self.repo, apply=True)
+        self.assertEqual((self.repo / 'AGENTS.md').read_bytes(), original)
+        before = self.snapshot()
+        errors = lint(self.repo)['errors']
+        self.assertTrue(any('AGENTS.md' in error and 'lines budget exceeded' in error
+                            for error in errors), errors)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_init_declares_default_instruction_and_host_limits_and_lints_clean(self):
+        from wfk.workflow import lint
+        adoption.initialize(self.repo, apply=True)
+        settings = json.loads((self.repo / '.workflow-kit.json').read_text())
+        budgets = {item['path']: item for item in settings['autoLoadedFiles']}
+        for name, lines, size in (('AGENTS.md', 100, 12288),
+                                  ('CLAUDE.md', 15, 2048),
+                                  ('.github/copilot-instructions.md', 15, 2048)):
+            self.assertEqual(budgets[name]['lines'], lines)
+            self.assertEqual(budgets[name]['bytes'], size)
+            self.assertEqual(budgets[name]['loading'], 'full')
+            self.assertTrue((self.repo / name).is_file(), name)
+        hosts = {item['host']: item for item in settings['hostBudgets']}
+        self.assertEqual(set(hosts), {'copilot-chat', 'copilot-cli', 'codex', 'claude-code'})
+        for host in hosts.values():
+            self.assertEqual((host['lines'], host['bytes']), (150, 16384))
+        self.assertEqual(set(budgets['AGENTS.md']['hosts']), set(hosts))
+        self.assertEqual(set(budgets['CLAUDE.md']['hosts']), {'claude-code', 'copilot-chat'})
+        self.assertEqual(set(budgets['.github/copilot-instructions.md']['hosts']),
+                         {'copilot-chat', 'copilot-cli'})
+        self.assertEqual(lint(self.repo)['errors'], [])
+
+    def test_init_existing_config_checklist_names_missing_budget_fields(self):
+        path = self.repo / '.workflow-kit.json'
+        original = b'{"workflowModelVersion":2,"targetBranch":"trunk"}\r\n'
+        path.write_bytes(original)
+        for apply in (False, True):
+            with self.subTest(apply=apply):
+                result = adoption.initialize(self.repo, apply=apply)
+                checklist = '\n'.join(result['checklist'])
+                self.assertIn('autoLoadedFiles', checklist)
+                self.assertIn('hostBudgets', checklist)
+                self.assertEqual(path.read_bytes(), original)
 
     def assert_init_preserves_invalid_config(self, content):
         config = self.repo / '.workflow-kit.json'

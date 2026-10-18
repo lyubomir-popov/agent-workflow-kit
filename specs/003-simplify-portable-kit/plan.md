@@ -122,6 +122,16 @@ preserve the recovery checkout, files, index and refs. `prompts.py` previews bot
 editor destinations and replaces differing regular files only with `--apply`;
 links/non-file collisions stay manual. No vendor content is modified or linted.
 
+### CP3 required correction
+
+Init consumes `templates/init/config.json` for default full-load file and host
+budgets. It seeds missing thin CLAUDE/Copilot adapters so a new adoption is
+lint-clean, preserves existing config/adapters byte-for-byte and names missing
+or empty budget fields in the manual merge checklist. The 200-line AGENTS
+regression exercises lint after adoption. CP3 rounds are exhausted; minor
+findings 2–4 remain in tasks' Known limits, and remediation ends at the owner's
+decision without another review or slice C work.
+
 ## Slice C: scheduler (after owner clears CP3)
 
 Use one package worktree and a common-directory lock. Keep adapters declarative:

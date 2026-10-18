@@ -50,13 +50,16 @@ def initialize(repo, apply=False):
         settings['warnings'].append(problem)
     else:
         target, _ = resolve_target(repo)
-    config = {'workflowModelVersion': 2}
+    config = json.loads((_TEMPLATES / 'config.json').read_text(encoding='utf-8'))
     if target:
         config['targetBranch'] = target
     files = {
         '.workflow-kit.json': json.dumps(config, indent=2) + '\n',
         'AGENTS.md': (_KIT / 'templates' / 'AGENTS.md').read_text(encoding='utf-8'),
         'docs/specs.md': (_TEMPLATES / 'specs.md').read_text(encoding='utf-8'),
+        'CLAUDE.md': (_TEMPLATES / 'CLAUDE.md').read_text(encoding='utf-8'),
+        '.github/copilot-instructions.md': (
+            _TEMPLATES / 'copilot-instructions.md').read_text(encoding='utf-8'),
     }
     for name in ('INBOX.md', 'AGENT-INBOX.md'):
         files[name] = (_TEMPLATES / name).read_text(encoding='utf-8')
@@ -71,6 +74,18 @@ def initialize(repo, apply=False):
         result['checklist'].append(problem)
     if not target:
         result['checklist'].append('Set targetBranch in .workflow-kit.json; target is unknown.')
+    if os.path.lexists(paths['.workflow-kit.json']):
+        try:
+            existing = json.loads(paths['.workflow-kit.json'].read_text(encoding='utf-8-sig'))
+        except (OSError, ValueError):
+            existing = {}
+        if not isinstance(existing, dict):
+            existing = {}
+        missing = [name for name in ('autoLoadedFiles', 'hostBudgets') if not existing.get(name)]
+        if missing:
+            result['checklist'].append(
+                'Manually merge missing budget fields (' + ', '.join(missing) +
+                ") from the kit's templates/init/config.json into existing .workflow-kit.json.")
     for name, content in files.items():
         path = paths[name]
         exists = os.path.lexists(path)

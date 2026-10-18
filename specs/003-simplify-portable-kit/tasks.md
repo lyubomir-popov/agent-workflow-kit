@@ -1,7 +1,7 @@
 # Current work
 
-**Next tasks**: external CP3 round 2 review and owner decision; T011–T014 wait behind CP3.
-**Blockers**: CP3 is pending; [review request](reviews/2026-10-18-cp3-request.md).
+**Next tasks**: T024 validation and handoff, then owner decision; no third review round.
+**Blockers**: CP3 pending; [Opus findings](reviews/2026-10-18-cp3-opus-findings.md).
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
 **Validation**: [CP3 evidence](reviews/2026-10-18-cp3-validation.md).
@@ -33,6 +33,11 @@
 - [x] T009 [S] Ship saved-review and installation prompts; retire root placeholders (FR-020-022, FR-028) (gate: CP2).
 - [x] T010 [H] Validate slice B and save CP3 review request; stop (gate: CP2).
 
+## CP3 Opus remediation (owner-authorized, no third review)
+
+- [x] T023 [S] Add init's default file/host budgets with the 200-line regression and existing-file preservation/checklist coverage (finding 1) (gate: CP2).
+- [ ] T024 [X] Disposition findings 2–4, record validation and stop for the owner's CP3 decision (gate: CP2).
+
 ## Slice C: scheduler
 
 - [ ] T011 [H] Implement adapters, preflight, package worktree locks and task dispatch (FR-030-033) (gate: CP3).
@@ -47,6 +52,13 @@
 - [ ] T017 [H] Validate the full replacement and save CP5 review request; stop (gate: CP4).
 
 ## Known limits
+
+- CP3 Opus findings 2–4 remain deferred for the owner's decision:
+  severity checks scan every numbered list in findings files (use bullets for
+  validation); review labels scan the whole document (keep example headers inline);
+  prompt installation creates both editor profiles even when an editor is absent
+  (preview first or manually copy prompts only into the desired existing profile).
+  See [the findings](reviews/2026-10-18-cp3-opus-findings.md).
 
 - Ownerless orphans are sized and kept for manual removal, accepted at CP2.
   The obsolete `--orphans` flag is rejected. No recursive deletion fallback exists.

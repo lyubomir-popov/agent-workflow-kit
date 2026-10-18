@@ -46,6 +46,13 @@ Existing files remain byte-for-byte intact, with a manual merge checklist. Revie
 and commit adoption before creating a package. It does not install Git hooks,
 worker tools or user prompts.
 
+New configs use the [default budget template](../templates/init/config.json):
+AGENTS.md gets 100 lines/12,288 bytes; CLAUDE.md and Copilot instructions each
+get 15 lines/2,048 bytes. Each host gets an aggregate 150 lines/16,384 bytes.
+Init adds missing thin CLAUDE/Copilot adapters so these declarations lint clean.
+If configuration already exists, init preserves it and names missing or empty
+`autoLoadedFiles` and `hostBudgets` fields for manual merging from that template.
+
 `new` previews the numbered package, declared branch and configured local target.
 With `--apply` it consumes the target's project spec template, seeds a draft with
 pending gates and minimal plan/tasks, and commits complete owners plus catalog on

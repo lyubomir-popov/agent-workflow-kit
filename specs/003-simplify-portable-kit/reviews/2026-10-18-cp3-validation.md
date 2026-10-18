@@ -1,5 +1,10 @@
 # CP3 validation
 
+Latest: [CP3 Opus remediation](#cp3-opus-remediation), source `c37172a`.
+The earlier slice B handoff results below are retained as evidence.
+
+## Slice B handoff
+
 Review base: `c0380c6` (CP2 owner clearance). Scope: T007–T010 only.
 Implementation: `70a440594e306d4e13251da2a90d40cb6c0a39b0`.
 Final code/test revision: `e28391dbb736a80aade3659942ffefa3e6d808d5`.
@@ -67,8 +72,10 @@ repositories and the authorized local implementation/record commits.
 ## CP3 Opus remediation
 
 Base: `bb3ac5c` (saved round 2 findings). Scope: T023–T024, finding 1 and
-dispositions for findings 2–4. The final source is frozen while full validation
-runs; only handoff records may change. CP3 remains pending and slice C is untouched.
+dispositions for findings 2–4. T023–T024 are complete. All checks ran on the final
+source; later changes contain handoff records only. CP3 remains pending for the
+owner's decision, and slice C is untouched.
+Source: `c37172a47ca9ca3b649d7f21062dce481b4628e3`.
 
 Test-first: the three new adoption fixtures failed before implementation. Lint
 accepted the preserved 200-line AGENTS.md, the generated config lacked
@@ -79,7 +86,11 @@ in 32.267 seconds. Existing config and both adapter preservation are covered.
 The complete Python suite passed: 112 tests in 183.395 seconds, OK (4 existing
 platform/capability skips). Python compilation and whitespace checks passed.
 Python lint reports 0 errors and 17 existing diagnostic/compatibility warnings.
-The required complete legacy suite is running on this final source. Its result
-and the local code revision will be recorded before handoff.
+The required complete legacy suite passed: 284 passed, 0 failed/skipped, in
+1516.24 seconds (wall 1517.35 seconds). Strict legacy lint reports 0 errors and
+0 warnings; scheduler dry run invokes 0 workers and stops at CP3. Review-range
+whitespace uses `git diff --check bb3ac5c..HEAD`, plus worktree/index checks.
+The author inspected the actual diff and fixture results; no new review round
+was started. No real init, installation, cleanup, consumer edit or push occurred.
 No third review was started. See [dispositions](2026-10-18-cp3-opus-dispositions.md)
 for the required fix, deferred minors and workarounds.

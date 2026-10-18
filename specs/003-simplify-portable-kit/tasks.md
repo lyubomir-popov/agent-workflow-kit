@@ -1,7 +1,7 @@
 # Current work
 
-**Next tasks**: T024 validation and handoff, then owner decision; no third review round.
-**Blockers**: CP3 pending; [Opus findings](reviews/2026-10-18-cp3-opus-findings.md).
+**Next tasks**: owner's CP3 decision; T011–T014 remain gated. No third review round.
+**Blockers**: CP3 pending; [owner decision request](reviews/2026-10-18-cp3-owner-decision-request.md).
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
 **Validation**: [CP3 evidence](reviews/2026-10-18-cp3-validation.md).
@@ -36,7 +36,7 @@
 ## CP3 Opus remediation (owner-authorized, no third review)
 
 - [x] T023 [S] Add init's default file/host budgets with the 200-line regression and existing-file preservation/checklist coverage (finding 1) (gate: CP2).
-- [ ] T024 [X] Disposition findings 2–4, record validation and stop for the owner's CP3 decision (gate: CP2).
+- [x] T024 [X] Disposition findings 2–4, record validation and stop for the owner's CP3 decision (gate: CP2).
 
 ## Slice C: scheduler
 

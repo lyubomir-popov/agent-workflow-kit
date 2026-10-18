@@ -5,6 +5,7 @@ Scope: `003/spec-r1`
 Findings: [Opus round 2](2026-10-18-cp3-opus-findings.md), reviewed at `e28391d`.
 Remediation base: `bb3ac5c`. Final source revision and checks are recorded in
 [validation](2026-10-18-cp3-validation.md#cp3-opus-remediation).
+Source revision: `c37172a47ca9ca3b649d7f21062dce481b4628e3`.
 
 Only the owner decides CP3. Both independent rounds are exhausted; no third
 review or slice C work was started. This is an author disposition, not a new

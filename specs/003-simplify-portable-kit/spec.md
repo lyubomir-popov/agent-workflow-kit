@@ -12,7 +12,7 @@
 | ID | Gate | Verdict link | State |
 |---|---|---|---|
 | CP1 | Owner spec acceptance | [request](reviews/2026-10-17-cp1-request.md); [owner acceptance](reviews/2026-10-17-cp1-owner-acceptance.md) | owner-cleared |
-| CP2 | Slice A review: worktree hygiene | [Opus delta check](reviews/2026-10-17-cp2-opus-delta-check.md); [owner decision](reviews/2026-10-17-cp2-owner-decision.md) | pending |
+| CP2 | Slice A review: worktree hygiene | [Opus delta check](reviews/2026-10-17-cp2-opus-delta-check.md); [owner clearance](reviews/2026-10-18-cp2-owner-clearance.md) | owner-cleared |
 | CP3 | Slice B review: workflow core | not yet requested | pending |
 | CP4 | Slice C review: scheduler | not yet requested | pending |
 | CP5 | Slice D review: retirement and docs | not yet requested | pending |

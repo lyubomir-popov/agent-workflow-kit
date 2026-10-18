@@ -1,7 +1,7 @@
 # Current work
 
-**Next tasks**: explicit owner CP2 clearance from the [completed correction](reviews/2026-10-18-cp2-clearance-handoff.md); implementation stopped.
-**Blockers**: CP2 owner clearance before T007; both review rounds are used.
+**Next tasks**: T007–T010 (slice B), authorized by [CP2 clearance](reviews/2026-10-18-cp2-owner-clearance.md).
+**Blockers**: none; stop at CP3.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
 **Validation**: [CP2 evidence](reviews/2026-10-17-cp2-validation.md).

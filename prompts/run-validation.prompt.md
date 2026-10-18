@@ -9,15 +9,23 @@ model: gpt-5.4-mini
 ## Workflow mode
 
 Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
-including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1`;
+including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1` or `2`;
 do not coerce strings or other values. Stop if the JSON is
 malformed, is not an object, or contains a present invalid or unsupported
 version. Do not infer the mode from root files or placeholders. Execute only the
-matching route below; version 1 must not execute Legacy procedure.
+matching route below; versions 1 and 2 must not execute Legacy procedure.
 
 ## Version 1 route
 
 Read `AGENTS.md`, `README.md`, and the relevant package validation guidance. Select targeted or full validation according to the current authorized task and report the commands, results, and gaps. Respect package gates; validation does not authorize edits.
+
+## Version 2 route
+
+Read `AGENTS.md`, README and the relevant package's validation guidance.
+Run `wfk lint --repo . --json` for portable ownership checks, then the declared
+targeted or full tests appropriate to the authorized change. Report actual
+commands, results, warnings and gaps. Respect package gates; validation does
+not authorize edits or a scheduler run.
 
 ## Legacy procedure
 

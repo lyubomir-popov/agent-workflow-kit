@@ -5,6 +5,10 @@ repository convention for human plus agent coding sessions.
 
 ## Start and ownership
 
+Portable Python command usage is in [workflow core](docs/workflow-core.md) and
+[worktree hygiene](docs/worktrees.md). The scheduler awaits its gated slice;
+the PowerShell tooling remains available until retirement.
+
 Read [AGENTS](AGENTS.md), then [the catalog](docs/specs.md). The first current
 package routes a session to its declared branch/worktree. Package `spec.md`
 owns intent, lifecycle and checkpoints; `plan.md` owns approach; `tasks.md`

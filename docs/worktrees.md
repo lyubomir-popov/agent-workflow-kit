@@ -25,7 +25,8 @@ worktrees through Git and their unprotected local branches, then prunes when
 safe. Standalone branches are listed only; `wfk wt clean --branches` previews
 their deletion and `--branches --apply` opts in. Hooks never request `--branches`.
 The target, `main`, `master`, `develop`, `trunk`, `release/*` and additional
-`protectedBranches` patterns are always kept, including their worktrees.
+`protectedBranches` patterns and catalog-declared branches are always kept,
+including their worktrees. A malformed catalog stops cleanup for that repository.
 
 The primary and current checkouts, locked or unavailable paths, tracked changes,
 untracked non-ignored files and uncertain landing evidence keep the checkout.
@@ -49,8 +50,8 @@ secrets, local notes, `tmp/` evidence and build output. Ignored does not mean
 disposable. Both human and JSON preview reasons state this consequence.
 Remote branches are never deleted. Orphans are reported under configured
 scratch roots with their disk size, and kept for manual recovery/removal.
-Unavailable size is reported as unknown. `--orphans` remains accepted for
-compatibility; it never authorizes orphan deletion.
+Unavailable size is reported as unknown. The obsolete `--orphans` flag is
+rejected; orphan removal is always manual.
 
 ## Automatic cleanup after local Git operations
 

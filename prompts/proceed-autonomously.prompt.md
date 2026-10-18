@@ -9,15 +9,21 @@ model: gpt-5.4-mini
 ## Workflow mode
 
 Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
-including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1`;
+including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1` or `2`;
 do not coerce strings or other values. Stop if the JSON is
 malformed, is not an object, or contains a present invalid or unsupported
 version. Do not infer the mode from root files or placeholders. Execute only the
-matching route below; version 1 must not execute Legacy procedure.
+matching route below; versions 1 and 2 must not execute Legacy procedure.
 
 ## Version 1 route
 
 For version `1`, this command remains an alias for `/overnight`. Follow `prompts/overnight.prompt.md`, which selects the SpecKit scheduler; do not start a second workflow here.
+
+## Version 2 route
+
+For version `2`, this remains an alias for `/overnight`. Follow the version 2
+route in `prompts/overnight.prompt.md`, including its pending-scheduler stop.
+Do not substitute a different scheduler or start a second workflow here.
 
 ## Legacy procedure
 

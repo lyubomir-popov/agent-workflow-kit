@@ -18,15 +18,24 @@ only that matching procedure; the caller's mode does not govern other repos.
 ## Workflow mode
 
 Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
-including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1`;
+including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1` or `2`;
 do not coerce strings or other values. Stop if the JSON is
 malformed, is not an object, or contains a present invalid or unsupported
 version. Do not infer the mode from root files or placeholders. Execute only the
-matching route below; version 1 must not execute Legacy procedure.
+matching route below; versions 1 and 2 must not execute Legacy procedure.
 
 ## Version 1 route
 
 Inspect each repository's `AGENTS.md`, catalog, package owners, and versioned config. Summarize its dirty and unpublished state; make commits only within explicit owner scope, stage explicit paths, and push only when the user authorized publishing for that repository. Apply Shared safety and do not bypass package gates. Determine the workflow mode separately for each repository before choosing its procedure.
+
+## Version 2 route
+
+Determine the workflow version separately for each repository. Inspect its
+`AGENTS.md`, catalog, package owners and Git state. Summarize dirty and
+unpublished work, stage explicit paths and commit only within authorized scope.
+Push only when the owner authorized publishing for that repository. Apply Shared
+safety; never bypass package gates or treat a synchronization request as owner
+clearance. No scheduler or automatic cleanup is implied.
 
 ## Legacy procedure
 

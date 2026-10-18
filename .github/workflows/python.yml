@@ -12,6 +12,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
@@ -19,3 +21,15 @@ jobs:
         run: python -m unittest discover -s tests_python -v
       - name: CLI help
         run: python -m wfk --help
+      - name: Offline workflow lint
+        shell: python
+        run: |
+          import subprocess
+          import sys
+          refs = subprocess.check_output(['git', 'for-each-ref', '--format=%(refname:strip=3)',
+                                          'refs/remotes/origin'], text=True).splitlines()
+          for branch in refs:
+              if branch != 'HEAD' and subprocess.run(
+                  ['git', 'show-ref', '--verify', '--quiet', 'refs/heads/' + branch]).returncode:
+                  subprocess.run(['git', 'branch', branch, 'refs/remotes/origin/' + branch], check=True)
+          subprocess.run([sys.executable, '-m', 'wfk', 'lint'], check=True)

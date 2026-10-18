@@ -9,15 +9,24 @@ model: claude-opus-4.7
 ## Workflow mode
 
 Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
-including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1`;
+including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1` or `2`;
 do not coerce strings or other values. Stop if the JSON is
 malformed, is not an object, or contains a present invalid or unsupported
 version. Do not infer the mode from root files or placeholders. Execute only the
-matching route below; version 1 must not execute Legacy procedure.
+matching route below; versions 1 and 2 must not execute Legacy procedure.
 
 ## Version 1 route
 
 Read `AGENTS.md`, `docs/specs.md`, and the active package owners before auditing. Compare the frame-YAML to TypeScript to editable-SVG direction with the implementation, including Python legacy traces, force layout, and duplicate sources of truth. Use current product and architecture sources; keep the audit read-only unless asked to persist it, and route any report through the owning package.
+
+## Version 2 route
+
+Read `AGENTS.md`, `docs/specs.md`, and the active package owners. Audit the
+frame-YAML to TypeScript to editable-SVG direction against actual source,
+including Python legacy traces, force layout and duplicate sources of truth.
+Keep the audit read-only unless asked to persist it within the package's scope.
+For a checkpoint review, follow `prompts/review.prompt.md`; do not start an
+extra review round or create a second execution queue.
 
 ## Legacy procedure
 

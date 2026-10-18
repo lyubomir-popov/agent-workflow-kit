@@ -429,12 +429,12 @@ class WorktreeFixtures(unittest.TestCase):
         self.assertIsInstance(row['size_bytes'], int)
         self.assertGreater(row['size_bytes'], 0)
         self.assert_kept(self.items(repo, "clean", "--apply"), orphan)
-        preview = self.items(repo, "clean", "--orphans")
+        preview = self.items(repo, "clean")
         self.assert_kept(preview, orphan)
         self.assertTrue(orphan.is_dir())
-        # FR-014 forbids a recursive deletion fallback. Without a Git owner,
-        # explicit opt-in still cannot make `git worktree remove` possible.
-        self.assert_kept(self.items(repo, "clean", "--orphans", "--apply"), orphan)
+        rejected = self.cli(repo, 'wt', 'clean', '--orphans', '--apply', check=False)
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertIn('--orphans', rejected.stderr)
         self.assertTrue(orphan.is_dir())
 
 

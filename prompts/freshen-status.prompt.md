@@ -9,15 +9,21 @@ model: gpt-5.4-mini
 ## Workflow mode
 
 Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
-including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1`;
+including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1` or `2`;
 do not coerce strings or other values. Stop if the JSON is
 malformed, is not an object, or contains a present invalid or unsupported
 version. Do not infer the mode from root files or placeholders. Execute only the
-matching route below; version 1 must not execute Legacy procedure.
+matching route below; versions 1 and 2 must not execute Legacy procedure.
 
 ## Version 1 route
 
 This command is deprecated in version 1. Route to `/whats-next` for current package and gate orientation. Do not create or update `STATUS.md`.
+
+## Version 2 route
+
+This command is deprecated in version 2. Route to `/whats-next` for package,
+checkpoint and authorized-next-task orientation. Do not create or update
+`STATUS.md`, `TODO.md` or `HISTORY.md`.
 
 ## Legacy procedure
 

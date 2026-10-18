@@ -31,7 +31,6 @@ def parser():
     _options(clean, roots=True)
     clean.add_argument('--apply', action='store_true')
     clean.add_argument('--quiet', action='store_true')
-    clean.add_argument('--orphans', action='store_true')
     clean.add_argument('--branches', action='store_true', help='also delete eligible standalone local branches')
     hooks = commands.add_parser('hooks', help='composing cleanup hooks').add_subparsers(
         dest='operation', required=True)
@@ -41,9 +40,22 @@ def parser():
     hook_run = hooks.add_parser('run', help=argparse.SUPPRESS)
     _options(hook_run)
     hook_run.add_argument('--apply', action='store_true')
-    for name in ('run', 'lint', 'new', 'init', 'prompts'):
-        future = commands.add_parser(name, help='planned for a later authorized slice')
-        future.add_argument('--json', action='store_true')
+    lint = commands.add_parser('lint', help='check workflow owners offline and read-only')
+    _options(lint)
+    create = commands.add_parser('new', help='preview a draft package and local branch')
+    create.add_argument('short_name')
+    _options(create)
+    create.add_argument('--apply', action='store_true')
+    initialize = commands.add_parser('init', help='add missing workflow files without overwriting')
+    _options(initialize)
+    initialize.add_argument('--apply', action='store_true')
+    prompt = commands.add_parser('prompts', help='user prompt installation').add_subparsers(
+        dest='operation', required=True)
+    install = prompt.add_parser('install', help='preview VS Code and Insiders prompt installation')
+    install.add_argument('--json', action='store_true')
+    install.add_argument('--apply', action='store_true')
+    future = commands.add_parser('run', help='scheduler: awaits slice C and owner clearance')
+    future.add_argument('--json', action='store_true')
     return root
 
 
@@ -64,7 +76,9 @@ def _human(result):
         print(result.get('path', result.get('reason', 'Done')))
     for row in result.get('items', []):
         if 'kind' not in row:
-            print(f"{row.get('action', '')}: {row.get('path', row.get('hook', ''))}")
+            action = row.get('action', row.get('status', ''))
+            path = row.get('path', row.get('package', row.get('hook', '')))
+            print(f'{action}: {path}')
             continue
         label = row['branch'] or (row['commit'] or '')[:12] or 'orphan'
         flags = ', '.join(k for k in ('tracked', 'untracked', 'locked', 'prunable') if row[k]) or row['status']
@@ -76,6 +90,10 @@ def _human(result):
               f"{row['last_commit'] or 'unknown date'}{size} | {row['reason']}")
     if result.get('dry_run'):
         print('Dry run; use --apply to act.')
+    for item in result.get('checklist', []):
+        print(f'Manual: {item}')
+    if 'errors' in result:
+        print(f"{len(result['errors'])} error(s), {len(result.get('warnings', []))} warning(s)")
 
 
 def main(argv=None):
@@ -90,7 +108,6 @@ def main(argv=None):
                                              scratch_roots=config.load()['scratchRoots'])
             else:
                 result = worktrees.clean(repos, apply=args.apply, quiet=args.quiet,
-                                         orphans=args.orphans,
                                          scratch_roots=config.load()['scratchRoots'], branches=args.branches)
             result['warnings'] = warnings + result['warnings']
         elif args.command == 'hooks':
@@ -98,15 +115,28 @@ def main(argv=None):
             repo = repo_root(args.repo or Path.cwd())
             result = (hooks.install(repo, apply=args.apply) if args.operation == 'install'
                       else hooks.run(repo, apply=args.apply))
+        elif args.command == 'lint':
+            from .workflow import lint
+            result = lint(args.repo or Path.cwd())
+        elif args.command in ('init', 'new'):
+            from . import adoption
+            result = (adoption.initialize(args.repo or Path.cwd(), apply=args.apply)
+                      if args.command == 'init' else adoption.new(
+                          args.repo or Path.cwd(), args.short_name, apply=args.apply))
+        elif args.command == 'prompts':
+            from . import prompts
+            result = prompts.install(apply=args.apply)
         else:
-            raise ValueError(f'{args.command} is not implemented in slice A; await its owner gate')
+            raise ValueError(f'{args.command} awaits slice C and its owner gate')
         for warning in result.get('warnings', []):
             print(warning, file=sys.stderr)
+        for error in result.get('errors', []):
+            print(error, file=sys.stderr)
         if args.json:
             print(json.dumps(result, ensure_ascii=True))
         elif not getattr(args, 'quiet', False):
             _human(result)
-        return 0
+        return 1 if result.get('errors') else 0
     except (ValueError, OSError) as exc:
         if args.json:
             print(json.dumps({'error': str(exc)}))

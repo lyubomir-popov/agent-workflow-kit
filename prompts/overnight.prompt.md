@@ -9,11 +9,11 @@ model: gpt-5.4-mini
 ## Workflow mode
 
 Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
-including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1`;
+including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1` or `2`;
 do not coerce strings or other values. Stop if the JSON is
 malformed, is not an object, or contains a present invalid or unsupported
 version. Do not infer the mode from root files or placeholders. Execute only the
-matching route below; version 1 must not execute Legacy procedure.
+matching route below; versions 1 and 2 must not execute Legacy procedure.
 
 
 ## Version 1 route
@@ -47,6 +47,16 @@ Stop at the authorized bound. Required reviews and owner
 dispositions are handled manually; do not launch automatic adversarial review,
 address rounds, or advance to another package. Authorization to continue never
 clears a checkpoint or task gate.
+
+## Version 2 route
+
+Read `AGENTS.md`, `docs/specs.md`, and the selected package's `spec.md` and
+`tasks.md` to identify scope and checkpoint blockers. The Python scheduler is
+not implemented in slice B; worker adapters, bounds and auth probes belong to
+slice C after its owner gate. Report that limitation and the next owner decision.
+Do not launch a worker, substitute the version 1 scheduler, invent `wfk run`
+flags or advance tasks to simulate an overnight run. A gate never clears through
+a launch request; preserve any existing worktrees and saved evidence.
 
 ## Legacy procedure
 

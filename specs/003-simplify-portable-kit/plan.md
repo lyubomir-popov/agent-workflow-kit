@@ -103,6 +103,25 @@ branch-aware catalogs, broken links, review headers, budgets, gate states and
 adoption preservation with temporary repositories. Remove retired placeholders
 only in this slice. Stop at CP3.
 
+`workflow.py` resolves checked-out declared owners before local refs and keeps
+catalog parsing, review labels, gates and task selection together. Lint is an
+offline CLI consumer. Version 1 historical formats produce migration warnings;
+version 2 requires a complete accepting owner record, latest dated findings
+links and at most two checkpoint links. Same-date ordering is reported as
+ambiguous rather than inferred. Workflow commands require explicit adoption;
+standalone worktree commands do not. Cleanup unions caller/target catalogs for
+protection and re-reads that protection at mutation time.
+
+`adoption.py` creates missing files exclusively and reports collisions for manual
+merge, including invalid local config. New packages use the target's project
+spec template and minimal draft plan/tasks. An owners-only provisional draft ref
+makes the package resolvable before committing owners plus registration on the
+target; the feature ref then advances to that registration commit. This avoids a
+catalog-only dangling commit or a permanent missing-branch exception. Failures
+preserve the recovery checkout, files, index and refs. `prompts.py` previews both
+editor destinations and replaces differing regular files only with `--apply`;
+links/non-file collisions stay manual. No vendor content is modified or linted.
+
 ## Slice C: scheduler (after owner clears CP3)
 
 Use one package worktree and a common-directory lock. Keep adapters declarative:

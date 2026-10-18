@@ -137,8 +137,18 @@ def _branch_moved(repo, branch):
 
 
 def _protected(repo, branch, target):
+    from .workflow import catalog
+    catalog_path = Path(repo) / 'docs/specs.md'
+    declared = {row['branch'] for row in catalog(repo)} if catalog_path.exists() else set()
+    if target:
+        target_has_catalog = git(repo, 'ls-tree', '--name-only', target,
+                                 '--', 'docs/specs.md').stdout.strip()
+        if target_has_catalog:
+            target_catalog = git(repo, 'show', f'{target}:docs/specs.md')
+            declared.update(row['branch'] for row in catalog(repo, text=target_catalog.stdout))
     return branch and (branch == config.local_target_branch(repo, target) or any(
-        fnmatch.fnmatchcase(branch, pattern) for pattern in config.load(repo)['protectedBranches']))
+        fnmatch.fnmatchcase(branch, pattern) for pattern in config.load(repo)['protectedBranches'])
+        or branch in declared)
 
 
 def _worktree(repo, record, target, source, size=False, grace_hours=24):
@@ -322,7 +332,7 @@ def _delete_branch(repo, row):
     return ''
 
 
-def clean(repos, apply=False, quiet=False, orphans=False, scratch_roots=None, branches=False):
+def clean(repos, apply=False, quiet=False, scratch_roots=None, branches=False):
     result = inventory(repos, scratch_roots=scratch_roots)
     result['dry_run'] = not apply
     cwd = Path.cwd().resolve()

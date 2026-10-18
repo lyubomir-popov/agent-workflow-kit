@@ -9,15 +9,24 @@ model: claude-opus-4.7
 ## Workflow mode
 
 Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
-including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1`;
+including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1` or `2`;
 do not coerce strings or other values. Stop if the JSON is
 malformed, is not an object, or contains a present invalid or unsupported
 version. Do not infer the mode from root files or placeholders. Execute only the
-matching route below; version 1 must not execute Legacy procedure.
+matching route below; versions 1 and 2 must not execute Legacy procedure.
 
 ## Version 1 route
 
 Use `AGENTS.md`, `docs/specs.md`, the relevant package records, `README.md`, and actual source as audit inputs. Assess domain usefulness, architecture, and drift; report strengths and ranked next moves. Keep findings in the owning package and create a report only when requested and within its write scope.
+
+## Version 2 route
+
+Read `AGENTS.md`, `docs/specs.md`, the relevant package owners, README and
+actual source. Assess domain usefulness, architecture and drift against the
+accepted scope; report strengths and ranked next moves. Keep the audit read-only
+unless persistence is requested within the owning package. Do not create a new
+execution queue. For checkpoint findings, follow `prompts/review.prompt.md`,
+including saved dispositions, the round limit and owner-only gate clearance.
 
 ## Legacy procedure
 

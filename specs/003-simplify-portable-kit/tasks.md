@@ -1,6 +1,6 @@
 # Current work
 
-**Next tasks**: T007–T010 (slice B), authorized by [CP2 clearance](reviews/2026-10-18-cp2-owner-clearance.md).
+**Next tasks**: T010 validation and CP3 handoff, authorized by [CP2 clearance](reviews/2026-10-18-cp2-owner-clearance.md).
 **Blockers**: none; stop at CP3.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
@@ -28,9 +28,9 @@
 
 ## Slice B: workflow core
 
-- [ ] T007 [H] Port config/catalog/package/gate parsing and offline lint with tests (FR-020, FR-023-024, FR-041) (gate: CP2).
-- [ ] T008 [S] Implement package creation and non-overwriting init with fixtures (FR-025-027) (gate: CP2).
-- [ ] T009 [S] Ship saved-review and installation prompts; retire root placeholders (FR-020-022, FR-028) (gate: CP2).
+- [x] T007 [H] Port config/catalog/package/gate parsing and offline lint with tests (FR-020, FR-023-024, FR-041) (gate: CP2).
+- [x] T008 [S] Implement package creation and non-overwriting init with fixtures (FR-025-027) (gate: CP2).
+- [x] T009 [S] Ship saved-review and installation prompts; retire root placeholders (FR-020-022, FR-028) (gate: CP2).
 - [ ] T010 [H] Validate slice B and save CP3 review request; stop (gate: CP2).
 
 ## Slice C: scheduler
@@ -48,9 +48,8 @@
 
 ## Known limits
 
-- Ownerless orphans are sized and kept for manual removal, including with
-  `--orphans`. The owner requested this FR-014 amendment; its acceptance remains
-  part of the pending CP2 clearance. No recursive deletion fallback exists.
+- Ownerless orphans are sized and kept for manual removal, accepted at CP2.
+  The obsolete `--orphans` flag is rejected. No recursive deletion fallback exists.
 - Missing paths cannot be distinguished from unmounted drives. Keep their
   registrations and skip pruning in a repo with unavailable worktrees.
 - Hooks inside checkout files are refused with manual composition instructions.
@@ -58,9 +57,15 @@
   and a listing warning are deferred, without claiming they were fixed.
 - Missing registrations remain preserved even when a parent exists. There is
   no explicit prune opt-in yet (Opus finding 5); owner pruning is manual.
-- Catalog-declared branch protection joins in slice B. Standalone branches are
-  kept by default now; before opting into `--branches`, add active package branch
-  patterns to `protectedBranches` explicitly.
+- Catalog-declared branches from the caller and configured target are protected,
+  including from stale caller checkouts. Standalone branches still need explicit
+  `--branches` before eligible deletion.
+- Version 1 nonstandard review headers and historical checkpoint-link counts
+  remain migration warnings; standard findings are strict. Version 2 enforces
+  complete owner decisions and latest dated findings. Same-date review ordering
+  produces an ambiguity warning and requires explicit owner selection.
+- Earlier vendor/PowerShell integrations remain unchanged until slice D; Python
+  reads project templates directly and does not inspect or modify vendor sources.
 - Empty/expired HEAD logs use admin mtime; unreadable/malformed nonempty logs
   keep the checkout. Standalone branch deletion retains its branch-reflog
   movement check, including missing/reftable-only evidence. The grace clock is

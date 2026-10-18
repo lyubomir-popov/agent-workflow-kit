@@ -21,7 +21,7 @@ The point is not to ask the same model twice. It's to weaponise the disagreement
 - The artifact is high-stakes (CEO-facing talk, foundational spec, architectural pivot, public-facing copy).
 - A single review pass would not be trusted by the user.
 - The cost of getting it wrong is materially higher than the cost of two heavy-tier runs.
-- You have at least two heavy-tier models available; use agent-loop.ps1's TierDispatchMap as the preference owner and choose distinct model families when available.
+- You have at least two capable models available; use the selected route's model-preference owner and choose distinct model families when available.
 
 If only one heavy model is available, run this prompt as a single-subagent audit instead and note it in the synthesis. Don't run two copies of the same model — the divergence is the value.
 
@@ -32,7 +32,7 @@ If only one heavy model is available, run this prompt as a single-subagent audit
 2. **Identify the supporting context.** Which sibling files (planning notes, prior drafts, audience notes, source material, sibling-repo references) the subagents must read to do an *informed* audit, not a surface one. List them with absolute paths.
 3. **Identify the verifiable surface.** Any concrete claims in the artifact that can be checked against the actual codebase, repo, or external source. Tell the subagents to spot-check.
 4. **Decide the report shape.** What sections you need from each subagent — at minimum: things to fix (priority-tagged), things to add, things to cut, open questions for the user, and a one-line verdict. Add domain-specific sections as needed.
-5. **Choose the two models.** Read agent-loop.ps1's TierDispatchMap; select capable heavy-tier reviewers from distinct families where available. Record the actual pairing in the synthesis.
+5. **Choose the two models.** Use the selected route's model-preference owner (agent-loop.ps1's TierDispatchMap for legacy and version 1); select capable reviewers from distinct families where available. Record the actual pairing in the synthesis.
 6. **Decide where the synthesis lands.** Use the destination selected by the matching workflow route; choose a new dated file there or append to the existing authorized planning record. Don't let the subagent reports themselves become the plan — they are inputs to a synthesis the orchestrator writes.
 
 
@@ -110,15 +110,28 @@ Do not start the rewrite step in the same turn. Wait for the user to decide.
 ## Workflow mode
 
 Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
-including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1`;
+including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1` or `2`;
 do not coerce strings or other values. Stop if the JSON is
 malformed, is not an object, or contains a present invalid or unsupported
 version. Do not infer the mode from root files or placeholders. Execute only the
-matching route below; version 1 must not execute Legacy procedure.
+matching route below; versions 1 and 2 must not execute Legacy procedure.
 
 ## Version 1 route
 
 Resolve the target and its governing `AGENTS.md`, catalog entry, and package records first. Apply Shared procedure: pre-flight, independent parallel dispatch, synthesis, cost discipline, and report back. Run two independent reviews of the requested artifact and synthesize a deduplicated plan. Respect package lifecycle, checkpoint, and write scope, and save each raw report and the synthesis under the owning package reviews/ destination within authorized write scope; record actual reviewer identities.
+
+## Version 2 route
+
+Resolve the target's `AGENTS.md`, catalog entry, package owners and checkpoint
+scope before applying Shared procedure. Version 2 model preferences belong in
+config; worker templates and tier models are planned for slice C. Until those
+settings exist, use available capable reviewers or report the limitation;
+do not invent a tier table or inherit version 1 preferences. Record the actual
+reviewers. Save independent raw findings and synthesis in the package's
+`reviews/` within authorized scope, following `prompts/review.prompt.md` for
+headers, dispositions and the at-most-two-round checkpoint limit. Count existing
+rounds before dispatch and require an owner request for any extra round. Do not
+turn an audit into implementation or clear an owner gate.
 
 ## Legacy procedure
 

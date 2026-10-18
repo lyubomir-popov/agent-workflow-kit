@@ -20,8 +20,9 @@ using the canonical owners named by the matching route.
 | [L] | Mechanical text/data changes and bounded inbox triage |
 | [X] | Read-only research or pass/fail validation commands |
 
-Concrete model preferences have one owner: agent-loop.ps1's TierDispatchMap.
-Read it when selecting a dispatch model; do not maintain another preference table.
+Concrete model preferences have one owner selected by the workflow route.
+For legacy and version 1, use agent-loop.ps1's TierDispatchMap; version 2 uses
+its config owner as described below. Do not maintain another preference table.
 Prefer the least-cost capable tier. Keep architectural decisions on the heavy
 orchestrator; delegate bounded mechanical work with a written recipe.
 Standard/light sessions execute their assigned tier directly and escalate heavy
@@ -72,15 +73,29 @@ Report completed task IDs, validation, remaining work, gate/blocker and deviatio
 ## Workflow mode
 
 Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
-including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1`;
+including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1` or `2`;
 do not coerce strings or other values. Stop if the JSON is
 malformed, is not an object, or contains a present invalid or unsupported
 version. Do not infer the mode from root files or placeholders. Execute only the
-matching route below; version 1 must not execute Legacy procedure.
+matching route below; versions 1 and 2 must not execute Legacy procedure.
 
 ## Version 1 route
 
 Read `AGENTS.md`, `docs/specs.md`, and the relevant package `spec.md` and `tasks.md`. Apply Shared procedure, including its dispatch contract, `TierDispatchMap` model ownership, and validation rules. Decompose authorized work by complexity, dispatch bounded tasks with exact scope, validate returns, and respect lifecycle/checkpoint gates. Keep findings in package reviews. Do not inspect retired root workflow state.
+
+## Version 2 route
+
+Read `AGENTS.md`, `docs/specs.md`, and the declared package's `spec.md`,
+`plan.md` and `tasks.md`. Apply Shared procedure within the authorized phase.
+Version 2 model preferences belong in config; worker templates and tier models
+are planned for slice C. Until configured, choose available capable workers or
+report unavailable delegation; do not invent configuration or a preference table.
+Use `wfk wt new <branch>` for new worktrees and `wfk lint --repo . --json` for
+portable ownership checks. Creation/adoption use `wfk new` and `wfk init` only
+when requested, previewing rewrites before `--apply`. Scheduled worker execution
+is not implemented in slice B; do not launch it through another route. Follow
+`prompts/review.prompt.md` for saved findings, matching dispositions and the
+two-round limit. Stop at the next owner checkpoint; never clear it yourself.
 
 ## Legacy procedure
 

@@ -369,12 +369,15 @@ Describe 'Migration blockers and CLI guards' {
 Describe 'Dual-mode prompt source contracts' {
     It 'selects mode explicitly in all prompt sources without operational retired-owner routes' {
         $promptFiles = @(Get-ChildItem -LiteralPath (Join-Path $script:KitRoot 'prompts') -Filter '*.prompt.md' -File)
-        $promptFiles.Count | Should Be 13
-        foreach ($prompt in $promptFiles) {
+        ($promptFiles.Name -contains 'review.prompt.md') | Should Be $true
+        $routerFiles = @($promptFiles | Where-Object Name -ne 'review.prompt.md')
+        $routerFiles.Count | Should Be 13
+        foreach ($prompt in $routerFiles) {
             $text = [IO.File]::ReadAllText($prompt.FullName)
             $text | Should Match '(?m)^## Workflow mode\s*$'
             $text | Should Match 'workflowModelVersion'
             $text | Should Match '(?m)^## Version 1 route\s*$'
+            $text | Should Match '(?m)^## Version 2 route\s*$'
             $text | Should Match '(?m)^## Legacy procedure\s*$'
             $legacyRoute = [regex]::Match($text,'(?ms)^## Legacy procedure\s*$(.*)').Groups[1].Value
             $legacyRoute | Should Not Match '(?m)^## '
@@ -383,7 +386,7 @@ Describe 'Dual-mode prompt source contracts' {
             $text | Should Match '(?is)unsupported.*\b(stop|fail)\b|\b(stop|fail)\b.*unsupported'
             $text | Should Match '(?i)JSON integer\s+`?1`?'
 
-            $versionRoute = [regex]::Match($text,'(?ms)^## Version 1 route\s*$(.*?)(?=^## Legacy procedure\s*$)').Groups[1].Value
+            $versionRoute = [regex]::Match($text,'(?ms)^## Version 1 route\s*$(.*?)(?=^## )').Groups[1].Value
             $versionRoute | Should Match 'AGENTS\.md|/whats-next|/overnight'
             $versionRoute | Should Match 'docs/specs\.md|catalog|package|/whats-next|/overnight'
             if ($prompt.Name -ne 'freshen-status.prompt.md') {

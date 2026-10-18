@@ -1,10 +1,10 @@
 # Current work
 
-**Next tasks**: T010 validation and CP3 handoff, authorized by [CP2 clearance](reviews/2026-10-18-cp2-owner-clearance.md).
-**Blockers**: none; stop at CP3.
+**Next tasks**: external CP3 round 2 review and owner decision; T011–T014 wait behind CP3.
+**Blockers**: CP3 is pending; [review request](reviews/2026-10-18-cp3-request.md).
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
-**Validation**: [CP2 evidence](reviews/2026-10-17-cp2-validation.md).
+**Validation**: [CP3 evidence](reviews/2026-10-18-cp3-validation.md).
 
 ## Planning
 
@@ -31,7 +31,7 @@
 - [x] T007 [H] Port config/catalog/package/gate parsing and offline lint with tests (FR-020, FR-023-024, FR-041) (gate: CP2).
 - [x] T008 [S] Implement package creation and non-overwriting init with fixtures (FR-025-027) (gate: CP2).
 - [x] T009 [S] Ship saved-review and installation prompts; retire root placeholders (FR-020-022, FR-028) (gate: CP2).
-- [ ] T010 [H] Validate slice B and save CP3 review request; stop (gate: CP2).
+- [x] T010 [H] Validate slice B and save CP3 review request; stop (gate: CP2).
 
 ## Slice C: scheduler
 

@@ -1,13 +1,50 @@
 # Slice A validation evidence
 
 **Scope**: `003/spec-r1`, CP1 through CP2 only
-**Final code revision**: `6ed3022211a7e8697331b36fc6c6619075b75e58`
+**Final code revision**: `1a36ab0d040c70e267f71494e288894b35d1802d`
+**Owner-change base**: `95b1dee54ad13402cb28bb49d28e6b6b8f4a34b4`
+**Previous remediation revision**: `6ed3022211a7e8697331b36fc6c6619075b75e58`
 **Remediation base**: `b6a375e0341bda8ca1d82f8ecdbf106fd70c016b`
 **Original slice code revision**: `716823f475b8f8b0a537f93372f353b150c41295`
 **Original review base**: `de9c365c8b32e217f2acf0e39b9e9eb976bd0e9b`
 **Local environment**: Windows, Git 2.52.0, Python 3.11.9, PowerShell 7
 
-## Opus remediation validation (latest)
+## Owner-directed correction validation (2026-10-18)
+
+The [recorded decision](2026-10-17-cp2-owner-decision.md) authorizes this bounded
+correction; [dispositions](2026-10-18-cp2-owner-dispositions.md) record it. No
+new review round or clearance was inferred from passing tests.
+
+Test-first: existing-branch and detached fixtures reproduced `keep` instead of
+`remove` after aging beyond grace. Empty/missing-log variants also failed before
+the mtime fallback; an orphan row had `size_bytes: null` before size reporting.
+Fresh variants remain kept with the default 24-hour grace. The targeted fixed
+run executed 3 tests, **OK**, in 16.449 seconds (including subcases).
+
+`python -m unittest discover -s tests_python -v`: **47 run, OK (skipped=1)**,
+107.476 seconds. One POSIX launcher test is skipped on this Windows host. This
+includes the existing protections, four landing styles, re-validation paths,
+hook refusal/composition and standalone branch opt-in; unchanged checks pass.
+
+- Full legacy `pwsh -NoLogo -NoProfile -File ./tests/run-tests.ps1`:
+  **284 passed, 0 failed, 0 skipped**, 1589.83 seconds. One full run on this
+  final code; remaining edits are records only.
+- Strict lint, scheduler preview and staged/unstaged whitespace checks pass.
+  Preview stops before slice B at CP2; worker invocations remain zero. Spec 001's
+  pre-existing manual T059 is unchanged. The real pre-commit checker passed.
+- `git diff --check 95b1dee..HEAD` passes on the source correction commit.
+- Destructive tests use disposable fixture repositories. No real cleanup,
+  hook installation, prompt installation, push, merge or consumer edit occurred.
+- Prior inventories and the owner's 133-worktree dry run are retained in their
+  saved owners; no broad real-repository scan was repeated for this correction.
+- Orphans are now sized and kept for manual removal. Missing or empty HEAD logs
+  use admin mtime; nonempty malformed/unreadable logs remain uncertain/kept.
+- macOS/Linux CI has not run here. FR-013-015 acceptance remains part of the
+  pending owner CP2 clearance, exactly as the recorded decision requires.
+
+<a id="opus-remediation-validation-latest"></a>
+
+## Previous Opus remediation validation
 
 Required fixes follow [Opus round 2](2026-10-17-cp2-opus-findings.md) and its
 [matching dispositions](2026-10-17-cp2-opus-dispositions.md). No third round ran.

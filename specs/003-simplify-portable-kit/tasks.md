@@ -1,6 +1,6 @@
 # Current work
 
-**Next tasks**: T022, validation/dispositions for the [owner correction](reviews/2026-10-17-cp2-owner-decision.md); then stop for clearance.
+**Next tasks**: explicit owner CP2 clearance from the [completed correction](reviews/2026-10-18-cp2-clearance-handoff.md); implementation stopped.
 **Blockers**: CP2 owner clearance before T007; both review rounds are used.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
@@ -24,7 +24,7 @@
 - [x] T019 [S] Refuse automatic hook installation inside checkout files with a regression fixture (finding 3) (gate: CP1).
 - [x] T020 [X] Disposition findings 4-6, run final validation, save evidence and stop for the CP2 owner decision (gate: CP1).
 - [x] T021 [S] Fix aged checkout-only worktree eligibility and empty-log fallback with fixtures; update FR-013/manual-orphan wording and sizes per the owner decision (gate: CP1).
-- [ ] T022 [X] Record owner-change dispositions/validation and stop for explicit CP2 clearance (gate: CP1).
+- [x] T022 [X] Record owner-change dispositions/validation and stop for explicit CP2 clearance (gate: CP1).
 
 ## Slice B: workflow core
 

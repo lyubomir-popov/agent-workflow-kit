@@ -5,7 +5,7 @@
 **Scope**: `003/spec-r1`, owner-directed slice A correction only
 **Requested change**: [owner decision](2026-10-17-cp2-owner-decision.md)
 **Base revision**: `95b1dee54ad13402cb28bb49d28e6b6b8f4a34b4`
-**Integrated revision**: final source revision will be named in the handoff.
+**Integrated revision**: `1a36ab0d040c70e267f71494e288894b35d1802d`
 
 1. **Fixed: aged checkout-only worktrees.** A worktree's landing status now
    depends on target inclusion, while cleanup independently enforces activity

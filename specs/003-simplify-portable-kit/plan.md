@@ -67,14 +67,17 @@ explicit. Always protect the target and `main`, `master`, `develop`, `trunk`,
 `release/*`; `protectedBranches` adds repo/user patterns. Hook cleanup omits
 `--branches`. Catalog branch protection joins in slice B.
 
-An initialized HEAD reflog alone is not evidence of work: require an actual
-nonzero old-to-new OID change before marking a checkout landed. Use branch
-reflogs for standalone branch candidates. Missing or unreadable evidence means
-kept. Cleanup also keeps activity newer than `cleanupGraceHours` (default 24),
-using the newest HEAD reflog timestamp and worktree admin directory mtime.
+The [owner correction](reviews/2026-10-17-cp2-owner-decision.md) supersedes the
+permanent HEAD movement requirement. An unmoved landed worktree becomes eligible
+outside `cleanupGraceHours` (default 24). Activity uses the newest HEAD reflog
+timestamp and admin-directory mtime; empty/expired logs fall back to mtime alone.
+Unreadable/malformed nonempty logs remain uncertain and keep the checkout.
+Standalone branch deletion retains its separate branch-reflog movement check.
 Re-read those guards immediately before removal. Tests set grace to zero only
 when testing another exclusion/removal, and age fixture metadata explicitly
 when verifying the default grace. No persistent proof ledger is needed.
+List ownerless orphans with disk size and a manual-removal reason; never remove
+them through an ordinary recursive filesystem operation, even with `--orphans`.
 
 Refuse hook installation when the effective directory falls inside any
 registered checkout's ordinary files (relative or absolute); Git's own admin

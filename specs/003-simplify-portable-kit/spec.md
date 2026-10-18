@@ -171,15 +171,16 @@ README.md; no existing file changes; a checklist names the manual merges.
 - **FR-012**: `wfk wt ls` MUST report orphan directories under configured
   scratch roots (defaults include the old `agent-loop-worktrees` temp folder)
   whose `.git` link points to a missing or unaware repository.
-- **FR-013**: A branch or detached checkout is *landed* only with reflog
-  evidence of actual HEAD/ref movement since creation, and either it is an ancestor
+- **FR-013**: A worktree is *landed* when its branch or detached commit is an ancestor
   of the target or `git merge-tree --write-tree <target> <rev>` produces
   the target's own tree (covers squash and rebase landings). The target comes
   from repo config, then `origin/HEAD`, then `main`/`master`; output names
-  which. Unknown target or movement evidence means nothing is landed. Cleanup
+  which. Unknown target means nothing is landed. Cleanup
   MUST keep worktrees with activity in the last 24 hours by default,
   configurable via `cleanupGraceHours`; activity is the newer of the newest
-  HEAD reflog timestamp and worktree admin-directory mtime.
+  HEAD reflog timestamp and worktree admin-directory mtime. Movement is not
+  required once outside that grace period. Use admin-directory mtime alone
+  when the HEAD reflog is empty or expired.
 - **FR-014**: `wfk wt clean --apply` MUST remove only worktrees that are not the
   primary checkout or the current directory, not locked, have no tracked
   changes and no untracked non-ignored files, and are landed. It MUST use
@@ -190,8 +191,7 @@ README.md; no existing file changes; a checklist names the manual merges.
   target and `main`, `master`, `develop`, `trunk`, `release/*`; configurable
   `protectedBranches` adds patterns. Protected worktrees are also kept. Slice B
   adds catalog-declared branch protection. Kept items list their reason. Remote branches are never
-  touched. Orphan directories are removed only with `--orphans`, and only
-  inside configured scratch roots.
+  touched. Orphan directories are listed with size; removal is manual.
 - **FR-015**: `wfk hooks install` MUST add `post-merge` and `post-rewrite`
   hooks that run `wfk wt clean --apply --quiet` for that repo when the target
   branch is checked out. It MUST compose with existing hooks, never change

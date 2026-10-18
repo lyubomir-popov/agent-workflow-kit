@@ -1,6 +1,6 @@
 # Current work
 
-**Next tasks**: owner CP2 decision from the [remediation handoff](reviews/2026-10-17-cp2-owner-handoff.md); implementation stopped.
+**Next tasks**: T022, validation/dispositions for the [owner correction](reviews/2026-10-17-cp2-owner-decision.md); then stop for clearance.
 **Blockers**: CP2 owner clearance before T007; both review rounds are used.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
@@ -23,6 +23,8 @@
 - [x] T018 [H] Add failing fixtures and fix standalone branch opt-in/protection plus fresh/recent worktree preservation (findings 1-2) (gate: CP1).
 - [x] T019 [S] Refuse automatic hook installation inside checkout files with a regression fixture (finding 3) (gate: CP1).
 - [x] T020 [X] Disposition findings 4-6, run final validation, save evidence and stop for the CP2 owner decision (gate: CP1).
+- [x] T021 [S] Fix aged checkout-only worktree eligibility and empty-log fallback with fixtures; update FR-013/manual-orphan wording and sizes per the owner decision (gate: CP1).
+- [ ] T022 [X] Record owner-change dispositions/validation and stop for explicit CP2 clearance (gate: CP1).
 
 ## Slice B: workflow core
 
@@ -46,10 +48,9 @@
 
 ## Known limits
 
-- Orphans without a Git owner are listed and kept even with `--orphans`:
-  removal cannot use the required `git worktree remove`; manual recovery/removal
-  is needed. No recursive filesystem deletion fallback is implemented. This is
-  a limit for CP2 review, not an owner-accepted change to FR-014.
+- Ownerless orphans are sized and kept for manual removal, including with
+  `--orphans`. The owner requested this FR-014 amendment; its acceptance remains
+  part of the pending CP2 clearance. No recursive deletion fallback exists.
 - Missing paths cannot be distinguished from unmounted drives. Keep their
   registrations and skip pruning in a repo with unavailable worktrees.
 - Hooks inside checkout files are refused with manual composition instructions.
@@ -60,8 +61,10 @@
 - Catalog-declared branch protection joins in slice B. Standalone branches are
   kept by default now; before opting into `--branches`, add active package branch
   patterns to `protectedBranches` explicitly.
-- HEAD/branch reflog evidence missing, malformed, disabled or reftable-only means
-  kept. The grace clock is Git HEAD activity/admin mtime; ignored-file changes
+- Empty/expired HEAD logs use admin mtime; unreadable/malformed nonempty logs
+  keep the checkout. Standalone branch deletion retains its branch-reflog
+  movement check, including missing/reftable-only evidence. The grace clock is
+  Git HEAD activity/admin mtime; ignored-file changes
   alone do not refresh it. All ignored files are deleted when removal applies,
   including secrets, notes and tmp evidence (documented for finding 6).
 - Root discovery skips dependency/cache directories and directory symlinks;

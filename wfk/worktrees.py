@@ -112,7 +112,7 @@ def _base(repo, target, source):
 
 
 def _reflog(path):
-    """Read actual OID movement and newest event time; unknown evidence keeps work."""
+    """Read OID movement and newest event time; unknown evidence returns None."""
     try:
         moved, latest = False, None
         for line in path.read_text(encoding='utf-8', errors='surrogateescape').splitlines():
@@ -158,10 +158,18 @@ def _worktree(repo, record, target, source, size=False, grace_hours=24):
             row.update(status='unknown', reason='worktree Git link does not match repository')
             return row
         admin = Path(git(path, 'rev-parse', '--absolute-git-dir').stdout.strip())
-        row['moved'], activity = _reflog(admin / 'logs' / 'HEAD')
+        log = admin / 'logs' / 'HEAD'
+        row['moved'], activity = _reflog(log)
+        try:
+            empty_log = log.stat().st_size == 0
+        except FileNotFoundError:
+            empty_log = True
+        modified = admin.stat().st_mtime
         if activity is not None:
-            row['activity_time'] = max(activity, admin.stat().st_mtime)
-        row['landed'] = row['moved'] and landed(repo, row['commit'], target)
+            row['activity_time'] = max(activity, modified)
+        elif empty_log:
+            row['activity_time'] = modified
+        row['landed'] = landed(repo, row['commit'], target)
         result = git(path, 'status', '--porcelain=v1', '-z', '--untracked-files=all',
                      '--ignore-submodules=none')
         # Rename entries have a second NUL-delimited path; skip that path.
@@ -213,6 +221,7 @@ def _orphans(scratch_roots):
                     seen.add(key)
                     row = _base(None, None, 'unknown')
                     row.update(kind='orphan', repo=None, path=str(path), status='orphan',
+                               size_bytes=_size(path),
                                reason='orphan has no Git owner; manual removal required')
                     result.append(row)
             except (OSError, ValueError):
@@ -289,8 +298,6 @@ def _keep_reason(row, primary_path, cwd):
         return 'unknown target'
     if _protected(Path(row['repo']), row['branch'], row['target']):
         return 'protected branch'
-    if not row['moved']:
-        return 'no HEAD movement evidence since creation'
     if not row['landed']:
         return 'unlanded commits'
     if row['activity_time'] is None:
@@ -323,8 +330,6 @@ def clean(repos, apply=False, quiet=False, orphans=False, scratch_roots=None, br
     for row in result['items']:
         row['action'] = 'keep'
         if row['kind'] == 'orphan':
-            if not orphans:
-                row['reason'] = 'orphan; --orphans required (manual removal if no Git owner)'
             continue
         repo = Path(row['repo'])
         if row['kind'] == 'branch':

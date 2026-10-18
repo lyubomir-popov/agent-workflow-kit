@@ -181,9 +181,9 @@ class WorktreeFixtures(unittest.TestCase):
         for branch in names:
             self.assertTrue(self.git(repo, 'branch', '--list', branch), branch)
 
-    def test_brand_new_worktree_and_detached_head_are_not_landed(self):
+    def test_brand_new_worktree_and_detached_head_are_kept_by_default_grace(self):
         repo = self.repo()
-        self.repo_config(repo, cleanupGraceHours=0)
+        self.config.write_text('{}', encoding='utf-8')
         created = json.loads(self.cli(self.root, 'wt', 'new', 'new-agent', '--repo', repo, '--json').stdout)
         path = Path(created['path'])
         detached = self.root / 'fresh-detached'
@@ -191,9 +191,29 @@ class WorktreeFixtures(unittest.TestCase):
         rows = self.items(repo, 'clean', '--apply')
         for checkout in (path, detached):
             row = self.assert_kept(rows, checkout)
-            self.assertFalse(row['landed'], row)
-            self.assertIn('movement', row['reason'])
+            self.assertFalse(row['moved'], row)
+            self.assertTrue(row['landed'], row)
+            self.assertIn('recent activity', row['reason'])
             self.assertTrue(checkout.is_dir())
+
+    def test_unmoved_landed_existing_branch_and_detached_checkout_expire_after_grace(self):
+        self.config.write_text('{}', encoding='utf-8')
+        for style in ('existing-branch', 'detached'):
+            with self.subTest(style=style):
+                repo = self.repo('review-' + style)
+                checkout = self.root / (style + '-checkout')
+                if style == 'existing-branch':
+                    self.git(repo, 'branch', 'review-existing')
+                    self.git(repo, 'worktree', 'add', checkout, 'review-existing')
+                else:
+                    self.git(repo, 'worktree', 'add', '--detach', checkout, 'HEAD')
+                fresh = self.assert_kept(self.items(repo, 'clean', '--apply'), checkout)
+                self.assertFalse(fresh['moved'])
+                self.age_activity(checkout, 2 * 86400, 2 * 86400)
+                old = self.by_path(self.items(repo, 'clean', '--apply'), checkout)
+                self.assertFalse(old['moved'])
+                self.assertEqual(old['action'], 'remove', old)
+                self.assertFalse(checkout.exists())
 
     def age_activity(self, checkout, head_age, admin_age):
         admin = Path(self.git(checkout, 'rev-parse', '--absolute-git-dir'))
@@ -221,14 +241,26 @@ class WorktreeFixtures(unittest.TestCase):
         self.assertEqual(self.by_path(self.items(repo, 'clean', '--apply'), tree)['action'], 'remove')
         self.assertFalse(tree.exists())
 
-    def test_missing_head_reflog_keeps_even_old_landed_worktree(self):
-        repo = self.repo()
-        tree = self.landed(repo, 'ff')
-        admin = Path(self.git(tree, 'rev-parse', '--absolute-git-dir'))
-        (admin / 'logs' / 'HEAD').unlink()
-        row = self.assert_kept(self.items(repo, 'clean', '--apply'), tree)
-        self.assertIn('movement evidence', row['reason'])
-        self.assertFalse(row['landed'])
+    def test_empty_or_missing_head_reflog_uses_admin_mtime_for_grace(self):
+        self.config.write_text('{}', encoding='utf-8')
+        for style in ('empty', 'missing'):
+            with self.subTest(style=style):
+                repo = self.repo('no-log-' + style)
+                tree = self.worktree(repo, 'no-log-' + style)
+                admin = Path(self.git(tree, 'rev-parse', '--absolute-git-dir'))
+                log = admin / 'logs' / 'HEAD'
+                if style == 'empty':
+                    log.write_bytes(b'')
+                else:
+                    log.unlink()
+                os.utime(admin, None)
+                row = self.assert_kept(self.items(repo, 'clean', '--apply'), tree)
+                old = time.time() - 2 * 86400
+                os.utime(admin, (old, old))
+                row = self.by_path(self.items(repo, 'clean', '--apply'), tree)
+                self.assertTrue(row['landed'])
+                self.assertEqual(row['action'], 'remove', row)
+                self.assertFalse(tree.exists())
 
     def test_all_four_landing_styles_preview_then_remove_ignored_output(self):
         for style in ("ff", "merge", "squash", "rebase"):
@@ -390,9 +422,12 @@ class WorktreeFixtures(unittest.TestCase):
         orphan.mkdir(parents=True)
         (orphan / ".git").write_text("gitdir: " + str(self.root / "missing" / "worktrees" / "abandoned") + "\n",
                                      encoding="utf-8")
+        (orphan / 'local-notes.txt').write_text('preserve this', encoding='utf-8')
         self.repo_config(repo, scratchRoots=[str(scratch)])
         row = self.by_path(self.items(repo), orphan)
         self.assertEqual(row["kind"], "orphan")
+        self.assertIsInstance(row['size_bytes'], int)
+        self.assertGreater(row['size_bytes'], 0)
         self.assert_kept(self.items(repo, "clean", "--apply"), orphan)
         preview = self.items(repo, "clean", "--orphans")
         self.assert_kept(preview, orphan)

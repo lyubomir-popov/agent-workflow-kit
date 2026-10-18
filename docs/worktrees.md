@@ -13,7 +13,8 @@ Create a checkout with `wfk wt new feature/example`. Its default path is
 host-specific folders. Use `--root <folder>` to discover repositories beneath
 one or more folders, `--size` for disk usage, and `--json` for structured output.
 Rows include worktrees and local branches contained in the target that have no
-checkout. A fresh branch/check-out without actual reflog movement is not landed.
+checkout. Worktree landing depends on the commit's inclusion in the target;
+cleanup eligibility also applies the activity grace period.
 Discovery skips Git internals, `node_modules`, `.venv`, `__pycache__` and
 `.pytest_cache`, and does not follow directory symlinks. Pass an excluded
 repository itself as `--root` to inspect it explicitly. Access errors are
@@ -27,17 +28,19 @@ The target, `main`, `master`, `develop`, `trunk`, `release/*` and additional
 `protectedBranches` patterns are always kept, including their worktrees.
 
 The primary and current checkouts, locked or unavailable paths, tracked changes,
-untracked non-ignored files and uncertain landing or HEAD movement evidence
-keep the checkout. A new worktree stays protected until its HEAD has actually
-moved, even with the grace period disabled. HEAD initialization/reset entries
-that repeat the same commit do not count. Missing reflogs (including expired or
-disabled logs or unsupported storage) keep work. Reftable-only reflogs are not
-currently read by this command.
+untracked non-ignored files and uncertain landing evidence keep the checkout.
+Checkout-only worktrees on existing branches or fixed commits become eligible
+once landed and outside the grace period, even when their HEAD never moved.
 
 The default 24-hour activity grace also keeps recently active worktrees. Activity
-is the newer of the newest HEAD reflog event and the Git admin directory's mtime;
+is the newer of the newest HEAD reflog event and the Git admin directory's mtime.
+An empty or expired HEAD reflog uses the admin-directory mtime alone. Unreadable
+or malformed nonempty logs keep the checkout. Reftable timestamps are not read,
+so absent file logs use the admin mtime. Standalone branch deletion retains its
+separate branch-reflog movement requirement.
 `cleanupGraceHours` changes the interval, with `0` explicitly disabling this age
-guard. Movement, activity, status, landing and protection are rechecked before
+guard, allowing even fresh landed worktrees to become eligible. Activity,
+status, landing and protection are rechecked before
 removal. Uncommitted activity visible only in ignored files does not refresh this
 Git activity clock.
 
@@ -45,9 +48,9 @@ Git activity clock.
 secrets, local notes, `tmp/` evidence and build output. Ignored does not mean
 disposable. Both human and JSON preview reasons state this consequence.
 Remote branches are never deleted. Orphans are reported under configured
-scratch roots and kept for manual recovery when Git has no owner that can
-remove them safely. `--orphans` is an explicit opt-in for orphan handling;
-it does not enable recursive filesystem deletion.
+scratch roots with their disk size, and kept for manual recovery/removal.
+Unavailable size is reported as unknown. `--orphans` remains accepted for
+compatibility; it never authorizes orphan deletion.
 
 ## Automatic cleanup after local Git operations
 

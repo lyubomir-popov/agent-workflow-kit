@@ -124,8 +124,9 @@ Resolve the target and its governing `AGENTS.md`, catalog entry, and package rec
 
 Resolve the target's `AGENTS.md`, catalog entry, package owners and checkpoint
 scope before applying Shared procedure. Version 2 model preferences belong in
-config; worker templates and tier models are planned for slice C. Until those
-settings exist, use available capable reviewers or report the limitation;
+config; slice C seeds worker templates and tier models from
+`templates/scheduler-defaults.json`. Until those settings are qualified, use
+available capable reviewers or report the limitation;
 do not invent a tier table or inherit version 1 preferences. Record the actual
 reviewers. Save independent raw findings and synthesis in the package's
 `reviews/` within authorized scope, following `prompts/review.prompt.md` for

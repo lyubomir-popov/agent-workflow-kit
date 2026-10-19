@@ -1,0 +1,14 @@
+{
+  "workers": {
+    "codex": {"command": ["codex", "exec", "-"], "input": "stdin", "authCommand": null},
+    "copilot": {"command": ["copilot", "-p", "{prompt}"], "input": "argv", "authCommand": null},
+    "claude": {"command": ["claude", "-p", "{prompt}"], "input": "argv", "authCommand": null}
+  },
+  "tierModels": {
+    "codex": {"H": null, "S": null, "L": null},
+    "copilot": {"H": null, "S": null, "L": null},
+    "claude": {"H": null, "S": null, "L": null}
+  },
+  "scheduler": {"authTimeout": 15, "grace": 2},
+  "reviewer": "claude"
+}

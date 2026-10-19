@@ -144,6 +144,35 @@ saved-review rounds. Use fake worker executables for every outcome, hangs,
 child processes, protected edits, Ctrl-C and crash reporting. No live workers.
 Stop at CP4.
 
+### CP3-authorized slice C implementation contracts
+
+The owner authorizes fake workers only, including preflight. Shipped worker
+arguments remain declarative defaults; auth probes default to unset and fail
+closed until an operator configures a verified noninteractive command. No real
+CLI is invoked to discover authentication in this slice. Configuration and tier
+models are frozen before dispatch; version 1 ignores scheduler overrides.
+
+`scheduler.py` selects explicitly authorized packages, rechecks their gates,
+leases a common-directory package lock and uses a clean non-primary branch
+worktree. It never moves the primary checkout. Preview is read-only; execution
+requires `--apply`. Reports are initialized before preflight and finalized on
+failure or interruption. Quota fallback is bounded by the supplied agent order;
+authentication stops the run. Only newly created, clean, landed worktrees are
+considered for Git-only cleanup, without force or branch deletion.
+
+`processes.execute(argv, cwd, log, timeout, grace, input_text, env)` streams logs
+to disk and contains the process tree on Windows and POSIX. `protection.audit`
+examines every new commit, including changes later reverted. Rejection first
+saves a recovery ref, then rewinds the branch with an expected-old-value check;
+index, worktree and untracked bytes are preserved. Existing evidence remains
+immutable; an optional review dispatch may create only its named new record.
+
+Optional review runs use a dispatch callback with the same process/protection
+guards, save findings and dispositions in the package, and enforce two rounds
+across runs. A reviewer verdict never clears an owner gate. Missing findings
+produce `review-missing`. Independent review, fake-worker validation and the
+legacy final-code suite precede the CP4 request; slice D remains blocked.
+
 ## Slice D: retirement and documentation (after owner clears CP4)
 
 Tag the last PowerShell revision locally, retire old code/tests and staged

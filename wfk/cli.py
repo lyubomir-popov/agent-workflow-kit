@@ -54,8 +54,17 @@ def parser():
     install = prompt.add_parser('install', help='preview VS Code and Insiders prompt installation')
     install.add_argument('--json', action='store_true')
     install.add_argument('--apply', action='store_true')
-    future = commands.add_parser('run', help='scheduler: awaits slice C and owner clearance')
-    future.add_argument('--json', action='store_true')
+    run = commands.add_parser('run', help='preview bounded package scheduling; --apply to dispatch')
+    _options(run)
+    run.add_argument('--package', action='append', help='authorize this catalog package (repeatable)')
+    run.add_argument('--agents', default='codex', help='ordered comma-separated worker profiles')
+    run.add_argument('--apply', action='store_true')
+    run.add_argument('--max-tasks', type=int, default=1)
+    run.add_argument('--max-hours', type=float, default=8)
+    run.add_argument('--task-timeout', type=float, default=1800, help='seconds per worker')
+    run.add_argument('--review', action='store_true', help='request a bounded saved review after progress')
+    run.add_argument('--reviewer', help='reviewer profile (default: configured reviewer)')
+    run.add_argument('--review-checkpoint', help='uncleared checkpoint to review, e.g. CP4')
     return root
 
 
@@ -90,6 +99,8 @@ def _human(result):
               f"{row['last_commit'] or 'unknown date'}{size} | {row['reason']}")
     if result.get('dry_run'):
         print('Dry run; use --apply to act.')
+    if result.get('report'):
+        print('Report: ' + result['report'])
     for item in result.get('checklist', []):
         print(f'Manual: {item}')
     if 'errors' in result:
@@ -126,6 +137,15 @@ def main(argv=None):
         elif args.command == 'prompts':
             from . import prompts
             result = prompts.install(apply=args.apply)
+        elif args.command == 'run':
+            from . import scheduler
+            agents = [name.strip() for name in args.agents.split(',')]
+            if any(not name for name in agents):
+                raise ValueError('--agents requires nonempty profile names')
+            result = scheduler.run(args.repo or Path.cwd(), packages=args.package, agents=agents,
+                apply=args.apply, max_tasks=args.max_tasks, max_hours=args.max_hours,
+                task_timeout=args.task_timeout, review=args.review, reviewer=args.reviewer,
+                review_checkpoint=args.review_checkpoint)
         else:
             raise ValueError(f'{args.command} awaits slice C and its owner gate')
         for warning in result.get('warnings', []):

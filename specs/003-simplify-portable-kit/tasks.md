@@ -1,10 +1,10 @@
 # Current work
 
-**Next tasks**: T011–T014 (slice C), authorized by [CP3 clearance](reviews/2026-10-19-cp3-owner-clearance.md).
-**Blockers**: none; fake workers only; stop at CP4.
+**Next tasks**: T014 (slice C validation/handoff), authorized by [CP3 clearance](reviews/2026-10-19-cp3-owner-clearance.md).
+**Blockers**: final validation running; fake workers only; stop at CP4.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
-**Validation**: [CP3 evidence](reviews/2026-10-18-cp3-validation.md).
+**Validation**: [CP4 evidence](reviews/2026-10-19-cp4-validation.md).
 
 ## Planning
 
@@ -40,18 +40,37 @@
 
 ## Slice C: scheduler
 
-- [ ] T011 [H] Implement adapters, preflight, package worktree locks and task dispatch (FR-030-033) (gate: CP3).
-- [ ] T012 [H] Implement outcomes, fallback, process termination, protected edit rejection and durable reports (FR-034-039) (gate: CP3).
-- [ ] T013 [S] Exercise fake workers for every outcome and report exit path (SC-004-005) (gate: CP3).
+- [x] T011 [H] Implement adapters, preflight, package worktree locks and task dispatch (FR-030-033) (gate: CP3).
+- [x] T012 [H] Implement outcomes, fallback, process termination, protected edit rejection and durable reports (FR-034-039) (gate: CP3).
+- [x] T013 [S] Exercise fake workers for every outcome and report exit path (SC-004-005) (gate: CP3).
 - [ ] T014 [H] Validate slice C and save CP4 review request; stop (gate: CP3).
 
 ## Slice D: retirement and docs
 
 - [ ] T015 [S] Tag the last PowerShell revision locally, remove legacy tooling/tests/checker and migrate config (FR-040-041) (gate: CP4).
-- [ ] T016 [S] Finish three-OS Python CI/lint and rewrite human README/reference docs (FR-042-043) (gate: CP4).
+- [ ] T016 [S] Finish three-OS Python CI/lint, resolve the baseline Linux parent-path errors in init/prompt installation, and rewrite human README/reference docs (FR-042-043) (gate: CP4).
 - [ ] T017 [H] Validate the full replacement and save CP5 review request; stop (gate: CP4).
 
 ## Known limits
+
+- Full WSL discovery has two pre-existing `NotADirectoryError` failures in init
+  and prompt installation when a destination parent is a file. Both reproduce
+  on CP3 commit `9a3e38a`; all 85 slice C WSL tests pass. These remain open for
+  T016's final portability validation after CP4, subject to the owner's CP4
+  decision; full Linux readiness is not claimed. See CP4 validation.
+
+- CP4 qualification: real worker CLIs were not authorized, even for help/auth.
+  Defaults leave auth probes unset and tier models at CLI default; live dispatch
+  fails closed until a verified noninteractive probe and any model/failure
+  arguments are configured. Windows batch wrappers require a native launcher.
+  See [scheduler reference](../../docs/scheduler.md) and
+  [integration review](reviews/2026-10-19-cp4-integration-review.md).
+- POSIX workers must keep descendants in their owned session; deliberate setsid
+  escape is unsupported. Windows graceful interrupt is best effort, followed by
+  authoritative Job termination. Forced OS termination can leave the initialized
+  report marked running; stale locks and new foreign refs need manual inspection.
+  Optional reviews require progress in the same run; follow-up review without
+  another eligible task uses the saved-review prompt and explicit owner scope.
 
 - CP3 Opus findings 2–4 remain deferred for the owner's decision:
   severity checks scan every numbered list in findings files (use bullets for

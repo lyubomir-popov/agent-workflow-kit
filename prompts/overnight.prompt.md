@@ -51,12 +51,16 @@ clears a checkpoint or task gate.
 ## Version 2 route
 
 Read `AGENTS.md`, `docs/specs.md`, and the selected package's `spec.md` and
-`tasks.md` to identify scope and checkpoint blockers. The Python scheduler is
-not implemented in slice B; worker adapters, bounds and auth probes belong to
-slice C after its owner gate. Report that limitation and the next owner decision.
-Do not launch a worker, substitute the version 1 scheduler, invent `wfk run`
-flags or advance tasks to simulate an overnight run. A gate never clears through
-a launch request; preserve any existing worktrees and saved evidence.
+`tasks.md` to identify scope and checkpoint blockers. Read `docs/scheduler.md`
+for qualified worker profiles, auth probes, bounds and recovery. Preview with
+`wfk run --repo . --package <catalog-package> --agents <ordered-profiles> --json`.
+Only an explicitly authorized live run adds `--apply`; use the owner's positive
+`--max-tasks`, `--max-hours` and `--task-timeout` bounds. Defaults cap one task.
+Default auth probes are unset and fail closed; do not invent a login check or
+substitute another scheduler. Do not launch real workers when only fake workers
+are authorized. Preserve the printed common-directory report and worktrees.
+Optional `--review --review-checkpoint <gate>` requires review authorization and
+never clears an owner gate. Stop at the next checkpoint or supplied bound.
 
 ## Legacy procedure
 

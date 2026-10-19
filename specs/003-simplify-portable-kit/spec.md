@@ -14,7 +14,7 @@
 | CP1 | Owner spec acceptance | [request](reviews/2026-10-17-cp1-request.md); [owner acceptance](reviews/2026-10-17-cp1-owner-acceptance.md) | owner-cleared |
 | CP2 | Slice A review: worktree hygiene | [Opus findings](reviews/2026-10-17-cp2-opus-findings.md); [owner clearance](reviews/2026-10-18-cp2-owner-clearance.md) | owner-cleared |
 | CP3 | Slice B review: workflow core | [Opus findings](reviews/2026-10-18-cp3-opus-findings.md); [owner clearance](reviews/2026-10-19-cp3-owner-clearance.md) | owner-cleared |
-| CP4 | Slice C review: scheduler | not yet requested | pending |
+| CP4 | Slice C review: scheduler | [GPT findings](reviews/2026-10-19-cp4-gpt-findings.md) | pending |
 | CP5 | Slice D review: retirement and docs | not yet requested | pending |
 
 **Input**: Spec 001 was meant as a small hardening pass and grew to ~4,500

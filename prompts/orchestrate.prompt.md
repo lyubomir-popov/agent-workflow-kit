@@ -87,13 +87,16 @@ Read `AGENTS.md`, `docs/specs.md`, and the relevant package `spec.md` and `tasks
 
 Read `AGENTS.md`, `docs/specs.md`, and the declared package's `spec.md`,
 `plan.md` and `tasks.md`. Apply Shared procedure within the authorized phase.
-Version 2 model preferences belong in config; worker templates and tier models
-are planned for slice C. Until configured, choose available capable workers or
-report unavailable delegation; do not invent configuration or a preference table.
+Version 2 worker templates and `tierModels` belong in config, seeded by
+`templates/scheduler-defaults.json` in slice C. Until qualified, choose available
+capable workers or report unavailable delegation; do not invent authentication
+probes, model preferences or a second preference table.
 Use `wfk wt new <branch>` for new worktrees and `wfk lint --repo . --json` for
 portable ownership checks. Creation/adoption use `wfk new` and `wfk init` only
-when requested, previewing rewrites before `--apply`. Scheduled worker execution
-is not implemented in slice B; do not launch it through another route. Follow
+when requested, previewing rewrites before `--apply`. For authorized scheduled
+execution follow `docs/scheduler.md`: preview `wfk run`, select explicit packages
+and bounded profiles, and add `--apply` only within live-run authorization.
+Fake-worker authorization never permits a real CLI invocation. Follow
 `prompts/review.prompt.md` for saved findings, matching dispositions and the
 two-round limit. Stop at the next owner checkpoint; never clear it yourself.
 

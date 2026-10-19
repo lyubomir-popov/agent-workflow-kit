@@ -26,7 +26,8 @@ existing `plan.md` phases, edge cases, validation and checkpoint handoffs within
 authorized planning scope. Stay in planning mode; do not implement, create a
 parallel execution queue, commit or push without authorization. Use
 `prompts/review.prompt.md` for requested checkpoint reviews and its round limit.
-Do not promise scheduler behavior that is still awaiting slice C.
+Qualify scheduler plans against `docs/scheduler.md`, including configured auth
+probes, explicit packages, bounds and owner gates.
 
 ## Legacy procedure
 

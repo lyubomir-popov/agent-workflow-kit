@@ -75,7 +75,9 @@ prompt folders. `--apply` replaces differing regular prompt files; preserve any
 customizations first. Links and non-file collisions are kept with manual
 instructions. Platform locations use APPDATA on Windows, Application Support on
 macOS and XDG_CONFIG_HOME (or `~/.config`) on Linux. Prompt routing supports both
-config generations. The scheduler command remains gated until slice C.
+config generations. See [the scheduler](scheduler.md) for bounded dispatch,
+profile qualification, reports and recovery. Live worker use requires separate
+authorization; the slice C validation uses fake worker CLIs only.
 
 Use `/review` to save findings and matching dispositions in package `reviews/`.
 It requires actual reviewer/revision identity, severity-marked findings and a

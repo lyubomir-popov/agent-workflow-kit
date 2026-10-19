@@ -119,5 +119,27 @@ migration, under separate owner scope. Retirement here does not perform either.
 
 ## T017: final source validation
 
-The final source is frozen for full Windows/WSL suites and independent review.
-Results and the final reviewed revision follow after those checks finish.
+Final source: `7d1b0a7acbbe2ecf90ade4609fb52ce5d7895d76`.
+Subsequent edits are review/handoff records only.
+
+| Check | Result |
+|---|---|
+| Full Windows Python suite | 227 tests in 442.735 seconds, OK; six platform/capability skips |
+| Full WSL Python suite | 227 tests in 45.348 seconds, OK; three platform skips |
+| macOS / remote six-job CI matrix | not executed; owner-authorized publication/runner needed |
+| Python compileall | pass |
+| Offline lint | zero errors, 17 documented historical/date-order warnings |
+| Explicit-package scheduler preview | dry run only; blocked at manual T029, no workers |
+| Working tree / index / review-range whitespace | pass; base `2a38c29` |
+| Vendor `.specify/` diff from base | empty |
+
+The initial inventory's two Markdown hard-break whitespace lines were corrected
+in the retirement commit; the final review range passes whitespace checks.
+Remote CI must actually run before the outstanding three-OS acceptance condition
+can be recorded as met. No macOS pass is inferred from WSL or configuration.
+
+One [independent review](2026-10-19-cp5-independent-findings.md) and the
+[author integration review](2026-10-19-cp5-integration-review.md) are saved.
+The sole remaining major finding is the required macOS/CI execution evidence;
+[dispositions](2026-10-19-cp5-independent-dispositions.md) leave it open for
+owner-authorized runner/publication scope. No further review starts automatically.

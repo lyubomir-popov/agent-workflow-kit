@@ -15,7 +15,7 @@
 | CP2 | Slice A review: worktree hygiene | [Opus findings](reviews/2026-10-17-cp2-opus-findings.md); [owner clearance](reviews/2026-10-18-cp2-owner-clearance.md) | owner-cleared |
 | CP3 | Slice B review: workflow core | [Opus findings](reviews/2026-10-18-cp3-opus-findings.md); [owner clearance](reviews/2026-10-19-cp3-owner-clearance.md) | owner-cleared |
 | CP4 | Slice C review: scheduler | [Opus findings](reviews/2026-10-19-cp4-opus-findings.md); [owner clearance](reviews/2026-10-19-cp4-owner-clearance.md) | owner-cleared |
-| CP5 | Slice D review: retirement and docs | not yet requested | pending |
+| CP5 | Slice D review: retirement and docs | [independent findings](reviews/2026-10-19-cp5-independent-findings.md); [review request](reviews/2026-10-19-cp5-review-request.md) | findings-received |
 
 **Input**: Spec 001 was meant as a small hardening pass and grew to ~4,500
 lines of PowerShell plus a matching test suite, mostly around closeout proofs

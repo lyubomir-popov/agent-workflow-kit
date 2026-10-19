@@ -1,7 +1,7 @@
 # Current work
 
-**Next tasks**: T017 per the [slice D handover](reviews/2026-10-19-slice-d-handover.md); T029 needs macOS evidence only (manual).
-**Blockers**: macOS execution evidence remains pending for T029/final acceptance; stop at CP5.
+**Next tasks**: owner/Opus CP5 review per the [request](reviews/2026-10-19-cp5-review-request.md); T029 needs macOS/CI execution evidence (manual).
+**Blockers**: CP5 is not cleared; required macOS/CI execution evidence needs owner-authorized runner/publication scope.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
 **Validation**: [slice D evidence](reviews/2026-10-19-cp5-validation.md).
@@ -58,12 +58,12 @@
 - [x] T030 [S] Make the default reviewer Copilot running a Claude Opus model; qualify one review phase in a scratch repo; document the claude adapter as unqualified (gate: CP4).
 - [x] T015 [S] After the read-only consumer inventory, tag the last PowerShell revision locally, remove legacy tooling/tests/checker and migrate config (FR-040-041) (gate: CP4).
 - [x] T016 [S] Finish three-OS Python CI/lint and rewrite human README/reference docs (FR-042-043) (gate: CP4).
-- [ ] T017 [H] Validate the full replacement and save CP5 review request; stop (gate: CP4).
+- [x] T017 [H] Validate the full replacement and save CP5 review request; stop (gate: CP4).
 
 ## Known limits
 
 - T029's two parent-file collisions are fixed with byte-preservation regressions.
-  Full Windows and WSL suites pass (221 tests each). T029 remains open only for
+  Final Windows and WSL suites pass (227 tests each). T029 remains open only for
   its macOS execution requirement: no macOS runner is available locally, and
   an unexecuted CI definition is not a passing three-OS run. See slice D evidence.
 
@@ -120,5 +120,5 @@
 - Root discovery skips dependency/cache directories and directory symlinks;
   an excluded repository can be passed directly as a root. Ownership/access
   failures limit real-machine coverage; see the final validation evidence.
-- macOS/Linux execution and Python 3.10 are covered by the added CI matrix;
-  this local Windows session cannot claim those jobs have run.
+- The six-job Windows/macOS/Linux and Python 3.10/current CI matrix is configured
+  but unexecuted. Local Windows/WSL results do not establish its macOS/CI passes.

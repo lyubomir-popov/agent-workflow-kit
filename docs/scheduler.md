@@ -22,7 +22,7 @@ the scheduler never steals one automatically.
 
 ## Profiles and preflight
 
-[Shipped defaults](../templates/scheduler-defaults.json) own the three argument
+[Shipped defaults](../templates/scheduler-defaults.json) own the provider argument
 templates. Version 2 user config (`WFK_CONFIG`, otherwise
 `~/.config/wfk/config.json`) merges first, then repository `.workflow-kit.json`.
 Worker fields in version 1 configs are ignored with a warning; legacy version 1
@@ -38,6 +38,13 @@ on the qualification machine; its probe remains unset rather than claiming
 unverified behavior. Configure and qualify a cheap noninteractive probe before
 using it. Worker/probe availability, clean checkout, branch and gates are checked
 before task dispatch. Authentication failure stops the run without a login loop.
+
+The default reviewer is `copilot-opus`: the Copilot adapter selecting
+`claude-opus-4.8` through `modelArgs`. Its profile tier map applies to every task
+tier without changing the implementing Copilot H/S/L preferences. It uses the
+same verified Copilot auth probe and native npm resolution. This is Claude Opus
+through Copilot, not qualification of the standalone `claude` adapter; that
+adapter remains disabled until its own authentication probe is qualified.
 
 For example, a disposable fixture profile can use a native Python executable:
 

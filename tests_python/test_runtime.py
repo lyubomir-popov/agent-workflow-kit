@@ -54,6 +54,22 @@ class RuntimeTests(unittest.TestCase):
         self.assertNotIn('gpt-5.4', claude)
         self.assertNotIn('--model', claude)
 
+    def test_default_reviewer_uses_copilot_opus_without_changing_implementer_tiers(self):
+        settings = runtime.load(self.repo)
+        self.assertEqual(settings['reviewer'], 'copilot-opus')
+        reviewer = runtime.profile(settings, settings['reviewer'])
+        self.assertEqual(reviewer['command'], settings['workers']['copilot']['command'])
+        self.assertEqual(reviewer['authCommand'], ['copilot'])
+        self.assertEqual(reviewer['authProtocol'], 'copilot-jsonrpc')
+        for tier in ('H', 'S', 'L', 'X'):
+            context = dict(prompt='literal & | ^', repo='x', package='specs/x',
+                           task='T001', tier=tier, review='review')
+            argv = runtime.argv(settings, 'copilot-opus', reviewer, context)
+            self.assertEqual(argv[argv.index('--model') + 1], 'claude-opus-4.8')
+            self.assertNotIn('gpt-5.4', argv)
+        self.assertEqual(settings['tierModels']['S'], {'model': 'gpt-5.4', 'effort': 'high'})
+        self.assertIsNone(settings['workers']['claude']['authCommand'])
+
     def test_codex_preserves_legacy_copilot_alias_guard_and_explicit_native_models(self):
         settings = runtime.load(self.repo)
         context = dict(prompt='x', repo='x', package='specs/x', task='T001', tier='L', review='task')

@@ -13,6 +13,12 @@
       "authProtocol": "copilot-jsonrpc", "useTierModels": true,
       "modelArgs": ["--model", "{model}"], "effortArgs": ["--reasoning-effort", "{effort}"]
     },
+    "copilot-opus": {
+      "command": ["copilot", "-p", "{prompt}", "--allow-all", "--no-ask-user", "--autopilot", "--max-autopilot-continues", "5", "-s", "--no-auto-update"],
+      "input": "argv", "authCommand": ["copilot"],
+      "authProtocol": "copilot-jsonrpc", "useTierModels": false,
+      "modelArgs": ["--model", "{model}"]
+    },
     "claude": {
       "command": ["claude", "-p", "{prompt}", "--dangerously-skip-permissions"],
       "input": "argv", "authCommand": null, "useTierModels": false,
@@ -23,8 +29,12 @@
     "H": {"model": "gpt-5.4", "effort": "xhigh"},
     "S": {"model": "gpt-5.4", "effort": "high"},
     "L": {"model": "gpt-5.4-mini", "effort": null},
-    "X": {"model": null, "effort": null}
+    "X": {"model": null, "effort": null},
+    "copilot-opus": {
+      "H": "claude-opus-4.8", "S": "claude-opus-4.8",
+      "L": "claude-opus-4.8", "X": "claude-opus-4.8"
+    }
   },
   "scheduler": {"authTimeout": 15, "grace": 2},
-  "reviewer": "claude"
+  "reviewer": "copilot-opus"
 }

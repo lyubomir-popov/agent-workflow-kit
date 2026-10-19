@@ -26,3 +26,20 @@ Local commits only. CP5 remains pending; no consumer changes or publishing.
 
 T030 live review, read-only consumer inventory, retirement, final source checks
 and integration review are recorded here as their authorized steps complete.
+
+## T030: reviewer profile, test-first
+
+- The new default-reviewer regression failed while the default was `claude`.
+  It verifies every task tier selects Opus through Copilot, uses the confirmed
+  RPC auth probe and preserves the implementing H/S/L preferences and disabled
+  standalone Claude probe.
+- Installed CLI help confirms `--model`, JSON output and diagnostic logging.
+  A bounded read-only `models.list` RPC confirms `claude-opus-4.8` is available;
+  `claude-opus-4.7` is absent. The first short discovery timed out; subsequent
+  discovery disproved that version assumption. No model task ran during discovery.
+- Chose available `claude-opus-4.8` for the owner-requested Opus reviewer. The
+  version-specific assertion failed against 4.7, then all nine runtime tests
+  passed against 4.8. Focused runtime/review checks: Windows 31 tests OK, one
+  symlink skip; WSL 31 tests OK, no skips (before that version-only adjustment).
+- Scratch review qualification is next, with a fake prerequisite task and only
+  one real review invocation. No live implementing task is authorized here.

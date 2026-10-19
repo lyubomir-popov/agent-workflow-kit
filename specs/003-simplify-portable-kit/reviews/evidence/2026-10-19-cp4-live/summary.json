@@ -1,0 +1,55 @@
+{
+  "ownerDecision": "2026-10-19-cp4-owner-decision.md",
+  "scratch": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d",
+  "taskTimeoutSeconds": 90,
+  "maxTasksPerRun": 1,
+  "runs": {
+    "codex": {
+      "status": "error",
+      "outcomes": [
+        "error"
+      ],
+      "workerAttempts": 1,
+      "savedLogs": [
+        "1-codex-auth.log",
+        "1-codex-task.log"
+      ]
+    },
+    "copilot": {
+      "status": "completed",
+      "outcomes": [
+        "done"
+      ],
+      "workerAttempts": 1,
+      "savedLogs": [
+        "1-copilot-auth.log",
+        "1-copilot-task.log"
+      ]
+    },
+    "claude": {
+      "status": "error",
+      "outcomes": [],
+      "workerAttempts": 0,
+      "savedLogs": []
+    }
+  },
+  "setup": {
+    "repo": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\repo",
+    "base": "78c1789a49e284aed42de6f10978b80d8d86622e",
+    "remotes": "",
+    "maxTasks": 1,
+    "taskTimeoutSeconds": 90
+  },
+  "primaryHeadAfter": "78c1789a49e284aed42de6f10978b80d8d86622e",
+  "primaryStatusAfter": "",
+  "remotesAfter": [],
+  "copilotCommit": "98a8cdc20199f155c87776e8abe9d81ab0ed8b45",
+  "copilotChangedPaths": [
+    "copilot-qualified.txt",
+    "specs/002-copilot/tasks.md"
+  ],
+  "copilotMarkerBytesExact": true,
+  "redactions": 0,
+  "finalSourceDifference": "Codex cliDefaultForModels compatibility guard restored after rejected gpt-5.4 attempt; no second live task.",
+  "claudeAvailability": "Absent from Windows PATH, standard .local/bin/npm/.claude locations and WSL PATH. No install/login attempted."
+}

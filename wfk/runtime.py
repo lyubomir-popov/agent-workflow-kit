@@ -5,8 +5,8 @@ import math
 import os
 from pathlib import Path
 import re
-import shutil
 import string
+import sys
 
 from . import config
 
@@ -58,7 +58,14 @@ def profile(settings, name):
     value.setdefault('input', 'stdin')
     if value['input'] not in ('stdin', 'argv'):
         raise ValueError(f'{name}: input must be stdin or argv')
-    for key in ('command', 'authCommand', 'modelArgs'):
+    if type(value.get('useTierModels', False)) is not bool:
+        raise ValueError(f'{name}: useTierModels must be boolean')
+    if value.get('authProtocol') not in (None, 'copilot-jsonrpc'):
+        raise ValueError(f'{name}: unsupported authentication protocol')
+    aliases = value.get('cliDefaultForModels', [])
+    if not isinstance(aliases, list) or any(not isinstance(alias, str) or not alias for alias in aliases):
+        raise ValueError(f'{name}: cliDefaultForModels must contain nonempty model names')
+    for key in ('command', 'authCommand', 'modelArgs', 'effortArgs'):
         argv = value.get(key)
         if argv is None and key != 'command':
             continue
@@ -70,7 +77,7 @@ def profile(settings, name):
                           if field is not None]
             except ValueError as exc:
                 raise ValueError(f'{name}: malformed {key} template') from exc
-            if any(field not in ('prompt', 'repo', 'package', 'task', 'model', 'review') for field in fields):
+            if any(field not in ('prompt', 'repo', 'package', 'task', 'model', 'effort', 'review') for field in fields):
                 raise ValueError(f'{name}: unknown {key} placeholder')
             if key == 'authCommand' and fields:
                 raise ValueError(f'{name}: authCommand must be a fixed cheap noninteractive probe')
@@ -85,9 +92,32 @@ def profile(settings, name):
     return value
 
 
-def executable(argv):
-    if not shutil.which(argv[0]):
-        raise ValueError(f'Worker executable unavailable: {argv[0]}')
+def executable(argv, cwd=None):
+    from .launchers import resolve
+    return resolve(argv, cwd=cwd)
+
+
+def _tier(settings, name, profile_value, tier):
+    overrides = settings['tierModels'].get(name, {})
+    if tier in overrides:
+        value = overrides[tier]
+    elif profile_value.get('useTierModels'):
+        value = settings['tierModels'].get(tier)
+    else:
+        value = None
+    if isinstance(value, dict):
+        if set(value) - {'model', 'effort'}:
+            raise ValueError(f'{name}: unsupported tier fields')
+        model, effort = value.get('model'), value.get('effort')
+    else:  # Compatibility for explicit per-profile model strings/null.
+        model, effort = value, None
+    if model is not None and (not isinstance(model, str) or not model):
+        raise ValueError(f'{name}: tier model must be a nonempty string or null')
+    if effort is not None and effort not in ('none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'):
+        raise ValueError(f'{name}: invalid tier effort')
+    if model in profile_value.get('cliDefaultForModels', []):
+        model = None
+    return model, effort
 
 
 def argv(settings, name, profile_value, context, auth=False):
@@ -96,11 +126,12 @@ def argv(settings, name, profile_value, context, auth=False):
         if not arguments:
             raise ValueError(f'{name}: configure a verified cheap noninteractive authCommand; '
                              'default authentication is unverified and dispatch is disabled')
+        if profile_value.get('authProtocol') == 'copilot-jsonrpc':
+            return [sys.executable, str(Path(__file__).with_name('authprobe.py')), '--',
+                    *executable(arguments)]
         return list(arguments)
-    model = settings['tierModels'].get(name, {}).get(context['tier'])
-    if model is not None and (not isinstance(model, str) or not model):
-        raise ValueError(f'{name}: tier model must be a nonempty string or null')
-    values = dict(context, model=model or '')
+    model, effort = _tier(settings, name, profile_value, context['tier'])
+    values = dict(context, model=model or '', effort=effort or '')
     try:
         arguments = [a.format_map(values) for a in profile_value['command']]
         if model:
@@ -108,6 +139,11 @@ def argv(settings, name, profile_value, context, auth=False):
             if not model_args:
                 raise ValueError(f'{name}: configure modelArgs when selecting a tier model')
             arguments.extend(a.format_map(values) for a in model_args)
+        if effort:
+            effort_args = profile_value.get('effortArgs')
+            if not effort_args:
+                raise ValueError(f'{name}: configure effortArgs when selecting tier effort')
+            arguments.extend(a.format_map(values) for a in effort_args)
     except (KeyError, ValueError) as exc:
         raise ValueError(f'{name}: invalid worker arguments: {exc}') from exc
     return arguments

@@ -56,8 +56,9 @@ for qualified worker profiles, auth probes, bounds and recovery. Preview with
 `wfk run --repo . --package <catalog-package> --agents <ordered-profiles> --json`.
 Only an explicitly authorized live run adds `--apply`; use the owner's positive
 `--max-tasks`, `--max-hours` and `--task-timeout` bounds. Defaults cap one task.
-Default auth probes are unset and fail closed; do not invent a login check or
-substitute another scheduler. Do not launch real workers when only fake workers
+Authentication probes fail closed; use the qualified provider defaults or a
+verified override, and do not invent login checks or substitute another scheduler.
+Do not launch real workers when only fake workers
 are authorized. Preserve the printed common-directory report and worktrees.
 Optional `--review --review-checkpoint <gate>` requires review authorization and
 never clears an owner gate. Stop at the next checkpoint or supplied bound.

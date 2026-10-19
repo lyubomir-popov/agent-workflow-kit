@@ -173,6 +173,47 @@ across runs. A reviewer verdict never clears an owner gate. Missing findings
 produce `review-missing`. Independent review, fake-worker validation and the
 legacy final-code suite precede the CP4 request; slice D remains blocked.
 
+### CP4 owner-authorized remediation contracts
+
+The 2026-10-19 owner decision supersedes the fake-only qualification limit for
+one trivial task per provider in a new disposable repository. Existing project
+repositories, hooks/installations, pushes/merges and slice D remain excluded.
+No third independent review starts; remediation ends at the owner's CP4 decision.
+
+Port the approved H/S/L model and effort map into the scheduler defaults, with
+per-provider argument templates and the existing unattended permission flags.
+Authentication probes must be cheap, noninteractive and verified against the
+installed tool in scratch; unavailable/unauthenticated agents are reported, not
+installed, logged in or substituted. Local help/status discovery precedes the
+single bounded `wfk run --apply --max-tasks 1` qualification per available agent.
+
+`launchers.resolve(argv, cwd=None)` returns a native argument vector. On Windows
+it resolves recognized npm shims to Node plus a validated installed entrypoint
+or a vendor native binary; shell script text is never executed or evaluated.
+Unknown wrappers fail closed. The original prompt remains one argument (or
+stdin), never cmd.exe text. Both preflight and dispatch use that resolved vector;
+the process primitive retains its raw batch refusal and process-tree ownership.
+
+Keep the Linux parent-path repairs as explicit slice D work required before CP5.
+The primary-checkout refusal may print a correctly quoted configured-target
+switch command, without running it. Save red/green, live reports and sanitized
+logs, dispositions, final validation and the bounded owner-decision request.
+
+The installed Copilot CLI has no status subcommand; its bundled SDK uses
+`auth.getStatus` over Content-Length-framed JSON-RPC (`--headless --stdio`).
+Use a small standard-library helper for this read-only request, require an
+explicit boolean `isAuthenticated`, suppress raw auth payloads and leave all
+descendants in the existing runner's process tree. No model session or login
+flow is allowed in preflight. Codex uses its installed `login status`. Claude
+is absent from the standard local locations and PATH; record unavailability
+rather than installing it or claiming live qualification.
+
+Preserve `Test-CodexCompatibleModel`'s existing distinction: the shared
+`gpt-5.4`/mini names are Copilot aliases; Codex uses its configured model for
+those names, via declarative `cliDefaultForModels`, and retains tier effort.
+The single Codex live attempt exposed the omitted guard; restore it with fake
+regressions and do not silently run an additional live task or select a new model.
+
 ## Slice D: retirement and documentation (after owner clears CP4)
 
 Tag the last PowerShell revision locally, retire old code/tests and staged

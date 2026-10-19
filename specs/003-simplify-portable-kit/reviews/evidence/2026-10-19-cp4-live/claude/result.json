@@ -1,0 +1,21 @@
+{
+  "repo": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\repo",
+  "items": [],
+  "errors": [
+    "specs/003-claude: Worker executable unavailable: claude"
+  ],
+  "warnings": [],
+  "stops": [],
+  "reviews": [],
+  "cleanup": [
+    {
+      "path": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\worktrees\\feat-003-claude",
+      "action": "kept",
+      "reason": "protected branch"
+    }
+  ],
+  "dry_run": false,
+  "status": "error",
+  "run": "20261019T133337233853Z-e99af3ae",
+  "report": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\repo\\.git\\wfk\\runs\\20261019T133337233853Z-e99af3ae\\report.md"
+}

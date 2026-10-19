@@ -1,0 +1,44 @@
+{
+  "repo": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\repo",
+  "items": [
+    {
+      "package": "specs/002-copilot",
+      "task": "T001",
+      "worktree": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\worktrees\\feat-002-copilot",
+      "attempts": [
+        {
+          "agent": "copilot",
+          "phase": "task",
+          "base": "78c1789a49e284aed42de6f10978b80d8d86622e",
+          "tip": "98a8cdc20199f155c87776e8abe9d81ab0ed8b45",
+          "duration": 70.81299999996554,
+          "log": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\repo\\.git\\wfk\\runs\\20261019T133259886873Z-04a0cc40\\1-copilot-task.log",
+          "commits": [
+            "98a8cdc20199f155c87776e8abe9d81ab0ed8b45"
+          ],
+          "reason": "",
+          "outcome": "done"
+        }
+      ],
+      "outcome": "done",
+      "reason": ""
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "stops": [
+    "Task limit reached"
+  ],
+  "reviews": [],
+  "cleanup": [
+    {
+      "path": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\worktrees\\feat-002-copilot",
+      "action": "kept",
+      "reason": "protected branch"
+    }
+  ],
+  "dry_run": false,
+  "status": "completed",
+  "run": "20261019T133259886873Z-04a0cc40",
+  "report": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\repo\\.git\\wfk\\runs\\20261019T133259886873Z-04a0cc40\\report.md"
+}

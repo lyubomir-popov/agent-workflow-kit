@@ -149,7 +149,7 @@ class SavedReviewPromptTests(unittest.TestCase):
         for name in ('audit-workflow', 'run-validation'):
             self.assertIn('wfk lint --repo . --json', route(name))
         self.assertIn('wfk run --repo . --package', route('overnight'))
-        self.assertIn('auth probes are unset and fail closed', route('overnight'))
+        self.assertIn('Authentication probes fail closed', route('overnight'))
         self.assertIn('--apply', route('overnight'))
         self.assertIn('Do not launch', route('overnight'))
         self.assertIn('prompts/overnight.prompt.md', route('proceed-autonomously'))

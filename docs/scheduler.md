@@ -28,13 +28,16 @@ templates. Version 2 user config (`WFK_CONFIG`, otherwise
 Worker fields in version 1 configs are ignored with a warning; legacy version 1
 prompt routing remains unchanged until retirement. Config is frozen for each run.
 
-Authentication commands are deliberately unset: no real CLI was authorized for
-qualification in slice C. Execution fails closed until you configure a verified,
-cheap, noninteractive `authCommand`. A command merely existing or printing help
-does not prove authentication. Do not configure login, a model request or another
-billable operation as the probe. Worker and probe executable availability, clean
-checkout, branch and gates are checked before task dispatch. Authentication
-failure stops the whole run without a login loop.
+Codex uses `codex login status`. Copilot uses its bundled SDK's read-only
+`auth.getStatus` JSON-RPC request through `--headless --stdio`; the standard-library
+helper requires `isAuthenticated: true` and prints no account/token payload.
+It does not create a model session or initiate login. Both probes fail closed on
+missing tools, malformed responses, timeout or unauthenticated status. A command
+merely existing or printing help does not prove authentication. Claude was absent
+on the qualification machine; its probe remains unset rather than claiming
+unverified behavior. Configure and qualify a cheap noninteractive probe before
+using it. Worker/probe availability, clean checkout, branch and gates are checked
+before task dispatch. Authentication failure stops the run without a login loop.
 
 For example, a disposable fixture profile can use a native Python executable:
 
@@ -54,19 +57,41 @@ For example, a disposable fixture profile can use a native Python executable:
 ```
 
 Commands are argument arrays, never shell strings. Supported worker placeholders
-are `{prompt}`, `{repo}`, `{package}`, `{task}`, `{model}` and `{review}`. A probe
-is a fixed argument array with no placeholders. On Windows, `.cmd`/`.bat` launchers
-are refused; configure a native executable (for example Node plus the CLI's
-installed JavaScript entrypoint) instead of a shell wrapper. CLI flags and auth
-probes must be qualified for the installed release before a live run.
+are `{prompt}`, `{repo}`, `{package}`, `{task}`, `{model}`, `{effort}` and `{review}`.
+A probe is a fixed argument array with no placeholders. On Windows, known npm
+shims resolve via validated package metadata to native Node plus the installed
+entrypoint. Raw `.cmd`/`.bat`/`.ps1` and unrecognized wrappers are never executed;
+prompt text never passes through `cmd.exe`. Native executables remain supported.
+CLI flags and auth probes must be qualified for the installed release.
 
-`tierModels.<profile>.H|S|L` is the single model owner. Defaults are null, selecting
-the CLI's configured model. To choose an explicit tier model, also supply that
-profile's `modelArgs` argument array, such as `["--model", "{model}"]` when that
-syntax is supported. The scheduler does not guess models or reasoning flags.
+`tierModels.H|S|L` is the shared model/effort owner: H is `gpt-5.4`/`xhigh`, S is
+`gpt-5.4`/`high`, and L is `gpt-5.4-mini` without an explicit effort. Codex and
+Copilot opt into that table with `useTierModels`; their `modelArgs` and
+`effortArgs` supply provider syntax. Codex retains the old scheduler's
+`cliDefaultForModels` guard: these two Copilot aliases omit `--model` for Codex,
+which uses its configured model while retaining the selected effort. An explicit
+compatible Codex model override is passed through. Explicit `tierModels.<profile>.<tier>`
+string/null overrides remain compatible, and an object can override model plus
+effort together. Claude does not receive GPT model IDs; select Claude models in
+its own profile overrides after qualification. Its CLI default otherwise applies.
+The restored unattended flags permit local edits/commits without user prompts:
+Codex bypasses its approval/sandbox prompts, Copilot uses allow-all/no-ask-user
+autopilot with five continuations, and Claude's documented equivalent is
+`--dangerously-skip-permissions`. These flags do not authorize a live run or a
+new repository scope. Qualification remains bounded by the owner's instructions.
 Optional `authExitCodes`, `quotaExitCodes`, `authPatterns` and `quotaPatterns`
 classify documented CLI failures; literal patterns apply only to nonzero exits.
 Configure these from verified behavior. Unknown failures remain `error`.
+
+The installed CLI help and [official Codex configuration reference](https://developers.openai.com/codex/config-reference)
+establish Codex effort syntax; [Claude's CLI reference](https://code.claude.com/docs/en/cli-reference)
+documents its permission flag and auth-status command. Documentation alone is
+not a claim that an unavailable Claude installation was live-qualified.
+
+CP4's owner-authorized scratch run passed with Copilot. Codex's one attempt
+authenticated but rejected the Copilot alias before the compatibility guard was
+restored; no second attempt was authorized. Claude was unavailable. These are
+recorded qualification limits, not a claim that all three live providers passed.
 
 ## Outcomes, recovery and evidence
 

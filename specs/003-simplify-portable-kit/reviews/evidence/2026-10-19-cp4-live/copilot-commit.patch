@@ -1,0 +1,24 @@
+commit 98a8cdc20199f155c87776e8abe9d81ab0ed8b45
+Author:     WFK qualification <qualification@example.invalid>
+AuthorDate: Mon Oct 19 14:34:08 2026 +0100
+Commit:     WFK qualification <qualification@example.invalid>
+CommitDate: Mon Oct 19 14:34:08 2026 +0100
+
+    Complete T001 qualification marker
+
+    Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+
+diff --git a/copilot-qualified.txt b/copilot-qualified.txt
+new file mode 100644
+index 0000000..9539ec1
+--- /dev/null
++++ b/copilot-qualified.txt
+@@ -0,0 +1 @@
++copilot qualification & | ^
+diff --git a/specs/002-copilot/tasks.md b/specs/002-copilot/tasks.md
+index b5484c1..17e4236 100644
+--- a/specs/002-copilot/tasks.md
++++ b/specs/002-copilot/tasks.md
+@@ -5 +5 @@
+-- [ ] T001 [S] Create `copilot-qualified.txt` at the checkout root with exactly `copilot qualification & | ^` plus one newline. Validate those exact bytes with Python, mark only this checkbox complete and make exactly one local commit including the marker file and tasks.md. Do not edit any other file or start other tasks/agents. (gate: CP1).
++- [x] T001 [S] Create `copilot-qualified.txt` at the checkout root with exactly `copilot qualification & | ^` plus one newline. Validate those exact bytes with Python, mark only this checkbox complete and make exactly one local commit including the marker file and tasks.md. Do not edit any other file or start other tasks/agents. (gate: CP1).

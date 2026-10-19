@@ -125,8 +125,14 @@ def _checkout(repo, package):
             continue
         path = Path(record['worktree']).resolve()
         if path == worktrees.primary(repo).resolve():
-            raise ValueError('Package branch occupies the primary checkout; move it to a '
-                             'clean linked worktree manually before unattended dispatch')
+            target, _ = config.resolve_target(repo)
+            local = config.local_target_branch(repo, target)
+            def quote(value):
+                return "'" + str(value).replace("'", "''" if os.name == 'nt' else "'\"'\"'") + "'"
+            switch = (f'switch -- {quote(local)}' if local and local != package['branch']
+                      and commit(repo, 'refs/heads/' + local) else 'switch --detach')
+            raise ValueError('Package branch occupies the primary checkout. Switch away with: '
+                             f'git -C {quote(path)} {switch}; then rerun the scheduler')
         if 'locked' in record or 'prunable' in record or not path.is_dir():
             raise ValueError(f'Package worktree is locked or unavailable: {path}')
         if _dirty(path):
@@ -164,7 +170,7 @@ def _dispatch(settings, package, task, agent, log, timeout, phase='task', prompt
     context = dict(prompt=prompt, repo=str(source), package=package['package'],
                    task=task['id'], tier=tier[1] if tier else 'S', review=phase)
     arguments = runtime.argv(settings, agent, profile, context)
-    runtime.executable(arguments)
+    arguments = runtime.executable(arguments, cwd=source)
     result = processes.execute(arguments, source, log, timeout,
         grace=settings['scheduler']['grace'],
         input_text=prompt if profile['input'] == 'stdin' else None)
@@ -221,12 +227,12 @@ def _dispatch(settings, package, task, agent, log, timeout, phase='task', prompt
 
 def _preflight(settings, package, agent, log, timeout):
     profile = runtime.profile(settings, agent)
-    runtime.executable(profile['command'])
+    runtime.executable(profile['command'], cwd=package['source'])
     try:
         arguments = runtime.argv(settings, agent, profile, {}, auth=True)
     except ValueError as exc:
         return 'auth', str(exc)
-    runtime.executable(arguments)
+    arguments = runtime.executable(arguments, cwd=package['source'])
     before = commit(package['source'], 'HEAD')
     outcome = processes.execute(arguments, package['source'], log,
         min(timeout, settings['scheduler']['authTimeout']), grace=settings['scheduler']['grace'])

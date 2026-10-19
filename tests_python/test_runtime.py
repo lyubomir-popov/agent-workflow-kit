@@ -23,12 +23,55 @@ class RuntimeTests(unittest.TestCase):
         (self.repo / '.workflow-kit.json').write_text(json.dumps(value))
         return runtime.load(self.repo)
 
-    def test_defaults_have_three_adapters_and_unverified_auth(self):
+    def test_defaults_restore_unattended_flags_confirmed_probes_and_shared_tiers(self):
         settings = runtime.load(self.repo)
-        for name in ('codex', 'copilot', 'claude'):
-            profile = runtime.profile(settings, name)
-            with self.assertRaisesRegex(ValueError, 'unverified'):
-                runtime.argv(settings, name, profile, {}, auth=True)
+        self.assertEqual(settings['tierModels']['H'], {'model': 'gpt-5.4', 'effort': 'xhigh'})
+        self.assertEqual(settings['tierModels']['S'], {'model': 'gpt-5.4', 'effort': 'high'})
+        self.assertEqual(settings['tierModels']['L'], {'model': 'gpt-5.4-mini', 'effort': None})
+        self.assertIn('--dangerously-bypass-approvals-and-sandbox', settings['workers']['codex']['command'])
+        for flag in ('--allow-all', '--no-ask-user', '--autopilot', '--max-autopilot-continues', '-s'):
+            self.assertIn(flag, settings['workers']['copilot']['command'])
+        self.assertIn('--dangerously-skip-permissions', settings['workers']['claude']['command'])
+        self.assertEqual(settings['workers']['codex']['authCommand'], ['codex', 'login', 'status'])
+        self.assertEqual(settings['workers']['copilot']['authProtocol'], 'copilot-jsonrpc')
+        self.assertIsNone(settings['workers']['claude']['authCommand'])
+
+    def test_shared_tier_effort_is_optional_and_adapter_specific(self):
+        settings = runtime.load(self.repo)
+        context = dict(prompt='literal & | ^ ü', repo='space path', package='specs/x',
+                       task='T001', tier='H', review='task')
+        codex = runtime.argv(settings, 'codex', runtime.profile(settings, 'codex'), context)
+        self.assertNotIn('--model', codex)
+        self.assertIn('model_reasoning_effort="xhigh"', codex)
+        copilot = runtime.argv(settings, 'copilot', runtime.profile(settings, 'copilot'), context)
+        self.assertIn('--reasoning-effort', copilot)
+        self.assertIn('xhigh', copilot)
+        context['tier'] = 'L'
+        self.assertNotIn('--reasoning-effort', runtime.argv(settings, 'copilot',
+                         runtime.profile(settings, 'copilot'), context))
+        context['tier'] = 'H'
+        claude = runtime.argv(settings, 'claude', runtime.profile(settings, 'claude'), context)
+        self.assertNotIn('gpt-5.4', claude)
+        self.assertNotIn('--model', claude)
+
+    def test_codex_preserves_legacy_copilot_alias_guard_and_explicit_native_models(self):
+        settings = runtime.load(self.repo)
+        context = dict(prompt='x', repo='x', package='specs/x', task='T001', tier='L', review='task')
+        profile = runtime.profile(settings, 'codex')
+        self.assertNotIn('--model', runtime.argv(settings, 'codex', profile, context))
+        settings['tierModels']['codex'] = {'L': {'model': 'fixture-codex-model', 'effort': 'low'}}
+        result = runtime.argv(settings, 'codex', profile, context)
+        self.assertIn('fixture-codex-model', result)
+        self.assertIn('model_reasoning_effort="low"', result)
+
+    def test_invalid_shared_tier_and_effort_templates_fail_closed(self):
+        context = dict(prompt='x', repo='x', package='specs/x', task='T001', tier='H', review='task')
+        settings = self.settings({'tierModels': {'H': {'model': '', 'effort': 'xhigh'}}})
+        with self.assertRaises(ValueError):
+            runtime.argv(settings, 'codex', runtime.profile(settings, 'codex'), context)
+        settings = self.settings({'workers': {'codex': {'effortArgs': 'shell string'}}})
+        with self.assertRaises(ValueError):
+            runtime.profile(settings, 'codex')
 
     def test_v1_ignores_scheduler_fields_and_v2_merges_user_then_repo(self):
         (self.repo / 'user.json').write_text(json.dumps({'workers': {'fixture': {

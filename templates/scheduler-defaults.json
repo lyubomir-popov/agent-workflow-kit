@@ -1,13 +1,29 @@
 {
   "workers": {
-    "codex": {"command": ["codex", "exec", "-"], "input": "stdin", "authCommand": null},
-    "copilot": {"command": ["copilot", "-p", "{prompt}"], "input": "argv", "authCommand": null},
-    "claude": {"command": ["claude", "-p", "{prompt}"], "input": "argv", "authCommand": null}
+    "codex": {
+      "command": ["codex", "exec", "--dangerously-bypass-approvals-and-sandbox", "--color", "never", "-"],
+      "input": "stdin", "authCommand": ["codex", "login", "status"],
+      "useTierModels": true, "modelArgs": ["--model", "{model}"],
+      "cliDefaultForModels": ["gpt-5.4", "gpt-5.4-mini"],
+      "effortArgs": ["-c", "model_reasoning_effort=\"{effort}\""]
+    },
+    "copilot": {
+      "command": ["copilot", "-p", "{prompt}", "--allow-all", "--no-ask-user", "--autopilot", "--max-autopilot-continues", "5", "-s", "--no-auto-update"],
+      "input": "argv", "authCommand": ["copilot"],
+      "authProtocol": "copilot-jsonrpc", "useTierModels": true,
+      "modelArgs": ["--model", "{model}"], "effortArgs": ["--reasoning-effort", "{effort}"]
+    },
+    "claude": {
+      "command": ["claude", "-p", "{prompt}", "--dangerously-skip-permissions"],
+      "input": "argv", "authCommand": null, "useTierModels": false,
+      "modelArgs": ["--model", "{model}"]
+    }
   },
   "tierModels": {
-    "codex": {"H": null, "S": null, "L": null},
-    "copilot": {"H": null, "S": null, "L": null},
-    "claude": {"H": null, "S": null, "L": null}
+    "H": {"model": "gpt-5.4", "effort": "xhigh"},
+    "S": {"model": "gpt-5.4", "effort": "high"},
+    "L": {"model": "gpt-5.4-mini", "effort": null},
+    "X": {"model": null, "effort": null}
   },
   "scheduler": {"authTimeout": 15, "grace": 2},
   "reviewer": "claude"

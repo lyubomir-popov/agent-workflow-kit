@@ -131,6 +131,24 @@ class SchedulerTests(unittest.TestCase):
         self.assertFalse(result['items'])
         self.assertEqual(len(self.calls.read_text().splitlines()), 1)
 
+    def test_copilot_rpc_probe_blocks_false_status_and_dispatches_only_after_true(self):
+        capture = self.root / 'auth-request.json'
+        auth_worker = Path(__file__).parent / 'fixtures/auth_worker.py'
+        profile = {'command': self.settings['workers']['done']['command'], 'input': 'stdin',
+            'authCommand': [sys.executable, str(auth_worker), 'false', str(capture)],
+            'authProtocol': 'copilot-jsonrpc'}
+        self.settings['workers']['rpc'] = profile
+        self.write('.workflow-kit.json', json.dumps(self.settings))
+        result = self.run_worker('rpc')
+        self.assertEqual(result['status'], 'auth', result)
+        self.assertEqual(result['items'], [])
+        self.assertFalse(self.calls.exists())
+        profile['authCommand'][2] = 'success'
+        self.write('.workflow-kit.json', json.dumps(self.settings))
+        result = self.run_worker('rpc')
+        self.assertEqual(result['items'][0]['outcome'], 'done', result)
+        self.assertEqual(json.loads(capture.read_text())['request']['method'], 'auth.getStatus')
+
     def test_timeout_preserves_checkout_and_finalizes_report(self):
         result = scheduler.run(self.repo, packages=[PACKAGE], agents=['timeout'],
                                apply=True, task_timeout=.3)
@@ -154,6 +172,7 @@ class SchedulerTests(unittest.TestCase):
         self.git('switch', 'feat/001-test')
         result = self.run_worker()
         self.assertIn('primary', ' '.join(result['errors']).lower())
+        self.assertIn(f"git -C '{self.repo.resolve()}' switch -- 'main'", ' '.join(result['errors']))
         self.assertFalse(self.calls.exists())
 
     def test_missing_auth_probe_fails_closed_with_report(self):
@@ -228,7 +247,7 @@ class SchedulerTests(unittest.TestCase):
         self.settings['workers']['done']['command'] = ['wfk-missing-fixture-executable-937128']
         self.write('.workflow-kit.json', json.dumps(self.settings))
         result = self.run_worker()
-        self.assertIn('executable unavailable', ' '.join(result['errors']))
+        self.assertIn('executable', ' '.join(result['errors']))
         self.assertFalse(self.calls.exists())
         worker = self.root / 'workers/feat-001-test'
         path = worker / PACKAGE / 'spec.md'

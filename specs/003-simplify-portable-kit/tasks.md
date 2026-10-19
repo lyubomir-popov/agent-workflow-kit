@@ -1,7 +1,7 @@
 # Current work
 
-**Next tasks**: T015–T017 (slice D), only after CP4 owner clearance and separate authorization.
-**Blockers**: [CP4 Opus review/owner decision](reviews/2026-10-19-cp4-request.md); no slice D authorization.
+**Next tasks**: T028 (CP4 remediation validation/owner handoff), authorized by [owner decision](reviews/2026-10-19-cp4-owner-decision.md).
+**Blockers**: CP4 pending; Codex final compatibility guard has no second live qualification; Claude unavailable; no slice D authorization.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
 **Validation**: [CP4 evidence](reviews/2026-10-19-cp4-validation.md).
@@ -45,10 +45,18 @@
 - [x] T013 [S] Exercise fake workers for every outcome and report exit path (SC-004-005) (gate: CP3).
 - [x] T014 [H] Validate slice C and save CP4 review request; stop (gate: CP3).
 
+## CP4 remediation (owner-authorized, no third review)
+
+- [x] T025 [H] Restore unattended flags, tier models/efforts, legacy Codex alias compatibility and verified available-provider auth probes (Opus finding 1) (gate: CP3).
+- [x] T026 [S] Resolve Windows npm shims to native Node/validated entrypoints with injection fixtures; print the primary-checkout recovery command (findings 2 and 4) (gate: CP3).
+- [x] T027 [X] Attempt the authorized single bounded scratch run per provider and preserve reports, logs and unavailable/model-rejection results without retries (gate: CP3).
+- [ ] T028 [X] Record dispositions and final validation; commit locally and stop for the owner's CP4 decision, with no third review or slice D (gate: CP3).
+
 ## Slice D: retirement and docs
 
 - [ ] T015 [S] Tag the last PowerShell revision locally, remove legacy tooling/tests/checker and migrate config (FR-040-041) (gate: CP4).
-- [ ] T016 [S] Finish three-OS Python CI/lint, resolve the baseline Linux parent-path errors in init/prompt installation, and rewrite human README/reference docs (FR-042-043) (gate: CP4).
+- [ ] T029 [S] Fix both Linux parent-file collisions in init and prompt installation; pass their regression tests and the full three-OS Python suite before CP5 (Opus finding 3) (gate: CP4).
+- [ ] T016 [S] Finish three-OS Python CI/lint and rewrite human README/reference docs (FR-042-043) (gate: CP4).
 - [ ] T017 [H] Validate the full replacement and save CP5 review request; stop (gate: CP4).
 
 ## Known limits
@@ -56,13 +64,15 @@
 - Full WSL discovery has two pre-existing `NotADirectoryError` failures in init
   and prompt installation when a destination parent is a file. Both reproduce
   on CP3 commit `9a3e38a`; all 85 slice C WSL tests pass. These remain open for
-  T016's final portability validation after CP4, subject to the owner's CP4
+  T029 and T016's final portability validation after CP4, subject to the owner's CP4
   decision; full Linux readiness is not claimed. See CP4 validation.
 
-- CP4 qualification: real worker CLIs were not authorized, even for help/auth.
-  Defaults leave auth probes unset and tier models at CLI default; live dispatch
-  fails closed until a verified noninteractive probe and any model/failure
-  arguments are configured. Windows batch wrappers require a native launcher.
+- CP4 remediation allowed one bounded scratch attempt per provider. Copilot
+  authenticated and completed a committed task; Codex authenticated but rejected
+  the Copilot model alias, after which its legacy compatibility guard was restored
+  without a second live attempt. Claude is unavailable; its probe stays unset
+  until qualified. The original tier map/efforts and unattended flags are restored.
+  Known npm wrappers now resolve to native Node; unknown wrappers still fail closed.
   See [scheduler reference](../../docs/scheduler.md) and
   [integration review](reviews/2026-10-19-cp4-integration-review.md).
 - POSIX workers must keep descendants in their owned session; deliberate setsid

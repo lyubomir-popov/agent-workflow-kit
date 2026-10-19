@@ -1,0 +1,44 @@
+{
+  "repo": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\repo",
+  "items": [
+    {
+      "package": "specs/001-codex",
+      "task": "T001",
+      "worktree": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\worktrees\\feat-001-codex",
+      "attempts": [
+        {
+          "agent": "codex",
+          "phase": "task",
+          "base": "78c1789a49e284aed42de6f10978b80d8d86622e",
+          "tip": "78c1789a49e284aed42de6f10978b80d8d86622e",
+          "duration": 4.436999999976251,
+          "log": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\repo\\.git\\wfk\\runs\\20261019T133227767194Z-419a82b6\\1-codex-task.log",
+          "commits": [],
+          "reason": "Worker exit 1",
+          "outcome": "error"
+        }
+      ],
+      "outcome": "error",
+      "reason": "Worker exit 1"
+    }
+  ],
+  "errors": [
+    "specs/001-codex T001: error"
+  ],
+  "warnings": [],
+  "stops": [
+    "Task limit reached"
+  ],
+  "reviews": [],
+  "cleanup": [
+    {
+      "path": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\worktrees\\feat-001-codex",
+      "action": "kept",
+      "reason": "protected branch"
+    }
+  ],
+  "dry_run": false,
+  "status": "error",
+  "run": "20261019T133227767194Z-419a82b6",
+  "report": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\repo\\.git\\wfk\\runs\\20261019T133227767194Z-419a82b6\\report.md"
+}

@@ -1,364 +1,109 @@
 # agent-workflow-kit
 
-Canonical workflow scripts, reusable VS Code prompt sources, and a lean
-repository convention for human plus agent coding sessions.
+A small, standard-library Python toolkit for running a spec-first coding
+workflow across Windows, macOS and Linux. It creates and audits package records,
+manages Git worktrees, runs bounded agent tasks, installs cleanup hooks and
+copies reusable VS Code prompts.
 
-## Start and ownership
+Requirements: Git 2.38 or newer and Python 3.10 or newer. PowerShell is not
+required.
 
-Portable Python command usage is in [workflow core](docs/workflow-core.md) and
-[worktree hygiene](docs/worktrees.md). The scheduler awaits its gated slice;
-the PowerShell tooling remains available until retirement.
+## Install
 
-Read [AGENTS](AGENTS.md), then [the catalog](docs/specs.md). The first current
-package routes a session to its declared branch/worktree. Package `spec.md`
-owns intent, lifecycle and checkpoints; `plan.md` owns approach; `tasks.md`
-owns execution and its bounded current-work header. Package `reviews/` keeps
-requests, findings and dispositions. Inbox entries are transient links, never
-standing resume instructions.
+Clone the kit, then add its `bin` directory to `PATH`. The `wfk` launcher
+works from any repository and selects a suitable Python interpreter.
 
-| Surface | Owner/purpose |
-|---|---|
-| AGENTS.md | Static invariants, routing, precedence and check triggers |
-| CLAUDE.md; Copilot adapter | Thin routes to AGENTS |
-| docs/specs.md | Ordered package/branch routing and at most ten candidates |
-| INBOX.md | User notes; preserve unread/unresolved items |
-| AGENT-INBOX.md | Agent handoffs naming recipient/scope, artifact, requested action |
-| ROADMAP.md | On-demand product direction; not an execution queue |
-| .workflow-kit.json | Version, target, scratch/disposable policy and host budgets |
-| .specify/memory/constitution.md | Durable principles |
-| docs/operations.md | Terminal, authentication, autonomy and recovery procedure |
-| docs/enforcement.md | Host trigger matrix and enforcement gaps |
-
-Retired root STATUS/TODO/HISTORY remain 2–3 line catalog placeholders until
-slice C follows owner-installed dual-mode prompts. Do not expand them. Former
-open TODO ideas are catalog candidates; resolved owner acceptance remains in
-package dispositions. All previous HISTORY content is preserved in Git:
-`git log -- HISTORY.md` locates earlier revisions and
-`git show <revision>:HISTORY.md` reads one without recreating a root owner.
-The optional legacy resume agent is retired.
-
-Small local fixes can act directly. Governed behavior changes use a package;
-load Spec Kit assets only when relevant. Its project infrastructure/templates
-live in `.specify/`, with on-demand skills in `.agents/skills/speckit-*/` and
-`.claude/skills/speckit-*/`. Local `.specify/feature.json` is an ignored
-convenience cursor, never authorization. Select the explicit package or catalog
-and verify its branch. Vendor skills cannot write feature-marker blocks or plan
-references into AGENTS/CLAUDE or override owner checkpoints. Preview upgrades
-and preserve customized templates/constitution.
-
-Project templates in `.specify/templates/overrides/` declare the spec-owned
-lifecycle/checkpoint block and bounded task header. The prerequisite helper's
-`-RequireTasks` flag also checks the next task gate; it cannot bypass that check
-with a completed checklist or `-PathsOnly`. Pure path inspection remains available
-without `-RequireTasks`. Vendor skill files are unchanged.
-
-## Slice and consumer boundary
-
-The versioned workflow covers ownership, lifecycle checks, scheduler gates,
-Spec Kit integration, closeout and migration diagnostics. Read the package's
-checkpoint table for phase authority and AGENTS for operational scope.
-
-Repositories without `workflowModelVersion` retain legacy behavior. Existing
-`canonicalMirrorMode: external` alone does not activate spec-first mode; malformed
-new config fails. Consumer rollout requires separate authorization and must
-preserve local product rules and external-kit ownership. Do not copy placeholders
-into a consumer and claim completed migration. Preview/disposition legacy content
-before activation. Migration stays a human and agent review process; installing
-user-level prompts remains a separate authorization, not self-hosting.
-
-## Migrate a consumer repository
-
-`migrate` is a read-only preview. It reports the detected mode, each legacy
-file's proposed disposition, router conflicts, and tracked scratch paths. It
-does not apply changes or merge prose. Run it from the kit checkout:
-
-The preview checks migration blockers before activation as well as after it.
-`ready` means no detected mechanical blockers; it does not certify completed
-adoption or prompt behavior. Prompt words and script function names are routing
-sentinels only; external-kit routes need separate inspection. Legacy lint's
-requirements for files being retired do not determine migration readiness.
-
-```powershell
-$repo = '<path-to-consumer-repo>'
-$kit = '<path-to-agent-workflow-kit>'
-pwsh -NoLogo -NoProfile -File "$kit/workflow-kit.ps1" -Command migrate -RepoRoot $repo -KitRoot $kit -Preview
-pwsh -NoLogo -NoProfile -File "$kit/workflow-kit.ps1" -Command migrate -RepoRoot $repo -KitRoot $kit -Preview -Json
-```
-
-Review the complete preview, then create a dedicated migration branch. Copy the
-kit's existing `.specify/templates/overrides/spec-template.md` and
-`tasks-template.md` into the consumer. Merge the required version-1 fields into
-its `.workflow-kit.json`, preserving unknown product fields, external mirror
-settings, target and scratch policy, and repository-specific budgets. Reconcile
-product prose and routers in `AGENTS.md` and `README.md` manually using the
-section mapping in FR-036; keep product rules that remain local. Resolve every
-reported router conflict and preserve any useful state before retiring old
-owners.
-
-After each coherent migration step, rerun preview, strict lint, and scheduler
-dry run. Make ordinary, reviewable commits on the migration branch. To roll back,
-use `git revert` for committed changes or discard the unlanded branch; there is
-no custom Apply command, journal, or recovery protocol. Prompt installation and
-consumer rollout still require their separately authorized steps.
-
-## Validation and drift checks
-
-Run quick checks at session start/end, scope changes, and before dispatch:
-
-```powershell
-pwsh -NoLogo -NoProfile -File ./workflow-kit.ps1 -Command lint -RepoRoot . -Strict
-pwsh -NoLogo -NoProfile -File ./agent-loop.ps1 -DryRun -RepoRoot .
-```
-
-Validation is tiered (see AGENTS): record-only commits run the quick checks
-above plus `git diff --check`; code commits add the covering fixture test files;
-the full suite runs once per checkpoint handoff and in CI.
-Read [enforcement coverage](docs/enforcement.md) before claiming host automation.
-Lint is read-only, local, and needs no network/model calls. It checks declared
-owners/links, lifecycle/checkpoints, branch routing, physical lines and UTF-8
-bytes, per-host aggregates, stale declared task/scope handoffs, retired routers
-and forbidden instruction markers. Findings use stable IDs; size checks cannot
-establish semantic freshness. Unread inbox links are allowed.
-
-With `bin/` on PATH:
-
-```powershell
-workflow-kit lint
-workflow-kit lint -Strict
-workflow-kit lint -Json
-workflow-kit diff
-```
-
-Direct invocation and external mirror configuration:
-
-```powershell
-pwsh -NoLogo -NoProfile -File /path/to/agent-workflow-kit/workflow-kit.ps1 -Command lint -RepoRoot $PWD
-pwsh -NoLogo -NoProfile -File /path/to/agent-workflow-kit/workflow-kit.ps1 -Command diff -RepoRoot $PWD -KitRoot /path/to/agent-workflow-kit
-```
-
-A consumer may use `{"canonicalMirrorMode":"external"}` in its existing
-`.workflow-kit.json` to suppress missing mirrored script/launcher/prompt assets
-while still comparing mirrored assets that exist. This preserves legacy mode.
-
-## Scheduler and launchers
-
-Versioned Spec Kit creation switches to a clean configured target, commits only
-the draft package's catalog row there, then creates the feature branch from that
-commit and writes its draft spec from the project override. A dirty checkout or
-failed target switch stops incomplete; creation never pushes. On the target,
-missing local package branches with cached remote refs produce an informational
-"fetch the declared branch" finding. An orphan in the available ref inventory is
-an error; configured remotes without cached inventory are explicitly unknown.
-The catalog-only registration commit carries a transient Git command setting for
-its new staged row, which does not excuse an existing orphan or persist as policy.
-Package edits still require their declared branch. This kit's
-target is `main`; consumers use their own configured target.
-On failure, creation restores the original branch (or detached head), retains
-registration and partial artifacts, and reports any restoration failure alongside
-the creation failure. The target must already contain the versioned config and
-project overrides. A target that predates those assets cannot create versioned
-packages until the accepted tooling is landed there. New package creation,
-including Spec 002, still needs its own owner scope.
-
-`agent-loop.ps1` dispatches isolated workers. `-Agent Auto` chooses Codex from
-a Codex environment and Copilot otherwise. In spec-first mode, discovery reads
-package lifecycle/checkpoints and declared branches; only authorized active work
-with cleared entry/task gates runs. Checkout failure stops. Reviews stay in
-package `reviews/`; exhausted remediation reports incomplete. The configured
-target replaces default-branch guesses; failed integration/dirty state preserves
-recoverable workers. Managed scratch markers live in Git administration storage,
-not package files, and cleanup never uses recursive filesystem fallback.
-
-Model preferences live only in `agent-loop.ps1`'s `TierDispatchMap`; use
-`-UseTierDispatch` or explicit owner overrides. Prompt frontmatter is an
-invocation asset; consult its actual source rather than duplicating model tables.
-
-```powershell
-# Read-only previews; live runs require their own authorized scope.
-agent-loop -Workflow SpecKit -DryRun
-pwsh -NoLogo -NoProfile -File /path/to/agent-workflow-kit/agent-loop.ps1 -Workflow SpecKit -RepoRoot $PWD -DryRun
-
-# Invocation controls for authorized live runs:
-agent-loop -Workflow SpecKit -Agent Auto -MaxTasks 3 -TaskTimeoutSeconds 3600 -MaxContinues 25 -MaxAddressRounds 3 -OnFailure stop -UseTierDispatch
-agent-loop -Model <owner-selected-model> -ReasoningEffort low
-
-# Unmigrated legacy repositories only:
-agent-loop -Workflow Todo -DryRun
-agent-loop -Workflow Todo -MaxTasks 3
-agent-loop -Workflow Todo -TaskSection "### Batch tasks"
-```
-
-Legacy TODO mode supports checkbox queues and active-lane tables; legacy
-bookkeeping does not create a new root queue in migrated repositories.
-Read [operations](docs/operations.md) for authentication, foreground terminals,
-bounded autonomous bursts and failure recovery.
-
-All launchers resolve the canonical script relative to `bin/`:
-`agent-loop`, `workflow-kit`, and `install-vscode-prompts`, each with POSIX
-and Windows `.cmd` wrappers. Consumers need Git and PowerShell 7+; live launches
-need the selected authenticated CLI and an authorized integration target.
-
-```powershell
-# PowerShell profile:
-$agentLoopBin = '<path-to-agent-workflow-kit>/bin'
-$env:PATH = "$agentLoopBin$([System.IO.Path]::PathSeparator)$env:PATH"
-```
-
-```bash
-export PATH="/path/to/agent-workflow-kit/bin:$PATH"
-```
-
-## Delivered-package closeout
-
-Versioned repositories can preview closeout using exact accepted source, declared
-base and landed target commits. Set the variables to the delivered package's
-reviewed evidence; an active package cannot be closed out. Preview is read-only:
-
-```powershell
-pwsh -NoLogo -NoProfile -File ./workflow-kit.ps1 -Command closeout -RepoRoot $repo -PackageId $package -AcceptedRevision $accepted -BaseRevision $base -LandedRevision $landed -Preview -Json
-```
-
-The report separates proof, worktrees, local branches, cached remote inventory,
-proposed actions and retention reasons. Ancestry or exact equality for every
-source-changed tree entry supplies automatic proof; unknown or conflicting
-evidence retains the source. Owner confirmation of the exact revisions can use
-`-OwnerConfirmed`, and its proof is preserved in an annotated archive tag before
-source deletion. Configured policy does not authorize an operation by itself.
-
-`-LandedRevision` identifies the original delivery or squash commit. It must be
-an ancestor of the configured target's current tip; it need not be that tip.
-Proof compares against the original landing tree, so later target commits such
-as another package's catalog registration do not change the delivery evidence.
-The report shows the original landing and current target tip separately. Local
-branch-deletion locks and remote leases bind the observed current tips.
-
-After separate owner authorization for the selected local cleanup actions:
-
-```powershell
-pwsh -NoLogo -NoProfile -File ./workflow-kit.ps1 -Command closeout -RepoRoot $repo -PackageId $package -AcceptedRevision $accepted -BaseRevision $base -LandedRevision $landed -Apply -AuthorizeLocalCleanup -RemoveWorktrees -DeleteLocalBranch -Json
-```
-
-Apply revalidates evidence and each candidate, creates or reuses matching
-`archive/<package-id>` proof, and uses ordinary Git removal for delivery
-worktrees. Primary/invoking checkouts, locks, accepted holds, unpublished work,
-dirty tracked/index state, protected untracked/ignored evidence and links remain
-protected. Delivery worktrees never receive automatic force permission. Disposable
-dependency summaries are scanned once for links/nested evidence; tracked content
-is never made disposable by a pattern. Scratch retains its separate marker/root
-and integration proof requirements. No recursive deletion fallback is used.
-Detached trees at the accepted revision and source-associated marked scratch
-remain visible as retained candidates requiring separate reconciliation.
-Local branch deletion requires known Git 2.29+ reference-transaction support;
-an exact accepted-tip guard composes the caller's reference hook using temporary
-command configuration. Verify-only prepared transactions hold archive/target
-proof stable during deletion. Unsupported locking retains the branch; no
-persistent hook or branch policy is installed.
-Source, target and archive proof require exact literal, direct ref ownership;
-case aliases or symbolic refs retain cleanup even if they resolve to the same
-commit. The prepared deletion hook rechecks those names and IDs under the locks.
-Checked-out aliases are retained in preview and checked again at the prepared
-deletion boundary; native exact-name checkout protection remains in place.
-Local cleanup conservatively retains non-ASCII ref names because Windows case
-ownership is unverified for those names. Unicode filenames remain supported.
-
-Remote reconciliation is experimental and frozen: excluded from consumer
-rollout until provider-side proof-ref isolation is resolved.
-Network operations are off by default. Separately authorized remote actions need
-`-Apply -AuthorizeRemoteChanges -Remote <configured-name>` and selected
-`-PushArchiveTag`/`-DeleteRemoteBranch` flags. They verify exact remote revisions
-and matching annotated proof and use narrow leases; conflicting or unknown
-remote evidence remains incomplete.
-Accepted package cleanup holds also block remote source deletion; separately
-authorized archive-tag preservation can still proceed.
-Remote servers can omit unchanged proof refs
-from a transaction; a final proof mismatch reports incomplete, preserves local
-archive proof and names any deletion that already succeeded. This is not a claim
-of isolation against concurrent server changes. These flags do not authorize this kit session
-to push or delete branches. Local action success does not imply remote closeout.
-
-The final delivery commit sets lifecycle `delivered` and archives the catalog row
-on the package branch before owner-authorized landing. Cleanup makes no target
-documentation commit or package move. A landed package remains `delivered` even
-when cleanup retains a candidate. Retry reuses matching proof without overwriting
-conflicting tags. Consumer migration and prompt installation require their own authorization.
-
-To resume an interrupted or retained closeout, keep the original `$base`,
-`$accepted` and `$landed` commit IDs and rerun preview with the same tuple. Copy
-the archive tag name from the report, then inspect its preserved annotation if
-you need to recover the values:
-
-```powershell
-# Example tag name; use the archiveTag.name printed for your package.
-$archiveTag = 'archive/001-example'
-git -C $repo cat-file tag "refs/tags/$archiveTag"
-pwsh -NoLogo -NoProfile -File ./workflow-kit.ps1 -Command closeout -RepoRoot $repo -PackageId $package -AcceptedRevision $accepted -BaseRevision $base -LandedRevision $landed -Preview -Json
-```
-
-The annotation's JSON records `baseRevision`, `acceptedRevision`, `landedRevision`
-and `targetBranch`. Use the original recorded landing, including for a squash;
-passing the latest target tip changes the proof tuple and can conflict with the
-existing tag. `-OwnerConfirmed` does not retarget an existing archive. After
-preview verifies the original tuple and retained candidates are reconciled, rerun
-only the already authorized apply actions above. A matching archive object is
-reused unchanged; do not delete or overwrite it to make a retry pass.
-
-A landing no longer contained in the target, an unavailable commit, a changed
-accepted/source/base tuple or conflicting annotation remains incomplete and
-needs owner reconciliation. Remote ancestry must be provable from local commit
-objects after an explicitly authorized ref query; closeout does not fetch missing
-objects automatically. Repositories declaring partial-clone/promisor settings
-are conservatively unsupported for closeout. Fetching or repairing history is an
-operator action, separate from retry or cleanup authorization.
-
-## Reusable VS Code prompts
-
-Canonical definitions live in `prompts/`. Every source selects its legacy or
-version-1 procedure from `.workflow-kit.json`; malformed or unsupported versions
-stop explicitly. The installer only copies prompt files and is not part of
-migration.
-
-| Command | Purpose |
-|---|---|
-| /whats-next | Orientation and recommended next authorized task |
-| /freshen-status | Compatibility entry point; route retired status to its package owner |
-| /audit-workflow | Mechanical workflow drift inspection |
-| /run-validation | Run declared validation and report results |
-| /overnight | Authorized bounded scheduler launch; honor owner checkpoints |
-| /proceed-autonomously | Alias for /overnight; scheduler follows repository mode |
-| /orchestrate | Tier/complexity routing and bounded delegated work |
-| /repo-health-audit | Saved domain/architecture audit when requested |
-| /audit-diagram-generator | Targeted diagram-generator architecture audit |
-| /competing-audit | Independent perspectives and synthesized findings |
-| /simo-plan-sweep | Tighten phased implementation plans |
-| /simo-sweep | Requested post-change critical review |
-| /sync-all-repos | Explicitly authorized workspace commit/push operation |
-
-Prompt YAML frontmatter declares descriptions, mode and invocation model.
-Model IDs are maintained in prompt sources; reusable dispatch preferences are
-owned by `TierDispatchMap`, with procedures in `prompts/orchestrate.prompt.md`.
-
-## Install or refresh prompts (separate authorization)
-
-The installer writes VS Code global user prompt assets. Once authorized:
-
-```powershell
+```console
 git clone git@github.com:lyubomir-popov/agent-workflow-kit.git
-cd agent-workflow-kit
-pwsh -NoLogo -NoProfile -File ./install-vscode-prompts.ps1
-
-# Refresh an existing clone:
-git pull
-pwsh -NoLogo -NoProfile -File ./install-vscode-prompts.ps1
-
-# PATH wrapper:
-install-vscode-prompts
+export PATH="/path/to/agent-workflow-kit/bin:$PATH"
+wfk --help
 ```
 
-Reload VS Code after installation. Re-running overwrites the same prompt files.
-Default destinations are Windows `%APPDATA%/Code/User/prompts`, macOS
-`~/Library/Application Support/Code/User/prompts`, and Linux
-`~/.config/Code/User/prompts`. Existing Insiders profiles are detected; override
-destinations with `-TargetPath <path>` (one or more) or `-IncludeInsiders`.
+On Windows, add the kit's `bin` directory to the user `PATH` through
+Environment Variables or the shell you use, then run `wfk --help`.
 
-Product direction can grow into `docs/roadmap/` or `docs/vision/` on demand;
-it must not become an extra status, handoff, or execution queue.
+Without changing `PATH`, run `python -m wfk` from the kit checkout:
+
+```console
+python -m wfk --help
+```
+
+The kit does not install Python packages. Consumer repositories keep their own
+`.workflow-kit.json` and workflow files; `wfk init` can add missing files.
+
+## Main commands
+
+Mutating commands preview by default where they offer `--apply`. Review the
+preview before repeating the command with `--apply`.
+
+| Command | Example | What it does |
+|---|---|---|
+| `wt new` | `wfk wt new feat/example --from main` | Creates a linked worktree at the configured or sibling worktree root. |
+| `wt ls` | `wfk wt ls --root ../projects --size` | Discovers registered worktrees, landed branches and scratch-root orphans. |
+| `wt clean` | `wfk wt clean --root ../projects` | Previews eligible cleanup; add `--apply` to remove through Git. |
+| `run` | `wfk run --repo . --package specs/003-example --agents codex --json` | Previews a bounded package run. Add `--apply` to dispatch. |
+| `lint` | `wfk lint --repo . --json` | Checks workflow ownership, links, gates, reviews and budgets offline. |
+| `new` | `wfk new search-export --repo .` | Previews a numbered package and branch; add `--apply` to create them. |
+| `init` | `wfk init --repo .` | Previews missing workflow files; add `--apply` to create only missing paths. |
+| `hooks` | `wfk hooks install --repo .` | Previews composed post-merge/post-rewrite cleanup hooks; add `--apply` to install. |
+| `prompts` | `wfk prompts install` | Previews VS Code and Insiders prompt copies; add `--apply` to install or replace them. |
+
+Replace the example paths and package name with entries from your own repository.
+
+`wt new` creates immediately because it has no `--apply` mode. `wt clean`
+is a preview until `--apply`; it never removes protected, dirty, locked,
+unlanded, current or primary worktrees. Read its warning about ignored files
+before applying cleanup.
+
+`init --apply` uses exclusive creation: existing files are preserved byte for
+byte and returned in a manual merge checklist. It does not install hooks, prompts
+or worker CLIs.
+
+A scheduler execution requires one or more explicit `--package` selections and
+`--apply`. CLI permission flags only let an already authorized worker operate;
+they do not clear package checkpoints, extend repository scope or authorize
+publishing.
+
+## Workflow
+
+```mermaid
+flowchart LR
+    A[AGENTS.md] --> B[docs/specs.md catalog]
+    B --> C[package spec.md]
+    C --> D[plan.md]
+    D --> E[tasks.md]
+    E --> F[wfk run or human implementation]
+    F --> G[reviews findings and dispositions]
+    G --> H{Owner clears checkpoint?}
+    H -->|yes| E
+    H -->|no| G
+```
+
+The catalog routes to a package on its declared branch. The package spec owns
+intent and checkpoints, the plan owns approach, tasks own execution, and
+`reviews/` keeps the evidence. Reviewers save findings to files; only the owner
+clears checkpoints. A checkpoint receives at most two review rounds before the
+owner accepts, cuts scope or reopens the plan.
+
+## Reference
+
+- [Workflow ownership and adoption](docs/workflow-core.md)
+- [Worktree discovery, cleanup and hooks](docs/worktrees.md)
+- [Scheduler profiles, outcomes and recovery](docs/scheduler.md)
+- [Terminal, authentication and operational practice](docs/operations.md)
+- [Enforcement guarantees and gaps](docs/enforcement.md)
+- [Compatibility for repositories still using the retired PowerShell kit](docs/legacy-compatibility.md)
+
+Reusable prompts inherit the model already selected by the invoking host.
+Automated scheduler reviews instead use the configured reviewer profile; the
+shipped default is Copilot with `claude-opus-4.8`.
+
+The repository config format is version 2. Python commands can inspect a version
+1 config and name fields they ignore, but runtime behavior is strict about
+unsupported versions. Repositories that still require the retired PowerShell
+implementation must use a separate checkout pinned to `v1-powershell`; the tag
+alone does not move shared consumers.
+
+The committed GitHub Actions workflow is configured to run the Python suite,
+CLI help and lint on Windows, macOS and Linux. That configuration is not evidence
+that a remote workflow has run or that branch protection requires it.

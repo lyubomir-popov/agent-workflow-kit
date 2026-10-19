@@ -1,50 +1,72 @@
 # On-demand operations
 
-Read [AGENTS](../AGENTS.md) for scope, owners, and validation before using this
-procedure. Resolve work from [the catalog](specs.md); command output does not
-override lifecycle, owner checkpoints, or authorization.
+Read [AGENTS](../AGENTS.md) and resolve work through [the catalog](specs.md)
+before acting. Command output reports repository state; it does not override
+scope, package lifecycle or owner checkpoints.
 
-## Terminals and browsers
+## Terminals and authentication
 
-Use foreground VS Code integrated terminals the user can inspect when available.
-Reuse a small number of terminals; record those you start and close hung or
-unneeded sessions before finishing. Do not open external/background windows as
-an invisible substitute. Use Chrome for Playwright/browser automation when the
-task permits browser choice. Tool-specific host constraints still apply.
+Keep long-running workers in an inspectable foreground terminal. Before an
+authorized scheduler execution, run its preview:
 
-## Authentication
+```console
+wfk run --repo . --package <catalog-package> --agents <profiles> --json
+```
 
-Before an authorized unattended Copilot run or tier dispatch, verify existing
-Copilot CLI authentication. If output says `No authentication information found`
-or `Please use /login to sign in to use Copilot`, stop automation.
-Open an interactive integrated terminal, run `copilot`, and complete `/login`.
-If the tool cannot drive that UI, ask the user to complete login and resume after
-confirmation. Do not retry unauthenticated unattended runs. Where GitHub access
-is needed, use `gh auth status`; do not mistake a shell `gh` alias for the CLI.
+Preview does not invoke worker authentication or a model. An applied run performs
+the configured noninteractive authentication probe before dispatch. Codex and
+Copilot probes fail closed on missing tools, malformed replies, timeouts or an
+unauthenticated status. Complete interactive login outside the scheduler, then
+start a new bounded run; the scheduler does not loop on authentication failures.
+The standalone Claude Code adapter has not been qualified and ships without an
+authentication probe, so preflight refuses it.
 
-## Bounded autonomous work
+Git hosting authentication is separate from worker authentication. When a task
+actually needs GitHub access, use `gh auth status`; do not treat a shell alias as
+the GitHub CLI.
 
-Owner authorization to continue persists within the declared scope. Execute
-small planned task bursts, validate substantive chunks, and keep the package
-task header current. Narrow broad tasks before dispatch; prefer sequential
-single-repo sessions over holding several repos in one context.
-Commit checkpoints only when authorized. Re-read tasks and checkpoints between
-chunks and preserve failures for inspection; exhaustion is incomplete.
-No autonomous instruction authorizes beyond-gate work or an unrequested delta
-review. Persist durable findings in package reviews and send only a transient
-link through the inbox. Leave a bounded next action for a fresh session.
+## Bounded work
 
-## Launch and recovery
+Owner authorization persists inside the declared repository, package, task and
+write scope. Re-read `tasks.md` and the checkpoint table between substantive
+chunks. Keep durable findings in package `reviews/`; inbox entries are transient
+handoffs and remain until received or durably transferred.
 
-Run quick lint and scheduler dry run before an authorized live launch.
-Inspect checkout failures, configured target, scratch root, and entry/task gates.
-Model preferences live only in `agent-loop.ps1`'s `TierDispatchMap`; use
-`-UseTierDispatch` or an explicit owner override rather than copying a model table.
-CLI support can differ from editor support; unsupported models/effort require
-a reported failure or an authorized fallback.
-Keep workers foreground and inspect preserved worktree paths on failure.
-Do not recursively delete residue or force-remove ordinary delivery worktrees.
+An applied scheduler run needs explicit `--package` values and finite limits.
+The defaults are one task, eight hours and 1,800 seconds per worker. Permission
+flags in worker profiles allow the process to operate without prompts; they do
+not grant repository scope, clear gates, authorize review rounds, or authorize
+pushes and merges.
 
-Shared prompt installation and consumer migration are separate authorized work.
-Source prompts remain in `prompts/`; installation copies user-level assets and
-must never happen as an incidental documentation refresh.
+Use the default reviewer only for an authorized review phase. It is
+`copilot-opus`: Copilot CLI selecting `claude-opus-4.8`. That qualified route
+does not qualify the standalone `claude` CLI. Save the actual reviewer identity
+and reviewed revision. A checkpoint stops after two review rounds for an owner
+decision.
+
+## Recovery
+
+Applied runs create a report and logs under the repository Git common directory
+at `wfk/runs/<run-id>/`. Read the report before changing a retained checkout,
+lease or rejected ref.
+
+A package lease prevents concurrent runs. After a crash, verify the recorded
+process and run directory before manually removing a stale lease; the scheduler
+does not steal one. A protected worker commit is preserved at
+`refs/wfk/rejected/<task>-<timestamp>` before the package branch is rewound.
+The ref operation does not clean staged, unstaged, ignored or untracked files.
+
+On timeout the scheduler interrupts the process, waits the configured grace
+period, then terminates the process tree. Windows Job Objects contain descendants;
+POSIX process groups cover processes that stay in the session. A deliberate
+session escape and an abrupt power loss cannot be fully contained or finalized.
+A hard termination can leave a report marked running.
+
+Scheduler cleanup considers only worktrees created by that run and uses ordinary
+Git removal without force. Reused checkouts and worktrees containing local bytes
+are retained. Inspect and recover them manually; never use recursive deletion as
+a fallback.
+
+Prompt installation, hook installation, consumer adoption, live workers,
+publishing and consumer migration are separate actions. Updating source files in
+this kit does not update user-installed prompts or shared consumer paths.

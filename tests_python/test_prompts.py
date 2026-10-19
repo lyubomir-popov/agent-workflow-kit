@@ -130,48 +130,81 @@ class PromptInstallationTests(unittest.TestCase):
 
 
 class SavedReviewPromptTests(unittest.TestCase):
-    def test_existing_routers_accept_integer_two_without_falling_back_to_legacy(self):
-        folder = Path(__file__).resolve().parents[1] / 'prompts'
-        for source in sorted(folder.glob('*.prompt.md')):
-            content = source.read_text(encoding='utf-8')
-            if '## Workflow mode' not in content:
-                continue
-            with self.subTest(prompt=source.name):
-                router = content.split('## Workflow mode', 1)[1].split('## Version 1 route', 1)[0]
-                self.assertIn('JSON integer `1` or `2`', router)
-                self.assertIn('do not coerce strings', router)
-                self.assertIn('versions 1 and 2 must not execute Legacy procedure', router)
-                route = content.split('## Version 2 route', 1)[1].split('## Legacy procedure', 1)[0]
-                self.assertNotIn('pwsh', route)
-                self.assertNotIn('agent-loop.ps1', route)
+    def setUp(self):
+        self.folder = Path(__file__).resolve().parents[1] / 'prompts'
+        self.sources = sorted(self.folder.glob('*.prompt.md'))
 
-    def test_v2_routes_use_python_lint_and_bounded_scheduler_authorization(self):
-        folder = Path(__file__).resolve().parents[1] / 'prompts'
-        def route(name):
-            return (folder / (name + '.prompt.md')).read_text(encoding='utf-8').split(
-                '## Version 2 route', 1)[1].split('## Legacy procedure', 1)[0]
-        for name in ('audit-workflow', 'run-validation'):
-            self.assertIn('wfk lint --repo . --json', route(name))
-        self.assertIn('wfk run --repo . --package', route('overnight'))
-        self.assertIn('Authentication probes fail closed', route('overnight'))
-        self.assertIn('--apply', route('overnight'))
-        self.assertIn('Do not launch', route('overnight'))
-        self.assertIn('prompts/overnight.prompt.md', route('proceed-autonomously'))
-        self.assertIn('/whats-next', route('freshen-status'))
-        for name in ('orchestrate', 'competing-audit'):
-            self.assertIn('config', route(name))
-            self.assertIn('slice C', route(name))
-            self.assertIn('prompts/review.prompt.md', route(name))
+    def prompt(self, name):
+        return (self.folder / (name + '.prompt.md')).read_text(encoding='utf-8')
+
+    def test_shipped_prompts_fail_closed_and_route_supported_configs_to_python(self):
+        retired = ('Legacy procedure', 'Version 1 route', 'Version 2 route',
+                   'agent-loop.ps1', 'workflow-kit.ps1', 'pwsh',
+                   'canonicalMirrorMode', 'TierDispatchMap')
+        for source in self.sources:
+            content = source.read_text(encoding='utf-8')
+            with self.subTest(prompt=source.name):
+                self.assertIn('## Workflow routing', content)
+                self.assertIn('JSON integer `2`', content)
+                self.assertIn('JSON integer `1`', content)
+                self.assertIn('wfk lint --repo . --json', content)
+                self.assertIn('wfk init --repo . --json', content)
+                self.assertIn('ignored-v1-field diagnostics', content)
+                self.assertIn('non-integer version', content)
+                self.assertIn('unsupported', content)
+                self.assertIn('fail closed', content)
+                self.assertIn('v1-powershell', content)
+                self.assertIn('agent: agent', content)
+                self.assertNotIn('\nmode:', content)
+                self.assertNotIn('\nmodel:', content)
+                for phrase in retired:
+                    self.assertNotIn(phrase, content)
+
+    def test_python_routes_keep_bounded_scheduler_and_owner_gates(self):
+        overnight = self.prompt('overnight')
+        self.assertIn('wfk run --repo . --package', overnight)
+        self.assertIn('--apply', overnight)
+        self.assertIn('Authentication probes fail closed', overnight)
+        self.assertIn('explicit package', overnight)
+        self.assertIn('permission flags do not authorize', overnight)
+        self.assertIn('two rounds', overnight)
+        self.assertIn('printed report path', overnight)
+
+        proceed = self.prompt('proceed-autonomously')
+        self.assertIn('prompts/overnight.prompt.md', proceed)
+        self.assertIn('explicit package', proceed)
+        self.assertIn('--apply', proceed)
+
+        orchestrate = self.prompt('orchestrate')
+        self.assertIn('templates/scheduler-defaults.json', orchestrate)
+        self.assertIn('copilot-opus', orchestrate)
+        self.assertIn('claude-opus-4.8', orchestrate)
+        self.assertIn('prompts/review.prompt.md', orchestrate)
+        self.assertIn('two rounds', orchestrate)
+
+    def test_audit_orientation_and_validation_preserve_workflow_ownership(self):
+        audit = self.prompt('audit-workflow')
+        self.assertIn('wfk lint --repo . --json', audit)
+        self.assertIn('Preserve', audit)
+        self.assertIn('unresolved inbox handoffs', audit)
+
+        whats_next = self.prompt('whats-next')
+        self.assertIn('without deleting, emptying or blindly', whats_next)
+        self.assertIn('declared branch', whats_next)
+        self.assertIn('first incomplete task', whats_next)
+
+        validation = self.prompt('run-validation')
+        self.assertIn('wfk lint --repo . --json', validation)
+        self.assertIn('does not authorize edits', validation)
 
     def test_review_prompt_requires_saved_findings_dispositions_and_owner_gate(self):
-        source = Path(__file__).resolve().parents[1] / 'prompts' / 'review.prompt.md'
-        content = source.read_text(encoding='utf-8')
+        content = self.prompt('review')
         for instruction in (
                 'reviews/<date>-<checkpoint>-<reviewer>-findings.md',
                 'reviews/<date>-<checkpoint>-<reviewer>-dispositions.md',
                 'Reviewer:', 'Reviewed revision:', 'Verdict:',
                 '`accept`', '`changes`', '`blocker`',
-                'numbered', 'major', 'minor', 'Known limits', 'tasks.md',
-                'at most two review rounds', 'owner',
+                'numbered', '`major`', '`minor`', '`Known limits`',
+                'at most two review rounds', 'owner clears',
                 'only the findings file path and verdict'):
             self.assertIn(instruction, content)

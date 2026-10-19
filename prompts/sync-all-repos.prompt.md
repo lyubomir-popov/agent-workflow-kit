@@ -1,60 +1,52 @@
 ---
-description: "Commit all dirty repos in the workspace and push to their remotes. Ensures every repo is clean and pushed for machine transfer."
-mode: agent
-model: gpt-5.4-mini
+description: "Inspect, commit, and push authorized repositories for machine transfer."
+agent: agent
 ---
 
-# Sync all repos
+# Sync all repositories
 
-## Shared safety
+## Safety
 
-Apply these rules in either mode: do not force-push, rebase, or amend existing
-commits. Process repositories sequentially. If a push fails for reasons other
-than a missing upstream, report the failure and continue only within authorized
-repository scope; do not bypass authentication or diverged-history failures.
-Before acting on each repository, select its mode from its own config and use
-only that matching procedure; the caller's mode does not govern other repos.
+The request must explicitly authorize commits and pushes for each repository in
+scope. Never force-push, rebase or amend. Stage explicit paths, preserve unrelated
+work, and process repositories sequentially. A package gate still governs the
+content being committed; synchronization does not clear it.
 
-## Workflow mode
+## Workflow routing
 
-Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
-including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1` or `2`;
-do not coerce strings or other values. Stop if the JSON is
-malformed, is not an object, or contains a present invalid or unsupported
-version. Do not infer the mode from root files or placeholders. Execute only the
-matching route below; versions 1 and 2 must not execute Legacy procedure.
+Read `.workflow-kit.json` as JSON before using the procedure below.
 
-## Version 1 route
+- JSON integer `2`: use the Python workflow procedure.
+- JSON integer `1`: use the same Python procedure and run
+  `wfk lint --repo . --json`; report its named ignored-v1-field diagnostics
+  and do not assume ignored scheduler or workflow fields are active.
+- Missing file or missing `workflowModelVersion`: run only the adoption preview
+  `wfk init --repo . --json`, report its manual checklist, and wait for
+  authorized adoption.
+- Malformed JSON, a non-object root, a non-integer version, or an unsupported
+  version: fail closed and report the configuration error.
 
-Inspect each repository's `AGENTS.md`, catalog, package owners, and versioned config. Summarize its dirty and unpublished state; make commits only within explicit owner scope, stage explicit paths, and push only when the user authorized publishing for that repository. Apply Shared safety and do not bypass package gates. Determine the workflow mode separately for each repository before choosing its procedure.
+Do not reconstruct retired commands or TODO scheduling. If old behavior is
+still required, use a separate kit checkout pinned to `v1-powershell`; the tag
+alone does not repoint a shared consumer.
 
-## Version 2 route
+## Procedure
 
-Determine the workflow version separately for each repository. Inspect its
-`AGENTS.md`, catalog, package owners and Git state. Summarize dirty and
-unpublished work, stage explicit paths and commit only within authorized scope.
-Push only when the owner authorized publishing for that repository. Apply Shared
-safety; never bypass package gates or treat a synchronization request as owner
-clearance. No scheduler or automatic cleanup is implied.
+For each authorized workspace repository:
 
-## Legacy procedure
+1. Read its own `AGENTS.md`, config, catalog and active package owners.
+2. Select its workflow route independently. For integer version 1, run
+   `wfk lint --repo <repo> --json` and report ignored fields. For a missing
+   version, preview `wfk init --repo <repo> --json` and require manual adoption;
+   do not apply it as part of synchronization.
+3. Inspect `git status --short`, the staged diff, current branch, upstream and
+   unpublished commits.
+4. Commit only coherent, owned changes within the user's scope, using explicit
+   paths. Do not sweep unknown untracked files into a catch-all commit.
+5. Push only when that repository was authorized. A missing upstream may be set
+   to the intended remote branch; authentication, non-fast-forward or other
+   failures are reported rather than bypassed.
+6. Verify and report the final dirty and ahead/behind state.
 
-Commit and push every repo in the current multi-root workspace so the full working state is available on another machine.
-
-
-### Procedure
-
-1. For each workspace folder, check `git status --short` and `git rev-list --count @{u}..HEAD` (to detect unpushed commits).
-2. For any repo that has uncommitted changes (tracked or untracked), stage everything with `git add -A` and commit with the message `docs: sync all working state for machine transfer`.
-3. For any repo that has unpushed commits (including the one just created), run `git push`. If the branch has no upstream, use `git push --set-upstream origin <branch>`.
-4. After all repos are processed, run a final verification pass: check that every repo reports clean and pushed.
-5. Print a summary table showing each repo and its final status.
-
-
-### Rules
-
-- Do not force-push.
-- Do not rebase or amend existing commits.
-- If a push fails for reasons other than missing upstream (e.g. auth, diverged remote), report the failure and move on to the next repo.
-- Process repos sequentially to avoid interleaved terminal output.
-- Use a single commit per repo covering all changes, not per-file commits.
+Do not run the scheduler, cleanup, prompt installation or workflow adoption as a
+side effect.

@@ -1,30 +1,32 @@
 ---
-description: "Alias for /overnight; scheduler mode follows workflowModelVersion."
-mode: agent
-model: gpt-5.4-mini
+description: "Alias for the bounded Python scheduler procedure."
+agent: agent
 ---
 
 # Proceed autonomously
 
-## Workflow mode
+## Workflow routing
 
-Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
-including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1` or `2`;
-do not coerce strings or other values. Stop if the JSON is
-malformed, is not an object, or contains a present invalid or unsupported
-version. Do not infer the mode from root files or placeholders. Execute only the
-matching route below; versions 1 and 2 must not execute Legacy procedure.
+Read `.workflow-kit.json` as JSON before using the procedure below.
 
-## Version 1 route
+- JSON integer `2`: use the Python workflow procedure.
+- JSON integer `1`: use the same Python procedure and run
+  `wfk lint --repo . --json`; report its named ignored-v1-field diagnostics
+  and do not assume ignored scheduler or workflow fields are active.
+- Missing file or missing `workflowModelVersion`: run only the adoption preview
+  `wfk init --repo . --json`, report its manual checklist, and wait for
+  authorized adoption.
+- Malformed JSON, a non-object root, a non-integer version, or an unsupported
+  version: fail closed and report the configuration error.
 
-For version `1`, this command remains an alias for `/overnight`. Follow `prompts/overnight.prompt.md`, which selects the SpecKit scheduler; do not start a second workflow here.
+Do not reconstruct retired commands or TODO scheduling. If old behavior is
+still required, use a separate kit checkout pinned to `v1-powershell`; the tag
+alone does not repoint a shared consumer.
 
-## Version 2 route
+## Procedure
 
-For version `2`, this remains an alias for `/overnight`. Follow the version 2
-route in `prompts/overnight.prompt.md`, including its pending-scheduler stop.
-Do not substitute a different scheduler or start a second workflow here.
-
-## Legacy procedure
-
-Legacy alias for `/overnight`. Follow `prompts/overnight.prompt.md`; its absent-version route keeps the existing SpecKit scheduler and accepts `-Workflow Todo` only when explicitly requested.
+Follow `prompts/overnight.prompt.md` exactly. Use explicit package selections,
+preview first, and add `--apply` only when execution is authorized. Keep the
+same finite task, time and review bounds. Autonomy continues only within the
+declared scope and stops at owner gates, manual tasks, authentication failures,
+interruptions or exhausted review rounds.

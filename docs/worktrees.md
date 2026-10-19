@@ -102,5 +102,7 @@ paths resolve from the repo; relative user paths resolve from the config's
 directory. `{temp}` expands to the platform's temporary directory.
 
 The target comes from configuration, then `origin/HEAD`, then local `main` or
-`master`. Unknown targets preserve work. Version 1 config keeps its shared
-target setting and reports the legacy fields the Python kit ignores.
+`master`. Unknown targets preserve work. A version 1 config keeps its shared
+target setting and reports every v1 field the Python kit ignores. Missing,
+invalid or unsupported workflow versions fail closed for workflow commands;
+standalone worktree listing remains available before adoption.

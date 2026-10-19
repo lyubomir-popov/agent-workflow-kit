@@ -25,8 +25,10 @@ the scheduler never steals one automatically.
 [Shipped defaults](../templates/scheduler-defaults.json) own the provider argument
 templates. Version 2 user config (`WFK_CONFIG`, otherwise
 `~/.config/wfk/config.json`) merges first, then repository `.workflow-kit.json`.
-Worker fields in version 1 configs are ignored with a warning; legacy version 1
-prompt routing remains unchanged until retirement. Config is frozen for each run.
+Worker fields in version 1 configs are ignored with a warning. Both integer
+versions use the Python workflow; version 2 is the runtime contract. Missing
+versions need a previewed `wfk init` and manual adoption, while invalid or
+unsupported versions fail closed. Config is frozen for each run.
 
 Codex uses `codex login status`. Copilot uses its bundled SDK's read-only
 `auth.getStatus` JSON-RPC request through `--headless --stdio`; the standard-library
@@ -74,7 +76,7 @@ CLI flags and auth probes must be qualified for the installed release.
 `tierModels.H|S|L` is the shared model/effort owner: H is `gpt-5.4`/`xhigh`, S is
 `gpt-5.4`/`high`, and L is `gpt-5.4-mini` without an explicit effort. Codex and
 Copilot opt into that table with `useTierModels`; their `modelArgs` and
-`effortArgs` supply provider syntax. Codex retains the old scheduler's
+`effortArgs` supply provider syntax. Codex uses a
 `cliDefaultForModels` guard: these two Copilot aliases omit `--model` for Codex,
 which uses its configured model while retaining the selected effort. An explicit
 compatible Codex model override is passed through. Explicit `tierModels.<profile>.<tier>`

@@ -64,23 +64,23 @@ terminal/authentication procedures; [enforcement](docs/enforcement.md) names gap
 
 ## Verification and Git safety
 
-Run quick checks at session start/end, after scope changes, and before every
-commit (a few seconds):
+Run quick checks at session start/end, after scope changes, and before every commit:
 
 ```console
 python -m wfk lint --repo . --json
-python -m wfk run --repo . --package specs/003-simplify-portable-kit --json
+python -m wfk run --repo . --package <selected-catalog-package> --json
 git diff --check; git diff --cached --check
 ```
+
+Replace the package placeholder with the declared catalog package being worked on.
 
 Validate in proportion to the change:
 
 - Record-only commits (Markdown/package records, no code, config or CI): quick
   checks only. Never rerun the full suite to refresh evidence.
 - Code commits: run focused Python tests for the behavior changed.
-- Checkpoint handoff: one full `python -m unittest discover -s tests_python -v`
-  on final code; also
-  `git diff --check <review-base>..HEAD`, recording the base. CI repeats per push.
+- Checkpoint handoff: full `python -m unittest discover -s tests_python -v` on final
+  code and `git diff --check <review-base>..HEAD`, recording the base. CI repeats per push.
 
 Report pre-existing failures separately and preserve vendor assets outside scope.
 Record results once in the package evidence summary, not per commit.

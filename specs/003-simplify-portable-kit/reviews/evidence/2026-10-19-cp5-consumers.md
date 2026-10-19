@@ -1,7 +1,8 @@
-# CP5 consumer inventory before PowerShell retirement
+# CP5 consumer inventory and linked-checkout correction
 
 Date: 2026-10-19
-Scope: read-only inventory under `H:\WSL_dev_projects` before T015
+Scope: read-only inventory under `H:\WSL_dev_projects` before T015, then a
+linked-checkout coverage correction after retirement commit `9e5e4f4`.
 Search terms: `agent-loop.ps1`, `workflow-kit.ps1`, legacy `bin/agent-loop`,
 `bin/workflow-kit`, `bin/install-vscode-prompts` launchers, and
 `canonicalMirrorMode`
@@ -10,21 +11,24 @@ Search terms: `agent-loop.ps1`, `workflow-kit.ps1`, legacy `bin/agent-loop`,
 
 - Enumerated repository roots with a bounded directory walk that skipped Git
   metadata, dependencies, caches, generated output and large-data conventions.
-- Collapsed linked worktrees by the absolute `git rev-parse --git-common-dir`.
-  The walk found 88 checkouts, 52 unique Git common directories and 36 linked
-  worktree duplicates. No traversed directory was unavailable.
+- The walk found 88 checkouts, 52 unique Git common directories and 36 linked
+  worktree duplicates. No traversed directory was unavailable. Every one of the
+  88 checkout trees was searched before results were grouped by the absolute
+  `git rev-parse --git-common-dir`; linked branches were not discarded before
+  search.
 - Used ripgrep first, then `git grep` to restrict the reported matches to files
-  tracked in each primary checkout's current worktree. No referenced script was
-  executed.
+  tracked in each checkout's current worktree. No referenced script was
+  executed. The first pass covered only the 52 primary representatives; the
+  corrective pass covered all 88 checkout trees and is the basis of the final
+  result below.
 - This proves only the scanned current tracked files under
   `H:\WSL_dev_projects`; it does not cover untracked files, other roots, user
-  prompt installations or branches visible only in linked worktrees.
+  prompt installations or branches with no discovered checkout.
 
 ## Operational consumers
 
 These ten active repositories need a v2 migration or an explicit PowerShell
-compatibility arrangement before the kit primary checkout loses the legacy
-files.
+compatibility arrangement to continue using the retired implementation.
 
 | Repository | Dependency route | Current tracked operational matches (match count; line numbers) |
 |---|---|---|
@@ -49,6 +53,44 @@ to v2. The two repositories with local mirrors retain their checked-in copies,
 but those copies are independent of the kit tag and require separate migration
 or replacement.
 
+## Linked-checkout coverage
+
+The expanded pass found no additional Git common directory and therefore no
+additional repository-level consumer beyond the ten active names above. It did
+find branch-specific copies of already reported dependencies in 23 additional
+linked checkouts:
+
+- `baseline-foundry`: 11 matching checkouts total (the `main` primary plus
+  `docs/demo-provenance-rules`, `docs/relocate-spec-024`,
+  `docs/repository-map`, `feat/020b-page-grid-token-adoption`,
+  `feat/024-semantic-spacing-token-schema`,
+  `feat/025-compact-alignment-grid`, `feat/026-body-line-text-phase`,
+  `feat/028-shared-spacing-decisions`, `wip/bf-typography-cap-metric`, and the
+  detached `temp/bf-028-opus-corrections-20261006/pinned-4954c6e` checkout).
+  Each has the same matched paths/counts/line locations shown for the primary,
+  although file content can differ by branch.
+- `diagram-generator`: 9 matching checkouts total (the primary plus
+  `feat/108-registry-agent-prompting`, `feat/120-grid-track-alignment`,
+  `docs/121-onboarding-cold-start`, `chore/eol-lf-normalization`,
+  `diagram/generator-how-it-works-c4-continuation`, `main` in
+  `onboarding-quickstart`, and detached `generator-how-it-works-c4` and
+  `prodstack-cloud-images-flow-merge`). Each has the same three operational
+  `.github/prompts/overnight.prompt.md` matches at lines 9,20,30 and the same
+  historical archive match at line 121.
+- `diagram-registry`: 6 matching checkouts total (the `main` primary plus
+  `fix/analytics-pilot-observability`,
+  `feat/selfhosted-analytics-continuity`, `docs/record-analytics-activation`,
+  `work/mermaid-edge-label-review`, and `feat/share-succeeded-analytics`). All
+  have `.workflow-kit.json` at line 2; the two analytics feature checkouts have
+  the README match at line 52 and the other four at line 51.
+
+Across all Git identities, 35 checkout trees matched: 33 active-consumer
+checkouts, the kit producer, and the archived snapshot. The remaining 53
+checkout trees had no tracked matches. After common-directory grouping, 12 of
+52 Git identities matched (the ten active consumers, kit producer and archived
+snapshot); all checkout trees belonging to the other 40 identities were clean
+for the requested terms.
+
 ## Historical and non-active matches
 
 - `diagram-generator/docs/spec-archive/068-internal-dual-path-deletion/search-evidence.md`
@@ -70,8 +112,8 @@ or replacement.
   `diagram-generator-survivors-20260906/tmp/baseline-foundry-source-0.1.7`.
   It contains local legacy launchers and prompts, but is classified as an
   archived snapshot rather than an active pin target.
-- The other 40 unique primary repositories had no current tracked matches for
-  the requested terms.
+- The other 40 unique Git common directories had no current tracked matches in
+  any of their discovered checkout trees for the requested terms.
 
 ## Read-only integrity evidence
 
@@ -95,3 +137,18 @@ identical (`changed=0`). Representative hashes:
 No consumer file, Git configuration, ref, index or hook was intentionally
 modified; no fetch, install, worker, push, merge, clean, stage or commit was
 performed.
+
+The corrective linked-checkout pass separately captured SHA-256 before and
+after a repeated read-only search for eight representative tracked files across
+linked and detached checkouts. All eight hashes were identical (`changed=0`):
+
+| Linked-checkout file | SHA-256 before and after |
+|---|---|
+| `baseline-foundry-worktrees/docs-demo-provenance-rules/bin/agent-loop` | `095349bf295e07590392fea59847567ec2ac59e78111459e7fef013eaca93f3a` |
+| `baseline-foundry-worktrees/feat-028-shared-spacing-decisions/prompts/overnight.prompt.md` | `fa6984f476c6c78e9c053cc385b6d7c2b569b84d6526ed1bb0f488ff632467df` |
+| `diagram-generator-worktrees/108-registry-agent-prompting/.github/prompts/overnight.prompt.md` | `dcf6bcb6526a4dfbcef7f4f005a19a8aed742111cc22b410f7a55209ae47bafc` |
+| `diagram-generator-worktrees/generator-how-it-works-c4/.github/prompts/overnight.prompt.md` | `0b6bf61528d6eb3e3f942fe1674917c2c0e60bbd1fd271042054b46e245d13ad` |
+| `diagram-registry-analytics-observability/.workflow-kit.json` | `905d23b78acb2220794abdd5a8e02dcbf725ebc23fd37d7391f0598a4ad20fae` |
+| `diagram-registry-analytics-observability/README.md` | `1272ceb3fa981e47321e39978cc4b8d333c77c2a6089cc7cd4f8a59f93255271` |
+| `diagram-registry-worktrees/share-succeeded-analytics/README.md` | `c3259b086c9a2dae16b40a324ede57e55a60cf589b41be335f6979e2c07465b8` |
+| `temp/bf-028-opus-corrections-20261006/pinned-4954c6e/bin/agent-loop.cmd` | `2afec00e31ebc1a4862dcbb4bd4a86459431c59cbe8456599010e38c7cd88a75` |

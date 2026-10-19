@@ -60,6 +60,13 @@ local mirrors. An archived source snapshot is separate. All 38 sampled
 operational dependency-file hashes matched before/after the scan. No consumer
 file, index, ref, configuration or hook was changed.
 
+The independent review identified that the initial primary-only scan could miss
+linked-branch dependencies. A corrective pass after retirement searched all 88
+checkout trees before grouping: 35 matched, 53 did not; the same ten active
+consumer identities remain. Twenty-three additional matching linked checkouts
+are now documented. Eight linked/detached file hash samples also stayed unchanged.
+The correction is explicit rather than claiming the wider scan preceded T015.
+
 The fallback tag alone cannot preserve execution at shared paths. Those eight
 consumers need a separate `v1-powershell` checkout plus repointed paths, or v2
 migration, under separate owner scope. Retirement here does not perform either.
@@ -89,3 +96,28 @@ migration, under separate owner scope. Retirement here does not perform either.
 - Commit lint now checks the working tree, not an isolated staged snapshot.
   The retired checker's partial-staging guarantees are not claimed. AGENTS quick
   checks now use Python lint, explicit-package preview and Git whitespace checks.
+
+## T016: portable instructions, docs and CI
+
+- README now explains installation, nine main command examples, preview/apply
+  distinctions and one workflow diagram, with reference detail under `docs/`.
+- All 14 prompt sources use current `agent: agent` frontmatter without model
+  pins. They route integer versions 1/2 through Python, preserve named v1
+  diagnostics, preview adoption for missing versions and stop invalid versions.
+  Retired command/TODO routes are gone; installed user prompts were not changed.
+- Prompt inheritance follows the [official VS Code contract](https://code.visualstudio.com/docs/agent-customization/prompt-files).
+  Scheduler profile/model preferences remain config-owned; the live-qualified
+  default reviewer stays Copilot Opus 4.8. Standalone Claude remains unqualified.
+- Focused prompt checks: Windows 13 tests, OK, two symlink-capability skips;
+  WSL 13 tests, OK, no skips. Reference check: 20 relative README/docs links
+  resolve, 11 README command examples parse, AGENTS is 99 lines/5,638 bytes.
+- The sole CI workflow is configured for Windows/macOS/Ubuntu and Python 3.10
+  plus current Python 3, running the full fixture suite, help and offline lint.
+  Branch inventory comes only from fetched remote refs, never invented owners.
+  It has read-only contents permission. No remote run or branch protection is
+  claimed, and no push occurred.
+
+## T017: final source validation
+
+The final source is frozen for full Windows/WSL suites and independent review.
+Results and the final reviewed revision follow after those checks finish.

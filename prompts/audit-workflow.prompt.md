@@ -1,52 +1,47 @@
 ---
-description: "Audit all workflow markdown files for consistency, staleness, and drift."
-mode: agent
-model: gpt-5.4
+description: "Audit workflow owners, prompts, and documentation for consistency and drift."
+agent: agent
 ---
 
 # Audit workflow files
 
-## Workflow mode
+## Workflow routing
 
-Read `.workflow-kit.json` as JSON and inspect `workflowModelVersion`. If `.workflow-kit.json` is missing or `workflowModelVersion` is absent,
-including when only `canonicalMirrorMode: external` is set, select legacy mode. Select spec-first mode only when `workflowModelVersion` is the JSON integer `1` or `2`;
-do not coerce strings or other values. Stop if the JSON is
-malformed, is not an object, or contains a present invalid or unsupported
-version. Do not infer the mode from root files or placeholders. Execute only the
-matching route below; versions 1 and 2 must not execute Legacy procedure.
+Read `.workflow-kit.json` as JSON before using the procedure below.
 
-## Version 1 route
+- JSON integer `2`: use the Python workflow procedure.
+- JSON integer `1`: use the same Python procedure and run
+  `wfk lint --repo . --json`; report its named ignored-v1-field diagnostics
+  and do not assume ignored scheduler or workflow fields are active.
+- Missing file or missing `workflowModelVersion`: run only the adoption preview
+  `wfk init --repo . --json`, report its manual checklist, and wait for
+  authorized adoption.
+- Malformed JSON, a non-object root, a non-integer version, or an unsupported
+  version: fail closed and report the configuration error.
 
-Audit `AGENTS.md`, `docs/specs.md`, package records, `README.md`, and prompt sources for owner and routing consistency. Do not inspect retired root workflow state. Route actionable findings to the relevant package owner and preserve unread inbox handoffs.
+Do not reconstruct retired commands or TODO scheduling. If old behavior is
+still required, use a separate kit checkout pinned to `v1-powershell`; the tag
+alone does not repoint a shared consumer.
 
-## Version 2 route
+## Procedure
 
-Read `AGENTS.md`, `docs/specs.md`, package owners and the version 2 config.
-Run the portable, offline check `wfk lint --repo . --json`, then compare owner
-routing, prompt sources and README against actual behavior. Mechanical lint
-does not establish prose freshness. Preserve inbox handoffs and report findings
-in the owning package; never recreate retired root workflow files. When saving
-a checkpoint review, follow `prompts/review.prompt.md`.
+Read `AGENTS.md`, `docs/specs.md`, the routed package's `spec.md`,
+`plan.md` and `tasks.md`, README, prompt sources and both inboxes. Preserve
+unread or unresolved inbox handoffs; do not drain them merely because they were
+seen.
 
-## Legacy procedure
+Run the portable, offline check:
 
-Check these files for consistency and staleness:
-
-1. **STATUS.md** - Does the current-state summary match reality? Are key file paths still accurate?
-2. **TODO.md** - Are completed items still in the active section? Should any be moved to HISTORY?
-3. **INBOX.md** - Is it empty? If not, triage items now.
-4. **AGENT-INBOX.md** - Is it empty? If not, triage machine notes now.
-5. **ROADMAP.md** - Does it still reflect the actual long-term direction?
-6. **HISTORY.md** - Is it under ~200 lines? If over, move older entries to `docs/archive/YYYY.md`.
-7. **docs/specs.md** - Are linked spec paths still valid?
-8. **README.md** - Does the workflow map match the actual file set and command list?
-9. **.github/copilot-instructions.md** - Is the documentation structure table accurate?
-10. **prompts/** - Are all prompt files listed in README.md and installable?
-
-If `workflow-kit.ps1` exists, run:
-
-```powershell
-pwsh -NoLogo -NoProfile -File ./workflow-kit.ps1 -Command lint -RepoRoot .
+```console
+wfk lint --repo . --json
 ```
 
-Report findings as a short checklist: ✅ for clean, ⚠️ for needs update, with a one-line explanation for each issue found. Fix any issues you find unless they require user input.
+Compare its mechanical result with the actual owner routing, package state,
+prompt commands and documented behavior. Lint does not prove prose freshness,
+reviewer identity or owner authorization. Do not inspect or recreate retired root
+workflow files.
+
+Report findings by severity with concrete paths. Route durable findings to the
+owning package. If the user requested a checkpoint review, follow
+`prompts/review.prompt.md`, save the findings file, and respect the two-round
+limit. Remain read-only unless the user asked for fixes.

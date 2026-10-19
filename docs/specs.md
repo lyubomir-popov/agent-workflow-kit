@@ -5,8 +5,7 @@ Its `spec.md` owns lifecycle/checkpoints; its `tasks.md` owns execution state.
 Catalog order is the resume pointer, not unattended-work authorization.
 This kit's configured target is `main`. Python creation prepares a resolvable
 draft ref, commits complete owners and registration on the configured target,
-then advances the package branch to that commit. Legacy creation registers the
-row first using its command-scoped registration check. A target
+then advances the package branch to that commit. A target
 session with only a cached remote ref reports "fetch the declared branch"; fetch
 and package-branch checkout remain operator steps. Missing refs are errors when
 the available inventory lacks the branch; uncached remote inventory is unknown.

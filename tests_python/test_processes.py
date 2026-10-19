@@ -7,7 +7,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, call, patch
 
 from wfk import processes
 
@@ -18,7 +18,7 @@ WORKER = Path(__file__).parent / 'fixtures' / 'process_worker.py'
 class ProcessTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='wfk processes spaces ')
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.log = self.root / 'logs with spaces' / 'worker.log'
         self.addCleanup(self.temp.cleanup)
 
@@ -100,6 +100,30 @@ class ProcessTests(unittest.TestCase):
         result = self.execute('exit-tree', str(pid_path), str(marker), grace=.1)
         self.assertEqual(result['returncode'], 0)
         self.assert_child_stopped(pid_path, marker)
+
+    def test_close_reaps_exited_group_leader_and_retries_permission_race(self):
+        process = processes._PosixProcess.__new__(processes._PosixProcess)
+        process.process = Mock()
+        process.process.pid = 1234
+        process.process.poll.side_effect = [None, -signal.SIGINT]
+        process.process.wait.return_value = -signal.SIGINT
+        with patch.object(signal, 'SIGKILL', 9, create=True), \
+                patch('wfk.processes._kill_group',
+                      side_effect=[PermissionError, None]) as kill_group:
+            self.assertEqual(process.close(), -signal.SIGINT)
+        self.assertEqual(kill_group.call_args_list,
+                         [call(1234, 9), call(1234, 9)])
+
+    def test_close_does_not_hide_permission_failure_for_live_group_leader(self):
+        process = processes._PosixProcess.__new__(processes._PosixProcess)
+        process.process = Mock()
+        process.process.pid = 1234
+        process.process.poll.return_value = None
+        with patch.object(signal, 'SIGKILL', 9, create=True), \
+                patch('wfk.processes._kill_group', side_effect=PermissionError):
+            with self.assertRaises(PermissionError):
+                process.close()
+        process.process.wait.assert_not_called()
 
     def test_keyboard_interrupt_cleans_tree_and_returns_interrupted(self):
         pid_path, marker = self.root / 'child.pid', self.root / 'leak'

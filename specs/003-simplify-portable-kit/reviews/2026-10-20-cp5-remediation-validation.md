@@ -50,5 +50,31 @@ CP5 remains uncleared. No third review starts automatically.
 
 ## Published CI evidence
 
-Pending the authorized package-branch push and actual six-job results.
+Pushed only `feat/003-simplify-portable-kit` at
+`0b0ec5d3038177e5020549efaaa530ec55b4e908`, using an explicit refspec,
+`--no-follow-tags`, no force and no submodule recursion.
+[Initial CI run](https://github.com/lyubomir-popov/agent-workflow-kit/actions/runs/39343581282)
+passed both Ubuntu jobs but exposed real macOS failures in both Python versions:
+nine failures and one error per job. Windows results were still pending when
+the follow-up was prepared. The initial failed run is retained as evidence.
+
+### CI-driven macOS repair
+
+- Existing assertions used macOS's `/var` temp alias while configuration, Git and
+  child processes report `/private/var`. Canonicalized fixture roots in config,
+  hooks, prompts and process tests. Product symlink refusal remains unchanged;
+  prompt fixtures now test a direct path rather than an accidental system alias.
+- The process close path signalled an unreaped session leader after interrupt.
+  It now polls/reaps before group kill and retries an `EPERM` race only after
+  confirming leader exit. A live leader or failed retry still raises; descendants
+  are still targeted even after normal parent exit. No permission failure is
+  silently ignored and unrelated process groups are never selected.
+- A bounded GPT-5.6 Sol implementation worker owned the process module/tests;
+  no independent review round was started. Its deterministic regression failed
+  before the repair; 13 Windows process tests then passed with one POSIX skip.
+- Root integration checked the diff and ran 41 config/hook/prompt tests: OK,
+  three Windows platform/capability skips, 45.471 seconds. WSL process/scheduler:
+  40 tests, OK, one Windows-only skip, 23.998 seconds. A new actual matrix run
+  verifies the follow-up below.
+
 No operating-system pass is inferred from configuration or a queued job.

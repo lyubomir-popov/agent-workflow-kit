@@ -44,7 +44,7 @@ class ConfigTests(unittest.TestCase):
 
     def test_user_roots_resolve_from_user_config(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
+            root = Path(folder).resolve()
             settings = root / 'config.json'
             settings.write_text(json.dumps({'repoRoots': ['projects'],
                                             'scratchRoots': ['scratch']}), encoding='utf-8')

@@ -76,7 +76,17 @@ class _PosixProcess:
     def close(self):
         # Do this even after the group leader exits: children may still own the
         # output file or continue modifying a worktree.
-        _kill_group(self.process.pid, signal.SIGKILL)
+        self.process.poll()  # Reap an already-exited leader before signalling its group.
+        try:
+            _kill_group(self.process.pid, signal.SIGKILL)
+        except PermissionError:
+            # Darwin can report EPERM when the session leader becomes a zombie
+            # between poll() and killpg(). Reaping it removes that group member;
+            # retry so surviving descendants are still killed. A live leader or
+            # a second EPERM remains an error rather than hiding failed cleanup.
+            if self.process.poll() is None:
+                raise
+            _kill_group(self.process.pid, signal.SIGKILL)
         return self.process.wait()
 
 

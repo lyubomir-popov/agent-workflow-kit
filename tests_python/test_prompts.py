@@ -11,7 +11,7 @@ class PromptInstallationTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
+        self.root = Path(self.temporary.name).resolve()
         self.destinations = [self.root / 'Code' / 'prompts',
                              self.root / 'Code - Insiders' / 'prompts']
         self.sources = sorted((Path(__file__).resolve().parents[1] / 'prompts').glob('*.prompt.md'))

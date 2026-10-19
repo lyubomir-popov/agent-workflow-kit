@@ -63,3 +63,29 @@ file, index, ref, configuration or hook was changed.
 The fallback tag alone cannot preserve execution at shared paths. Those eight
 consumers need a separate `v1-powershell` checkout plus repointed paths, or v2
 migration, under separate owner scope. Retirement here does not perform either.
+
+## T015: retirement and commit transition
+
+- Preserved annotated local tag `v1-powershell` at
+  `aa09890148e456f49d2fae5d2ad66df69d1de33c`, before config migration/deletion.
+  The tag contains the working v1 config, scripts, tests and legacy hook.
+- Test-first source-version checks: three tests/four expected failures before
+  compatibility and fail-closed source-config handling. Hook fixture: one
+  expected failure against the old PowerShell hook when that checker was absent.
+- Focused green: Windows 30 tests, OK, 27.169 seconds; WSL 30 tests, OK,
+  1.526 seconds. A valid real fixture commit proceeds; lint-invalid commit
+  refuses with unchanged HEAD and staged work preserved. Runtime scheduling
+  remains v2 strict even when lint recognizes a v1 package source.
+- Config v2 preserves target/file/host budgets and drops obsolete v1-only fields.
+  Root lint reports zero errors/17 historical compatibility/date-order warnings.
+- Invoked the tracked Python hook successfully in this checkout before deleting
+  the PowerShell checker. Under the owner's installation permission and required
+  hook transition, replaced only the byte-matching installed kit commit stub;
+  its original bytes remain in `.git/hooks/pre-commit.v1-powershell`.
+- Removed exactly 31 unchanged kit-owned legacy scripts/tests/launchers/CI files;
+  [manifest](evidence/2026-10-19-cp5-retirement.json) records every path. All were
+  compared with the fallback tag first. Vendor `.specify/` assets are unchanged.
+  No cleanup hook, consumer migration, push, merge or real cleanup occurred.
+- Commit lint now checks the working tree, not an isolated staged snapshot.
+  The retired checker's partial-staging guarantees are not claimed. AGENTS quick
+  checks now use Python lint, explicit-package preview and Git whitespace checks.

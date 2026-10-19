@@ -67,9 +67,9 @@ terminal/authentication procedures; [enforcement](docs/enforcement.md) names gap
 Run quick checks at session start/end, after scope changes, and before every
 commit (a few seconds):
 
-```powershell
-pwsh -NoLogo -NoProfile -File ./workflow-kit.ps1 -Command lint -RepoRoot . -Strict
-pwsh -NoLogo -NoProfile -File ./agent-loop.ps1 -DryRun -RepoRoot .
+```console
+python -m wfk lint --repo . --json
+python -m wfk run --repo . --package specs/003-simplify-portable-kit --json
 git diff --check; git diff --cached --check
 ```
 
@@ -77,9 +77,9 @@ Validate in proportion to the change:
 
 - Record-only commits (Markdown/package records, no code, config or CI): quick
   checks only. Never rerun the full suite to refresh evidence.
-- Code commits: add the test files covering the changed scripts, e.g.
-  `./tests/run-tests.ps1 -Path ./tests/Closeout.Tests.ps1`.
-- Checkpoint handoff: one full `./tests/run-tests.ps1` on the final code; also
+- Code commits: run focused Python tests for the behavior changed.
+- Checkpoint handoff: one full `python -m unittest discover -s tests_python -v`
+  on final code; also
   `git diff --check <review-base>..HEAD`, recording the base. CI repeats per push.
 
 Report pre-existing failures separately and preserve vendor assets outside scope.
@@ -95,4 +95,5 @@ Record results once in the package evidence summary, not per commit.
 - Instruction reminders are manual; report unsupported host enforcement honestly.
 
 Prompt procedures live in `prompts/`; model preferences have one owner:
-`agent-loop.ps1`'s `TierDispatchMap`. Installed prompts are separate user assets.
+`templates/scheduler-defaults.json` with explicit config overrides. Installed
+prompts are separate user assets.

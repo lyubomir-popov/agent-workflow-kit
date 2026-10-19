@@ -1,8 +1,6 @@
 {
-  "workflowModelVersion": 1,
+  "workflowModelVersion": 2,
   "targetBranch": "main",
-  "managedScratchRoot": "{temp}/agent-workflow-kit",
-  "disposablePatterns": ["node_modules/", ".venv/", ".pytest_cache/", "__pycache__/", "coverage/"],
   "autoLoadedFiles": [
     {"path": "AGENTS.md", "hosts": ["copilot-chat", "copilot-cli", "codex", "claude-code"], "lines": 100, "bytes": 12288, "loading": "full"},
     {"path": "CLAUDE.md", "hosts": ["claude-code", "copilot-chat"], "lines": 15, "bytes": 2048, "loading": "full"},
@@ -15,6 +13,5 @@
     {"host": "copilot-cli", "lines": 150, "bytes": 16384},
     {"host": "codex", "lines": 150, "bytes": 16384},
     {"host": "claude-code", "lines": 150, "bytes": 16384}
-  ],
-  "budgetExceptions": []
+  ]
 }

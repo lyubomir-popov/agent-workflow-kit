@@ -233,6 +233,66 @@ class WorkflowTests(unittest.TestCase):
         self.assertNotIn('autoLoadedFiles', warnings)
         self.assertNotIn('hostBudgets', warnings)
 
+    def test_v2_root_lints_declared_v1_branch_with_compatibility_warnings(self):
+        self.on_package()
+        self.write('.workflow-kit.json', json.dumps({'workflowModelVersion': 1,
+            'targetBranch': 'main', 'autoLoadedFiles': [], 'hostBudgets': []}))
+        self.edit('[decision](reviews/decision.md)',
+            '[one](reviews/decision.md); [two](reviews/decision.md); [three](reviews/decision.md)')
+        self.write('specs/001-test/reviews/2026-10-19-cp1-gpt-findings.md',
+            'Reviewer: GPT\nReviewed revision: fixture\nVerdict: changes\n\n'
+            '1. **Major**: historical finding was recorded after the linked decision.\n')
+        self.git('add', '.')
+        self.git('commit', '-m', 'legacy package evidence')
+        self.git('switch', 'main')
+
+        result = workflow.lint(self.repo)
+
+        warnings = '\n'.join(result['warnings'])
+        self.assertEqual(result['errors'], [])
+        self.assertIn('specs/001-test: CP1 must link its latest findings', warnings)
+        self.assertIn('specs/001-test CP1: checkpoint has more than latest two links', warnings)
+        scheduled = workflow.packages(self.repo)[0]
+        self.assertEqual(scheduled['version'], 2)
+        self.assertIsNotNone(workflow.gate_problem(scheduled, 'CP1'))
+
+    def test_v2_declared_branch_keeps_strict_lint_rules(self):
+        self.on_package()
+        self.edit('[decision](reviews/decision.md)',
+            '[one](reviews/decision.md); [two](reviews/decision.md); [three](reviews/decision.md)')
+        self.write('specs/001-test/reviews/2026-10-19-cp1-gpt-findings.md',
+            'Reviewer: GPT\nReviewed revision: fixture\nVerdict: changes\n\n'
+            '1. **Major**: current-model finding must be linked.\n')
+        self.git('add', '.')
+        self.git('commit', '-m', 'current package evidence')
+        self.git('switch', 'main')
+
+        errors = '\n'.join(workflow.lint(self.repo)['errors'])
+
+        self.assertIn('specs/001-test: CP1 must link its latest findings', errors)
+        self.assertIn('specs/001-test CP1: checkpoint has more than latest two links', errors)
+
+    def test_declared_branch_config_must_exist_and_be_valid(self):
+        cases = (
+            ('missing-config', None, 'Missing workflow config'),
+            ('missing-version', '{}', 'Missing workflowModelVersion'),
+            ('malformed', '{', 'Cannot read workflow config'),
+            ('unsupported', '{"workflowModelVersion": 3}', 'Unsupported workflowModelVersion'),
+        )
+        for label, content, expected in cases:
+            with self.subTest(label=label):
+                self.on_package()
+                path = self.repo / '.workflow-kit.json'
+                if content is None:
+                    path.unlink()
+                else:
+                    path.write_text(content, encoding='utf-8')
+                self.git('add', '-A')
+                self.git('commit', '-m', f'{label} source config')
+                self.git('switch', 'main')
+                errors = '\n'.join(workflow.lint(self.repo)['errors'])
+                self.assertIn(expected, errors)
+
     def test_mixed_case_or_malformed_gate_never_falls_back_to_entry(self):
         self.on_package()
         self.edit('- [ ] T001', '- [x] T001', 'specs/001-test/tasks.md')

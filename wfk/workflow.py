@@ -1,5 +1,6 @@
 """Offline catalog, package and gate owners; no vendor-content inspection."""
 
+import json
 import re
 from pathlib import Path, PurePosixPath
 from urllib.parse import unquote
@@ -191,6 +192,37 @@ def _settings(repo):
     return settings
 
 
+def _source_version(repo, source, ref):
+    """Read an explicit model version from the package's selected branch source."""
+    if source is not None:
+        path = Path(source) / '.workflow-kit.json'
+        if not path.is_file():
+            raise ValueError(f'Missing workflow config in declared branch source: {path}')
+        location = str(path)
+        try:
+            text = path.read_text(encoding='utf-8-sig')
+        except (OSError, UnicodeError) as exc:
+            raise ValueError(f'Cannot read workflow config {location}: {exc}') from exc
+    else:
+        location = f'{ref}:.workflow-kit.json'
+        result = git(repo, 'show', location, check=False)
+        if result.returncode != 0:
+            raise ValueError(f'Missing workflow config in declared branch source: {location}')
+        text = result.stdout.lstrip('\ufeff')
+    try:
+        settings = json.loads(text)
+    except (ValueError, UnicodeError) as exc:
+        raise ValueError(f'Cannot read workflow config {location}: {exc}') from exc
+    if not isinstance(settings, dict):
+        raise ValueError(f'Workflow config must be an object: {location}')
+    if 'workflowModelVersion' not in settings:
+        raise ValueError(f'Missing workflowModelVersion in declared branch config: {location}')
+    version = settings['workflowModelVersion']
+    if type(version) is not int or version not in (1, 2):
+        raise ValueError(f'Unsupported workflowModelVersion in {location}: {version}')
+    return version
+
+
 def packages(repo):
     repo = repo_root(repo)
     version = _settings(repo)['workflowModelVersion']
@@ -380,11 +412,11 @@ def lint(repo):
         try:
             source, ref = _source(repo, row)
             package = _parse(dict(row, repo=repo, source=source, ref=ref,
-                                  version=settings.get('workflowModelVersion', 2)))
+                                  version=_source_version(repo, source, ref)))
             for gate, checkpoint in package['checkpoints'].items():
                 latest_problem = _latest_findings_problem(package, gate, checkpoint)
                 if latest_problem:
-                    target = warnings if settings.get('workflowModelVersion') == 1 else errors
+                    target = warnings if package['version'] == 1 else errors
                     target.append(f"{row['package']}: {latest_problem}")
                 dated_findings = [name[:10] for name in _review_files(package)
                     if re.match(r'^\d{4}-\d{2}-\d{2}-' + re.escape(gate) +
@@ -393,7 +425,7 @@ def lint(repo):
                     warnings.append(f"{row['package']} {gate}: same-date findings order is ambiguous; "
                                     'owner must select the latest record explicitly')
                 if len(checkpoint['links']) > 2:
-                    target = warnings if settings.get('workflowModelVersion') == 1 else errors
+                    target = warnings if package['version'] == 1 else errors
                     target.append(f"{row['package']} {gate}: checkpoint has more than latest two links")
                 for link in checkpoint['links']:
                     _linked_review(package, link)
@@ -417,7 +449,7 @@ def lint(repo):
                             if not re.match(r'\W*(blocker|major|minor)\b', finding, re.I):
                                 problems.append('Finding missing blocker/major/minor severity')
                     for problem in problems:
-                        target = errors if is_findings or settings.get('workflowModelVersion') != 1 else warnings
+                        target = errors if is_findings or package['version'] != 1 else warnings
                         target.append(f"{row['package']}/reviews/{name}: {problem}")
             items.append(dict(package=row['package'], branch=row['branch'],
                               lifecycle=package['lifecycle'], action='checked'))

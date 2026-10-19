@@ -1,7 +1,7 @@
 # CP5 consumer inventory before PowerShell retirement
 
-Date: 2026-10-19  
-Scope: read-only inventory under `H:\WSL_dev_projects` before T015  
+Date: 2026-10-19
+Scope: read-only inventory under `H:\WSL_dev_projects` before T015
 Search terms: `agent-loop.ps1`, `workflow-kit.ps1`, legacy `bin/agent-loop`,
 `bin/workflow-kit`, `bin/install-vscode-prompts` launchers, and
 `canonicalMirrorMode`

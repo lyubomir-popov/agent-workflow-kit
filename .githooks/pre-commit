@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
 repo=$(git rev-parse --show-toplevel)
-exec pwsh -NoLogo -NoProfile -File "$repo/workflow-hook.ps1" -RepoRoot "$repo"
+exec "$repo/bin/wfk" lint --repo "$repo"

@@ -1,10 +1,10 @@
 # Current work
 
-**Next tasks**: T029, T030, T015, T016, T017 (slice D) per the [slice D handover](reviews/2026-10-19-slice-d-handover.md).
-**Blockers**: none; stop at CP5.
+**Next tasks**: T030, consumer inventory, T015, T016, T017 per the [slice D handover](reviews/2026-10-19-slice-d-handover.md); T029's code and local full suites pass.
+**Blockers**: macOS execution evidence remains pending for T029/final acceptance; stop at CP5.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
-**Validation**: [CP4 remediation evidence](reviews/2026-10-19-cp4-remediation-validation.md).
+**Validation**: [slice D evidence](reviews/2026-10-19-cp5-validation.md).
 
 ## Planning
 
@@ -54,19 +54,18 @@
 
 ## Slice D: retirement and docs
 
-- [ ] T015 [S] Tag the last PowerShell revision locally, remove legacy tooling/tests/checker and migrate config (FR-040-041) (gate: CP4).
 - [ ] T029 [S] Fix both Linux parent-file collisions in init and prompt installation; pass their regression tests and the full three-OS Python suite before CP5 (Opus finding 3) (gate: CP4).
 - [ ] T030 [S] Make the default reviewer Copilot running a Claude Opus model; qualify one review phase in a scratch repo; document the claude adapter as unqualified (gate: CP4).
+- [ ] T015 [S] After the read-only consumer inventory, tag the last PowerShell revision locally, remove legacy tooling/tests/checker and migrate config (FR-040-041) (gate: CP4).
 - [ ] T016 [S] Finish three-OS Python CI/lint and rewrite human README/reference docs (FR-042-043) (gate: CP4).
 - [ ] T017 [H] Validate the full replacement and save CP5 review request; stop (gate: CP4).
 
 ## Known limits
 
-- Full WSL discovery has two pre-existing `NotADirectoryError` failures in init
-  and prompt installation when a destination parent is a file. Both reproduce
-  on CP3 commit `9a3e38a`; all 85 slice C WSL tests pass. These remain open for
-  T029 and T016's final portability validation after CP4, subject to the owner's CP4
-  decision; full Linux readiness is not claimed. See CP4 validation.
+- T029's two parent-file collisions are fixed with byte-preservation regressions.
+  Full Windows and WSL suites pass (221 tests each). T029 remains open only for
+  its macOS execution requirement: no macOS runner is available locally, and
+  an unexecuted CI definition is not a passing three-OS run. See slice D evidence.
 
 - CP4 remediation initially allowed one bounded scratch attempt per provider.
   Copilot completed a committed task; Codex initially rejected the Copilot alias.

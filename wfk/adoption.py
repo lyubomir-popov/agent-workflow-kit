@@ -25,12 +25,13 @@ def _safe_destination(repo, relative):
             break
         try:
             attributes = getattr(part.lstat(), 'st_file_attributes', 0)
-        except FileNotFoundError:
+        except (FileNotFoundError, NotADirectoryError):
             attributes = 0
         if part.is_symlink() or attributes & getattr(stat, 'FILE_ATTRIBUTE_REPARSE_POINT', 0):
             raise ValueError(f'Unsafe symlink destination: {relative}')
         if part != path and part.exists() and not part.is_dir():
-            raise ValueError(f'Unsafe parent file collision: {relative}')
+            raise ValueError(
+                f'Manual resolution required for unsafe parent file collision: {relative}')
     if not path.resolve().is_relative_to(repo):
         raise ValueError(f'Unsafe destination outside repository: {relative}')
     return path

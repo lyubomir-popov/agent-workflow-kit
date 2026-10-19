@@ -67,11 +67,15 @@ class PromptInstallationTests(unittest.TestCase):
 
     def test_parent_file_collision_does_not_create_or_rewrite_anything(self):
         parent = self.root / 'Code'
-        parent.write_text('keep', encoding='utf-8')
+        original = b'owner parent file\r\n\x00\xff'
+        parent.write_bytes(original)
         result = prompts.install(apply=True, destinations=[self.destinations[0]])
         self.assertTrue(all(item['action'] == 'kept' for item in result['items']))
-        self.assertTrue(result['checklist'])
-        self.assertEqual(parent.read_text(encoding='utf-8'), 'keep')
+        self.assertTrue(all(str(parent) in warning and 'collision' in warning
+                            for warning in result['warnings']))
+        self.assertTrue(all('Manually' in item and str(parent) in item
+                            for item in result['checklist']))
+        self.assertEqual(parent.read_bytes(), original)
 
     def test_linked_parent_is_preserved_instead_of_followed(self):
         destination = self.destinations[0]

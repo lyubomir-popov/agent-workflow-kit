@@ -216,6 +216,34 @@ regressions and do not silently run an additional live task or select a new mode
 
 ## Slice D: retirement and documentation (after owner clears CP4)
 
+The [slice D handover](reviews/2026-10-19-slice-d-handover.md) now authorizes
+this phase and owns its order: T029, T030, read-only consumer inventory, T015,
+T016, T017. Keep Python parent-file collisions nonfatal without overwriting
+the blocking file. Run full Windows and WSL suites before proceeding to T030.
+
+Use a named `copilot-opus` profile for the default reviewer. It shares the
+installed Copilot adapter/authentication path, takes its model from a single
+profile tier map and never changes the implementing Copilot tier preferences.
+Confirm the available Claude Opus model from the installed CLI before the one
+authorized scratch review phase. Use a fake prerequisite task so this scope
+starts no extra real implementing worker. Preserve the findings, actual model
+evidence, process logs and unchanged primary checkout. Claude Code remains
+unqualified; no installation is necessary for this chosen review route.
+
+Inventory consumer references read-only before retirement. Preserve the final
+PowerShell revision under the local `v1-powershell` tag. Replace the tracked
+commit-hook entry with portable Python lint and verify it before deletion;
+do not install cleanup hooks or alter other repositories. Retire only kit-owned
+PowerShell sources/tests/launchers, keeping vendor Spec Kit assets intact.
+Migrate this repo to v2 with explicit compatibility treatment of older package
+records; do not rewrite accepted Spec 001 evidence to satisfy new lint rules.
+
+After retirement use Python lint, an explicit-package scheduler preview and
+Git whitespace checks for quick validation. Local Windows/WSL executions can
+prove those platforms; macOS CI results require a later authorized push and
+must never be claimed from the workflow definition alone. Save any such limit
+at CP5 while completing all locally authorized implementation and checks.
+
 Tag the last PowerShell revision locally, retire old code/tests and staged
 checker, migrate this config to v2, rewrite human-facing README with a workflow
 diagram and move reference material to docs. Run Python tests and Python lint

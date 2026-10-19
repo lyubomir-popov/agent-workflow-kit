@@ -199,11 +199,14 @@ class AdoptionFixtures(unittest.TestCase):
         self.assertFalse((self.repo / '.workflow-kit.json').exists())
 
     def test_init_checks_parent_file_collisions_before_any_write(self):
-        (self.repo / 'docs').write_text('owner file\n')
-        with self.assertRaisesRegex(ValueError, 'unsafe|Unsafe|collision'):
+        parent = self.repo / 'docs'
+        original = b'owner parent file\r\n\x00\xff'
+        parent.write_bytes(original)
+        with self.assertRaisesRegex(
+                ValueError, r'Manual resolution required.*parent file collision.*docs/specs\.md'):
             adoption.initialize(self.repo, apply=True)
         self.assertFalse((self.repo / '.workflow-kit.json').exists())
-        self.assertEqual((self.repo / 'docs').read_text(), 'owner file\n')
+        self.assertEqual(parent.read_bytes(), original)
 
     def test_new_preview_does_not_mutate_refs_or_files(self):
         self.initialize()

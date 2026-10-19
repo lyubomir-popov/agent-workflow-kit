@@ -272,6 +272,49 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn('specs/001-test: CP1 must link its latest findings', errors)
         self.assertIn('specs/001-test CP1: checkpoint has more than latest two links', errors)
 
+    def archive_legacy_package(self):
+        catalog = self.repo / 'docs/specs.md'
+        catalog.write_text(catalog.read_text().replace(
+            '| Test |', '## Archive\n\n| Spec | Package | Branch |\n|---|---|---|\n| Test |'),
+            encoding='utf-8')
+        self.edit('**Lifecycle**: active',
+                  '**Lifecycle**: superseded\n**Review format version**: 1')
+        self.edit('[decision](reviews/decision.md)',
+            '[one](reviews/decision.md); [two](reviews/decision.md); [three](reviews/decision.md)')
+        self.edit('**Verdict**: accept', '**Verdict**: accept (historical)',
+                  'specs/001-test/reviews/decision.md')
+        self.git('branch', '-D', 'feat/001-test')
+
+    def test_archived_v1_evidence_is_preserved_without_branch_or_execution(self):
+        self.archive_legacy_package()
+        evidence = self.repo / 'specs/001-test/reviews/decision.md'
+        before = evidence.read_bytes()
+        result = workflow.lint(self.repo)
+        self.assertEqual(result['errors'], [])
+        self.assertIn('Invalid Verdict', '\n'.join(result['warnings']))
+        self.assertIn('checkpoint has more than latest two links', '\n'.join(result['warnings']))
+        self.assertEqual(evidence.read_bytes(), before)
+        package = workflow.packages(self.repo)[0]
+        self.assertEqual(package['version'], 2)
+        with self.assertRaisesRegex(ValueError, 'superseded'):
+            workflow.next_task(package)
+
+    def test_archive_format_cannot_relax_active_or_new_findings(self):
+        self.on_package()
+        self.edit('**Lifecycle**: active',
+                  '**Lifecycle**: active\n**Review format version**: 1')
+        self.assertIn('terminal archive', self.errors())
+        self.edit('\n**Review format version**: 1', '')
+        self.git('switch', 'main')
+        self.archive_legacy_package()
+        self.write('specs/001-test/reviews/2026-10-20-cp2-test-findings.md',
+                   'Reviewer: GPT\nReviewed revision: fixture\nVerdict: invalid\n\n1. No severity\n')
+        errors = self.errors()
+        self.assertIn('Invalid Verdict', errors)
+        self.assertIn('severity', errors)
+        self.edit('**Review format version**: 1', '**Review format version**: 3')
+        self.assertIn('Invalid Review format version', self.errors())
+
     def test_declared_branch_config_must_exist_and_be_valid(self):
         cases = (
             ('missing-config', None, 'Missing workflow config'),

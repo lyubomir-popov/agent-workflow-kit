@@ -2,9 +2,10 @@
 
 **Feature branch**: `feat/001-spec-first-workflow`
 **Created**: 2026-10-10
-**Lifecycle**: active
-**Scope**: `001/spec-r2`; supersedes `001/spec-r1` (`059405a`)
-**Superseded tasks**: none.
+**Lifecycle**: superseded
+**Review format version**: 1
+**Scope**: `001/spec-r2`; supersedes `001/spec-r1` (`059405a`); superseded by `003/spec-r1` under the [CP5 owner decision](../003-simplify-portable-kit/reviews/2026-10-20-cp5-owner-decision.md)
+**Superseded tasks**: `T059`, `T060`; retained in `tasks.md` as unfinished history.
 
 <a id="checkpoints"></a>
 **Checkpoints**:

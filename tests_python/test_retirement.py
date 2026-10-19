@@ -12,6 +12,25 @@ import unittest
 KIT = Path(__file__).resolve().parents[1]
 
 
+class VendorAssetTests(unittest.TestCase):
+    def test_spec_kit_assets_do_not_reference_retired_kit_scripts(self):
+        retired = (
+            'agent-loop.ps1', 'install-vscode-prompts.ps1',
+            'workflow-checks.ps1', 'workflow-closeout.ps1', 'workflow-hook.ps1',
+            'workflow-kit.ps1', 'workflow-migration.ps1', 'workflow-model.ps1',
+            'workflow-preservation.ps1', 'workflow-scheduler.ps1',
+            'bin/agent-loop', 'bin/workflow-kit', 'bin/install-vscode-prompts',
+        )
+        references = []
+        for path in (KIT / '.specify').rglob('*'):
+            if path.is_file():
+                content = path.read_bytes().decode('utf-8', errors='replace')
+                content = content.replace('\\', '/').lower()
+                references.extend(f'{path.relative_to(KIT)}: {name}'
+                                  for name in retired if name in content)
+        self.assertEqual(references, [], '\n'.join(references))
+
+
 class RetirementTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='wfk retirement ')
@@ -51,6 +70,33 @@ class RetirementTests(unittest.TestCase):
     def git(self, *args, check=True):
         return subprocess.run(['git', '-C', str(self.repo), *args], env=self.env,
                               capture_output=True, text=True, check=check)
+
+    @unittest.skipUnless(shutil.which('pwsh'), 'vendor scripts require PowerShell 7')
+    def test_vendor_prerequisites_resolve_cursor_without_retired_kit(self):
+        self.git('checkout', '-b', 'feat/003-vendor-fixture')
+        scripts = self.repo / '.specify/scripts/powershell'
+        shutil.copytree(KIT / '.specify/scripts/powershell', scripts)
+        feature = self.repo / 'specs/003-vendor-fixture'
+        feature.mkdir(parents=True)
+        for name in ('spec.md', 'plan.md', 'tasks.md'):
+            (feature / name).write_text('# Fixture\n', encoding='utf-8')
+        (self.repo / '.specify/feature.json').write_text(json.dumps({
+            'feature_directory': 'specs/003-vendor-fixture',
+        }), encoding='utf-8')
+        env = self.env.copy()
+        env.pop('SPECIFY_FEATURE', None)
+        env.pop('SPECIFY_FEATURE_DIRECTORY', None)
+        command = [shutil.which('pwsh'), '-NoProfile', '-File',
+                   str(scripts / 'check-prerequisites.ps1'), '-Json']
+        for flags in (['-PathsOnly'], ['-RequireTasks', '-IncludeTasks']):
+            with self.subTest(flags=flags):
+                result = subprocess.run(command + flags, cwd=self.repo, env=env,
+                                        capture_output=True, text=True, timeout=30)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                data = json.loads(result.stdout)
+                self.assertEqual(Path(data['FEATURE_DIR']).resolve(), feature.resolve())
+                if '-RequireTasks' in flags:
+                    self.assertIn('tasks.md', data['AVAILABLE_DOCS'])
 
     def test_tracked_hook_allows_clean_lint_and_refuses_lint_error(self):
         tracked = (KIT / '.githooks/pre-commit').read_text(encoding='utf-8')

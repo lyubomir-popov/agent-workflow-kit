@@ -84,33 +84,6 @@ function Get-HighestNumberFromNames {
     return $highest
 }
 
-# All retained package identities and locally known refs reserve their numbers.
-# This deliberately performs no fetch or remote query, including during dry run.
-function Get-WorkflowReservedFeatureNumbers {
-    param([string]$RepoRoot)
-    $names = @()
-    $specs = Join-Path $RepoRoot 'specs'
-    if (Test-Path -LiteralPath $specs -PathType Container) {
-        $names += @(Get-ChildItem -LiteralPath $specs -Directory | ForEach-Object Name)
-    }
-    foreach ($entry in @(Get-WorkflowCatalog -RepoRoot $RepoRoot)) { $names += "$($entry.Id)-reserved" }
-    $refs = @(git -C $RepoRoot for-each-ref '--format=%(refname)' 2>$null)
-    if ($LASTEXITCODE -ne 0) { throw 'specify-numbering: cannot enumerate local Git refs.' }
-    $names += $refs
-    $numbers = @()
-    foreach ($name in $names) {
-        foreach ($segment in ($name -split '/')) {
-            if ($segment -match '^\d{8}-\d{6}-') { continue }
-            $match = [regex]::Match($segment, '^(\d{3,})-')
-            if (-not $match.Success) { continue }
-            [long]$value = 0
-            if (-not [long]::TryParse($match.Groups[1].Value, [ref]$value)) { throw "specify-numbering: identity is outside the supported range: $name" }
-            $numbers += $value
-        }
-    }
-    return @($numbers | Sort-Object -Unique)
-}
-
 function Get-HighestNumberFromBranches {
     param()
 
@@ -199,53 +172,10 @@ $repoRoot = Get-RepoRoot
 # Check if git is available at this repo root (not a parent)
 $hasGit = Test-HasGit
 
-$workflowConfig = Get-SpecKitWorkflowConfig -RepoRoot $repoRoot
-if ($workflowConfig) {
-    . (Join-Path $repoRoot 'workflow-model.ps1')
-    if (-not $hasGit) { throw 'specify-workflow: versioned repositories require Git.' }
-    if ($AllowExistingBranch) { throw 'specify-numbering: AllowExistingBranch cannot reuse a reserved package identity.' }
-    if ($Timestamp) { throw 'specify-numbering: versioned catalogs require sequential package identities; Timestamp is unsupported.' }
-    if ($Number -lt 0) { throw 'specify-numbering: Number must be positive, or zero for automatic allocation.' }
-    git -C $repoRoot show-ref --verify --quiet "refs/heads/$($workflowConfig.targetBranch)"
-    if ($LASTEXITCODE -ne 0) { throw "specify-workflow: configured local target branch '$($workflowConfig.targetBranch)' does not exist." }
-    $reservedNumbers = @(Get-WorkflowReservedFeatureNumbers -RepoRoot $repoRoot)
-    if ($Number -gt 0 -and $Number -in $reservedNumbers) { throw "specify-numbering: package number $Number is already reserved." }
-}
-
 Set-Location $repoRoot
 
-function Add-WorkflowCatalogPackage {
-    param([string]$RepoRoot, [string]$Id, [string]$Branch)
-    $catalogPath=Resolve-WorkflowRelativePath $RepoRoot 'docs/specs.md'
-    $lines=[Collections.Generic.List[string]]::new()
-    foreach ($line in ([IO.File]::ReadAllText($catalogPath) -split "`r?`n")) { $lines.Add($line) }
-    $inCurrent=$false; $headerIndex=-1; $columns=@()
-    for ($index=0; $index -lt $lines.Count; $index++) {
-        if ($lines[$index] -match '^## (.+)$') { $inCurrent=$Matches[1] -eq 'Current packages' }
-        if (-not $inCurrent -or $lines[$index] -notmatch '^\|') { continue }
-        $cells=@($lines[$index].Trim().Trim('|').Split('|') | ForEach-Object { $_.Trim() })
-        if ($cells -contains 'Spec' -and $cells -contains 'Package' -and $cells -contains 'Branch') {
-            $headerIndex=$index; $columns=$cells; break
-        }
-    }
-    if ($headerIndex -lt 0 -or $lines[$headerIndex+1] -notmatch '^\|[- :|]+\|$') { throw 'specify-workflow: Current packages needs a catalog table before creation.' }
-    $row=foreach ($column in $columns) {
-        switch ($column) {
-            'Spec' { $Id }
-            'Package' { "[$Branch](../specs/$Branch/spec.md)" }
-            'Branch' { '`'+$Branch+'`' }
-            'Lifecycle' { 'draft' }
-            default { '' }
-        }
-    }
-    $insertAt=$headerIndex+2
-    while ($insertAt -lt $lines.Count -and $lines[$insertAt] -match '^\|') { $insertAt++ }
-    $lines.Insert($insertAt,'| '+($row -join ' | ')+' |')
-    [IO.File]::WriteAllText($catalogPath,($lines -join "`n"),[Text.UTF8Encoding]::new($false))
-}
-
 $specsDir = Join-Path $repoRoot 'specs'
-if (-not $DryRun -and -not $workflowConfig) {
+if (-not $DryRun) {
     New-Item -ItemType Directory -Path $specsDir -Force | Out-Null
 }
 
@@ -316,11 +246,7 @@ if ($Timestamp) {
 } else {
     # Determine branch number
     if ($Number -eq 0) {
-        if ($workflowConfig) {
-            $highestReserved = if ($reservedNumbers.Count) { $reservedNumbers[-1] } else { 0 }
-            if ($highestReserved -eq [long]::MaxValue) { throw 'specify-numbering: sequential identity range is exhausted.' }
-            $Number = $highestReserved + 1
-        } elseif ($DryRun -and $hasGit) {
+        if ($DryRun -and $hasGit) {
             # Dry-run: query remotes via ls-remote (side-effect-free, no fetch)
             $Number = Get-NextBranchNumber -SpecsDir $specsDir -SkipFetch
         } elseif ($DryRun) {
@@ -364,47 +290,12 @@ if ($branchName.Length -gt $maxBranchLength) {
 $featureDir = Join-Path $specsDir $branchName
 $specFile = Join-Path $featureDir 'spec.md'
 
-$originalBranch=$null; $originalHead=$null
-if ($workflowConfig -and -not $DryRun) {
-    $originalBranch=Get-WorkflowBranch $repoRoot
-    $originalHead=[string](git -C $repoRoot rev-parse HEAD)
-    if ($LASTEXITCODE) { throw 'specify-incomplete: cannot record the original checkout.' }
-}
-try {
 if (-not $DryRun) {
-    if ($workflowConfig) {
-        $target=$workflowConfig.targetBranch
-        $status=@(git -C $repoRoot status --porcelain)
-        if ($LASTEXITCODE -or $status.Count) { throw 'specify-incomplete: creation requires a clean checkout before switching to the configured target.' }
-        $checkoutOutput=git -C $repoRoot checkout -q $target 2>&1 | Out-String
-        if ($LASTEXITCODE -or (Get-WorkflowBranch $repoRoot) -ne $target) { throw "specify-incomplete: cannot switch to configured target '$target'. $($checkoutOutput.Trim())" }
-        $status=@(git -C $repoRoot status --porcelain)
-        if ($LASTEXITCODE -or $status.Count) { throw 'specify-incomplete: configured target checkout is dirty; catalog registration stopped.' }
-        $targetConfig=Get-WorkflowConfig $repoRoot
-        if (-not $targetConfig -or $targetConfig.targetBranch -ne $target) { throw 'specify-incomplete: configured target must contain the matching versioned workflow config.' }
-        $template=Resolve-Template -TemplateName 'spec-template' -RepoRoot $repoRoot
-        $overridePath=Join-Path $repoRoot '.specify/templates/overrides/spec-template.md'
-        if (-not $template -or -not (Test-Path -LiteralPath $template -PathType Leaf) -or [IO.Path]::GetFullPath($template) -ne [IO.Path]::GetFullPath($overridePath)) {
-            throw 'specify-incomplete: restore the project spec override template before registration.'
-        }
-        if (@(Get-WorkflowCatalog $repoRoot | Where-Object Id -eq $featureNum).Count) { throw "specify-incomplete: package $featureNum is already registered on the target." }
-        Add-WorkflowCatalogPackage -RepoRoot $repoRoot -Id $featureNum -Branch $branchName
-        git -C $repoRoot add -- docs/specs.md
-        if ($LASTEXITCODE) { throw 'specify-incomplete: cannot stage catalog registration; preserve the target checkout for recovery.' }
-        $registrationOutput=git -c "workflow-kit.registeringBranch=$branchName" -C $repoRoot commit --quiet -m "specs: register draft package $featureNum" 2>&1 | Out-String
-        if ($LASTEXITCODE) { throw "specify-incomplete: catalog registration commit failed; preserve the target checkout for recovery. $($registrationOutput.Trim())" }
-        # The row is now durable on the target even if feature checkout later fails.
-        # Never push or rewind registration as part of creation.
-    }
     if ($hasGit) {
         $branchCreated = $false
         $branchCreateError = ''
         try {
-            $branchCreateError = if ($workflowConfig) {
-                git checkout -q -b $branchName $workflowConfig.targetBranch 2>&1 | Out-String
-            } else {
-                git checkout -q -b $branchName 2>&1 | Out-String
-            }
+            $branchCreateError = git checkout -q -b $branchName 2>&1 | Out-String
             if ($LASTEXITCODE -eq 0) {
                 $branchCreated = $true
             }
@@ -413,9 +304,6 @@ if (-not $DryRun) {
         }
 
         if (-not $branchCreated) {
-            if ($workflowConfig) {
-                throw "specify-incomplete: failed to create branch '$branchName' from '$($workflowConfig.targetBranch)'; target catalog registration is retained. $($branchCreateError.Trim())"
-            }
             $currentBranch = ''
             try { $currentBranch = (git rev-parse --abbrev-ref HEAD 2>$null).Trim() } catch {}
             # Check if branch already exists
@@ -464,49 +352,15 @@ if (-not $DryRun) {
         if ($template -and (Test-Path $template)) {
             # Read the template content and write it to the spec file with UTF-8 encoding without BOM
             $content = [System.IO.File]::ReadAllText($template)
-            if ($workflowConfig) {
-                $overridePath=Join-Path $repoRoot '.specify/templates/overrides/spec-template.md'
-                if ([IO.Path]::GetFullPath($template) -ne [IO.Path]::GetFullPath($overridePath)) { throw 'specify-workflow: versioned creation requires the project spec override template.' }
-                $intent=$featureDesc -replace '[\r\n]+',' '
-                $content=$content.Replace('[DECLARED CATALOG BRANCH]',$branchName).Replace('[PACKAGE ID]',$featureNum).Replace('[FEATURE NAME]',$intent).Replace('[DATE]',(Get-Date -Format 'yyyy-MM-dd')).Replace('[OWNER INTENT]',$intent)
-            }
             $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
             [System.IO.File]::WriteAllText($specFile, $content, $utf8NoBom)
         } else {
-            if ($workflowConfig) { throw 'specify-workflow: restore the project spec override template before creation.' }
             New-Item -ItemType File -Path $specFile -Force | Out-Null
         }
     }
 
     # Set the SPECIFY_FEATURE environment variable for the current session
-    if (-not $workflowConfig) { $env:SPECIFY_FEATURE = $branchName }
-}
-} catch {
-    $creationFailure=$_
-    if ($originalBranch) {
-        try {
-            $currentBranch=Get-WorkflowBranch $repoRoot
-            $restoreNeeded=$currentBranch -ne $originalBranch
-            if ($originalBranch -eq 'HEAD') {
-                $restoreNeeded=$restoreNeeded -or ([string](git -C $repoRoot rev-parse HEAD)) -ne $originalHead
-            }
-            if ($restoreNeeded) {
-                $restoreOutput=if ($originalBranch -eq 'HEAD') {
-                    git -C $repoRoot checkout --quiet --detach $originalHead 2>&1 | Out-String
-                } else { git -C $repoRoot checkout --quiet $originalBranch 2>&1 | Out-String }
-                if ($LASTEXITCODE -or (Get-WorkflowBranch $repoRoot) -ne $originalBranch -or
-                    ($originalBranch -eq 'HEAD' -and ([string](git -C $repoRoot rev-parse HEAD)) -ne $originalHead)) {
-                    throw "checkout-incomplete: cannot restore original $originalBranch at $repoRoot. $($restoreOutput.Trim())"
-                }
-                Write-Warning "Restored original checkout: $originalBranch. Registration and partial artifacts are retained for recovery."
-            }
-        } catch {
-            throw [InvalidOperationException]::new(
-                "specify-incomplete: $($creationFailure.Exception.Message); restoration-incomplete: $($_.Exception.Message)",
-                [AggregateException]::new([Exception[]]@($creationFailure.Exception,$_.Exception)))
-        }
-    }
-    throw $creationFailure
+    $env:SPECIFY_FEATURE = $branchName
 }
 
 if ($Json) {
@@ -525,7 +379,7 @@ if ($Json) {
     Write-Output "SPEC_FILE: $specFile"
     Write-Output "FEATURE_NUM: $featureNum"
     Write-Output "HAS_GIT: $hasGit"
-    if (-not $DryRun -and -not $workflowConfig) {
+    if (-not $DryRun) {
         Write-Output "SPECIFY_FEATURE environment variable set to: $branchName"
     }
 }

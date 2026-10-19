@@ -1,5 +1,10 @@
 # Slice D validation
 
+Historical source evidence below predates the Opus round-2 findings. See the
+[2026-10-20 remediation](2026-10-20-cp5-remediation-validation.md) for restored
+vendor provenance, Spec 001 retirement and authorized CI execution. An unchanged
+vendor diff did not prove that earlier kit customizations had been removed.
+
 Authority: [CP4 clearance](2026-10-19-cp4-owner-clearance.md) and
 [ordered handover](2026-10-19-slice-d-handover.md).
 Review base: `2a38c29`.

@@ -233,6 +233,19 @@ def packages(repo):
     return result
 
 
+def _lint_review_version(package):
+    """An explicit terminal archive format preserves pre-migration evidence only."""
+    header = re.split(r'(?m)^## ', read(package, 'spec.md'), maxsplit=1)[0]
+    if not re.search(r'(?m)^\*\*Review format version\*\*:', header):
+        return package['version']
+    if not package['archive'] or package['lifecycle'] not in ('delivered', 'closed', 'superseded'):
+        raise ValueError('Review format version is allowed only for a terminal archive')
+    version = _field(header, 'Review format version')
+    if version not in ('1', '2'):
+        raise ValueError(f'Invalid Review format version: {version}')
+    return int(version)
+
+
 def _identity(value):
     return value.strip('`').split('`', 1)[0].split()[0] if value else ''
 
@@ -413,6 +426,7 @@ def lint(repo):
             source, ref = _source(repo, row)
             package = _parse(dict(row, repo=repo, source=source, ref=ref,
                                   version=_source_version(repo, source, ref)))
+            package['version'] = _lint_review_version(package)
             for gate, checkpoint in package['checkpoints'].items():
                 latest_problem = _latest_findings_problem(package, gate, checkpoint)
                 if latest_problem:

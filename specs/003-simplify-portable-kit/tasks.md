@@ -4,7 +4,7 @@
 **Blockers**: none; branch push authorized for CI only; stop for CP5 clearance.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
-**Validation**: [slice D evidence](reviews/2026-10-19-cp5-validation.md).
+**Validation**: [CP5 remediation](reviews/2026-10-20-cp5-remediation-validation.md); [slice D history](reviews/2026-10-19-cp5-validation.md).
 
 ## Planning
 
@@ -59,6 +59,12 @@
 - [x] T015 [S] After the read-only consumer inventory, tag the last PowerShell revision locally, remove legacy tooling/tests/checker and migrate config (FR-040-041) (gate: CP4).
 - [x] T016 [S] Finish three-OS Python CI/lint and rewrite human README/reference docs (FR-042-043) (gate: CP4).
 - [x] T017 [H] Validate the full replacement and save CP5 review request; stop (gate: CP4).
+
+## CP5 Opus remediation (owner-authorized, no third review)
+
+- [x] T031 [S] Restore the five vendor scripts from `059405a` test-first, repair the feature cursor and document the vendor PowerShell prerequisite (findings 1, 4) (gate: CP4).
+- [x] T032 [S] Supersede/archive Spec 001 while preserving accepted evidence; test explicit terminal-archive review-format compatibility (finding 3) (gate: CP4).
+- [ ] T033 [X] Push only the package branch without force/tags, retain all three-OS CI outcomes, update dispositions/request and stop for the CP5 owner decision (finding 2) (gate: CP4).
 
 ## Known limits
 

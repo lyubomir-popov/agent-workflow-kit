@@ -5,8 +5,9 @@ workflow across Windows, macOS and Linux. It creates and audits package records,
 manages Git worktrees, runs bounded agent tasks, installs cleanup hooks and
 copies reusable VS Code prompts.
 
-Requirements: Git 2.38 or newer and Python 3.10 or newer. PowerShell is not
-required.
+Requirements: Git 2.38 or newer and Python 3.10 or newer. The Python kit needs
+no PowerShell. This checkout's optional [Spec Kit scripts](docs/workflow-core.md#create-a-package)
+use PowerShell 7 separately.
 
 ## Install
 

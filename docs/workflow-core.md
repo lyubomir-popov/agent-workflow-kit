@@ -64,6 +64,18 @@ Project templates under `.specify/templates/overrides/` are the extension
 point. Vendor Spec Kit scripts and skills remain unmodified; catalog registration
 and task gate checks belong to Python.
 
+This checkout's Spec Kit vendor scripts use PowerShell 7 (`pwsh`); they are
+separate from the Python kit's Git/Python-only requirements. On macOS or Linux,
+install `pwsh` to use these scripts, or reinitialize Spec Kit with its `sh`
+scripts. Keep vendor scripts unmodified. The `.specify/feature.json` cursor
+selects the package for vendor tools; it does not authorize work or clear gates.
+
+Terminal archived packages can declare `**Review format version**: 1` in their
+spec header to retain historical v1 review compatibility after a repository
+upgrade. This applies only to lint for archived `delivered`, `closed` or
+`superseded` packages. Active packages and scheduler gates remain strict, and
+standard findings still require complete headers and severities.
+
 ## Install reusable prompts
 
 `wfk prompts install` previews every shipped prompt in the VS Code and VS Code

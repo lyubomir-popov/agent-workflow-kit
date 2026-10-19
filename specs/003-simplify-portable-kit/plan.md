@@ -261,3 +261,19 @@ in the package, including test-first failures, inventory comparison and known
 limits. Save independent findings and dispositions, integrate justified fixes,
 then write a review request under 30 lines naming the reviewed commit. At most
 two rounds per checkpoint; Opus and owner clearance remain external gates.
+
+## CP5 owner-authorized remediation
+
+The [2026-10-20 owner decision](reviews/2026-10-20-cp5-owner-decision.md)
+authorizes restoring all five Spec Kit scripts exactly from `059405a`, updating
+the vendor cursor, superseding/archive-listing Spec 001, and a non-force push
+of only this package branch for actual CI. The earlier unchanged-vendor check
+did not prove original vendor provenance; add a removed-dependency regression
+and exercise vendor prerequisites without the retired kit model.
+
+Preserve accepted Spec 001 reviews byte-for-byte. Terminal archive headers may
+explicitly declare review format 1 for lint-only historical compatibility;
+the declaration must not relax active packages, standard findings or runtime
+gates. Test those boundaries before implementing this necessary archive fix.
+Save all three-OS CI outcomes, dispositions and the updated CP5 request. The
+two review rounds are exhausted: no new review, merge, tag push or consumer edit.

@@ -1,10 +1,12 @@
-# Current work
+# Superseded task history
 
-**Next tasks**: conditional delivery follow-ups T059/T060.
-**Blockers**: delivery prerequisites and authorization remain in [plan](plan.md#approval-and-delivery-boundaries).
+**Execution authority**: none. Spec 001 is superseded by `003/spec-r1` under the
+[CP5 owner decision](../003-simplify-portable-kit/reviews/2026-10-20-cp5-owner-decision.md).
+**Unfinished history**: T059 and T060 remain unchecked below for traceability;
+they are not executable tasks.
 **Checkpoint links**: [slice gates](spec.md#checkpoints); [lean direction and handover](reviews/2026-10-14-lean-direction-handover.md).
 **Entry checkpoint**: CP3
-**Validation**: [tiered commands](quickstart.md) (FR-038); [final adoption summary](evidence/slice-c-validation.md).
+**Validation history**: [tiered commands](quickstart.md) (FR-038); [final adoption summary](evidence/slice-c-validation.md).
 
 ## Setup and foundation
 

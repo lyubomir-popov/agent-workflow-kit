@@ -1,7 +1,7 @@
 # Current work
 
-**Next tasks**: T014 (slice C validation/handoff), authorized by [CP3 clearance](reviews/2026-10-19-cp3-owner-clearance.md).
-**Blockers**: final validation running; fake workers only; stop at CP4.
+**Next tasks**: T015–T017 (slice D), only after CP4 owner clearance and separate authorization.
+**Blockers**: [CP4 Opus review/owner decision](reviews/2026-10-19-cp4-request.md); no slice D authorization.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
 **Validation**: [CP4 evidence](reviews/2026-10-19-cp4-validation.md).
@@ -43,7 +43,7 @@
 - [x] T011 [H] Implement adapters, preflight, package worktree locks and task dispatch (FR-030-033) (gate: CP3).
 - [x] T012 [H] Implement outcomes, fallback, process termination, protected edit rejection and durable reports (FR-034-039) (gate: CP3).
 - [x] T013 [S] Exercise fake workers for every outcome and report exit path (SC-004-005) (gate: CP3).
-- [ ] T014 [H] Validate slice C and save CP4 review request; stop (gate: CP3).
+- [x] T014 [H] Validate slice C and save CP4 review request; stop (gate: CP3).
 
 ## Slice D: retirement and docs
 

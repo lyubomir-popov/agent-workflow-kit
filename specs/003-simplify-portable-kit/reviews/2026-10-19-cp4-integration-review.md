@@ -1,7 +1,7 @@
 # CP4 orchestrator integration review
 
 Reviewer: GPT orchestrator (self-review, not independent or Opus)
-Reviewed revision: slice C working tree against 9a3e38a; final source in validation
+Reviewed revision: 3a1943a7d6a76928c3f9192be9871a18f777b443 (integration self-review)
 Verdict: changes
 
 Scope: integration of T011–T014, not owner clearance. The mandatory external

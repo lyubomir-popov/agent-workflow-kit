@@ -2,7 +2,10 @@
 
 Review base: `9a3e38aca7f28855ebf02cf0d0699811faedf9ef` (CP3 owner clearance).
 Scope: T011–T014, fake workers only; local commits only. CP4 is pending.
-Final source commit and legacy-suite result will be recorded at handoff.
+Final source: `3a1943a7d6a76928c3f9192be9871a18f777b443`.
+T011–T014 are complete. CP4 awaits external Opus round 2 and the owner's
+decision. All production source is committed; subsequent changes are handoff
+records only. No slice D task has started.
 
 ## Test-first and integration evidence
 
@@ -28,12 +31,13 @@ Final source commit and legacy-suite result will be recorded at handoff.
 | Windows `python -m unittest discover -s tests_python -v` | 197 tests, 310.633 s, OK; 6 skips |
 | Windows current protection fixtures | 21 tests, 18.734 s, OK |
 | WSL Ubuntu 24.04 / Python 3.12 slice C suites | 85 tests, 24.313 s, OK; 1 Windows-only skip |
-| Complete legacy PowerShell suite | still running; result pending |
+| Complete `./tests/run-tests.ps1` | 284 passed, 0 failed/skipped, 1351.86 s |
 | Python compilation | pass |
 | Python lint | 0 errors; 17 existing compatibility/diagnostic warnings |
 | Legacy strict lint | 0 errors, 0 warnings |
-| Legacy scheduler dry run | 0 workers; T014 only, then pending CP4 stops T015 |
+| Legacy scheduler dry run | 0 workers; pending CP4 stops T015 |
 | Worktree/index whitespace | pass |
+| `git diff --check 9a3e38a..HEAD` | pass on source and handoff range |
 
 Windows skips: four existing launcher/symlink capability cases, the review
 symlink case and POSIX-only SIGINT session test. WSL ran the POSIX case and
@@ -68,3 +72,10 @@ PowerShell retirement, config migration or slice D work occurred. Fixture Git
 mutations and scoped local source/record commits are the only authorized writes.
 Known limits and qualification needs are recorded in tasks and the integration
 review; GitHub CI/macOS/Python 3.10 execution is not claimed.
+
+The full legacy run used its existing mocked worker boundary in disposable
+repositories (including cases whose console labels say Copilot); no live CLI
+was invoked. The staged-owner pre-commit hook passed the implementation and
+handoff records. Version 1 config, PowerShell/vendor files and consumer repos
+are unchanged against the review base. Source worktree was clean after the
+implementation commit; final handoff changes are separately committed records.

@@ -1,7 +1,7 @@
 # Current work
 
-**Next tasks**: owner's CP3 decision; T011–T014 remain gated. No third review round.
-**Blockers**: CP3 pending; [owner decision request](reviews/2026-10-18-cp3-owner-decision-request.md).
+**Next tasks**: T011–T014 (slice C), authorized by [CP3 clearance](reviews/2026-10-19-cp3-owner-clearance.md).
+**Blockers**: none; fake workers only; stop at CP4.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
 **Validation**: [CP3 evidence](reviews/2026-10-18-cp3-validation.md).

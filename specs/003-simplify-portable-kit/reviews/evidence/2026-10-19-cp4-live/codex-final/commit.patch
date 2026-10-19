@@ -1,0 +1,22 @@
+commit e4f279578c50cfc71befc30d1f72117393d8c952
+Author:     WFK qualification <qualification@example.invalid>
+AuthorDate: Mon Oct 19 17:26:32 2026 +0100
+Commit:     WFK qualification <qualification@example.invalid>
+CommitDate: Mon Oct 19 17:26:32 2026 +0100
+
+    Complete T001 codex qualification
+
+diff --git a/codex-qualified.txt b/codex-qualified.txt
+new file mode 100644
+index 0000000..513bee4
+--- /dev/null
++++ b/codex-qualified.txt
+@@ -0,0 +1 @@
++codex qualification & | ^
+diff --git a/specs/001-codex/tasks.md b/specs/001-codex/tasks.md
+index 66ee572..e2fe099 100644
+--- a/specs/001-codex/tasks.md
++++ b/specs/001-codex/tasks.md
+@@ -5 +5 @@
+-- [ ] T001 [S] Create `codex-qualified.txt` at the checkout root with exactly `codex qualification & | ^` plus one newline. Validate those exact bytes with Python, mark only this checkbox complete and make exactly one local commit including the marker file and tasks.md. Do not edit any other file or start other tasks/agents. (gate: CP1).
++- [x] T001 [S] Create `codex-qualified.txt` at the checkout root with exactly `codex qualification & | ^` plus one newline. Validate those exact bytes with Python, mark only this checkbox complete and make exactly one local commit including the marker file and tasks.md. Do not edit any other file or start other tasks/agents. (gate: CP1).

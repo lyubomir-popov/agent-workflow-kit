@@ -1,0 +1,38 @@
+{
+  "repo": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\repo",
+  "items": [
+    {
+      "package": "specs/001-codex",
+      "task": "T001",
+      "worktree": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\worktrees\\feat-001-codex",
+      "attempts": [
+        {
+          "agent": "codex",
+          "phase": "task",
+          "base": "78c1789a49e284aed42de6f10978b80d8d86622e",
+          "tip": "e4f279578c50cfc71befc30d1f72117393d8c952",
+          "duration": 37.76500000001397,
+          "log": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\repo\\.git\\wfk\\runs\\20261019T162556601234Z-08bdb746\\1-codex-task.log",
+          "commits": [
+            "e4f279578c50cfc71befc30d1f72117393d8c952"
+          ],
+          "reason": "",
+          "outcome": "done"
+        }
+      ],
+      "outcome": "done",
+      "reason": ""
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "stops": [
+    "Task limit reached"
+  ],
+  "reviews": [],
+  "cleanup": [],
+  "dry_run": false,
+  "status": "completed",
+  "run": "20261019T162556601234Z-08bdb746",
+  "report": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp4-live-wyewdf8d\\repo\\.git\\wfk\\runs\\20261019T162556601234Z-08bdb746\\report.md"
+}

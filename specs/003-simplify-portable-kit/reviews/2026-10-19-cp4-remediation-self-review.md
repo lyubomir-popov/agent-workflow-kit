@@ -10,13 +10,14 @@ clearance. The owner decides from [dispositions](2026-10-19-cp4-opus-disposition
 
 ## Findings
 
-1. **Major — final-source Codex live qualification remains unconfirmed.** Its
-   authorized single attempt authenticated and accepted unattended/effort flags
-   but failed on the Copilot alias. The initial port missed the existing legacy
-   compatibility guard. The final guard now passes fake regressions and preserves
-   the CLI's configured model instead of choosing a replacement. A second live
-   task would exceed the recorded authorization, so none ran. The owner can
-   authorize one targeted final-source scratch check or assess the existing proof.
+1. **Major — resolved by the explicitly authorized final-source Codex check.**
+   The original attempt failed on the Copilot alias. After the compatibility
+   guard was restored and the first handoff saved, the owner replied "Authorize
+   one additional Codex scratch task". That task authenticated, completed in
+   37.765 seconds and made exactly one scoped commit. Independent byte/checkbox,
+   clean-checkout and unchanged-primary assertions passed. Its configured
+   `gpt-6.1-sol` model/high effort was used; no model override was substituted.
+   Both attempts remain saved. This is author verification, not a third review.
 2. **Major — Claude could not be qualified on this machine.** The CLI is absent
    from PATH and checked standard locations. Its permission flag has an official
    source, but neither a real auth probe nor an editing/commit task is verified.
@@ -36,7 +37,7 @@ clearance. The owner decides from [dispositions](2026-10-19-cp4-opus-disposition
   true, bounds frames/notifications and discards raw identity/credential payloads.
   False, missing/malformed/error replies and zero-exit-without-reply fail closed.
   The scheduler's fake integration permits task dispatch only after true status.
-- Actual Copilot auth and committed marker proof passed. Scratch primary HEAD
+- Actual Codex and Copilot auth and committed marker proofs passed. Scratch primary HEAD
   stayed at its initial commit, its tree stayed clean and no remotes appeared.
   The silent empty task log is preserved as empty, with the commit patch as proof.
 - The original H/S/L preference map remains in one default data table; Codex

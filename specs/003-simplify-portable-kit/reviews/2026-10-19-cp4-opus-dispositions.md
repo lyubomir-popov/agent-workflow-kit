@@ -13,11 +13,13 @@ Source/checks: [remediation validation](2026-10-19-cp4-remediation-validation.md
    prints no credential/account payload. CLI help is not used as authentication.
    The restored tier map is H `gpt-5.4`/xhigh, S `gpt-5.4`/high and L
    `gpt-5.4-mini` without explicit effort. Provider overrides remain supported.
-   The first port missed the old `Test-CodexCompatibleModel` guard; the one Codex
+   The first port missed the old `Test-CodexCompatibleModel` guard; the first Codex
    attempt rejected that Copilot alias. The final code restores the guard while
-   retaining tier effort, with red/green fixtures. It was not live-rerun because
-   the owner authorized one attempt only. Copilot completed its one task and
-   committed. Claude is unavailable, so its probe remains unset and no installation,
+   retaining tier effort, with red/green fixtures. The owner then explicitly
+   authorized one additional scratch task against that committed fix. Codex
+   authenticated, completed T001 in 37.765 seconds and made one exact-scope commit
+   using its configured `gpt-6.1-sol` model/high effort. Copilot completed its one
+   task and committed. Claude is unavailable, so its probe remains unset and no installation,
    login or unverified probe is claimed. These limits remain for the owner to
    decide, rather than declaring three passing qualifications.
 2. **Major — fixed and live-qualified with installed Copilot.** Known npm wrappers

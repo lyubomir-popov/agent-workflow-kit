@@ -88,10 +88,12 @@ establish Codex effort syntax; [Claude's CLI reference](https://code.claude.com/
 documents its permission flag and auth-status command. Documentation alone is
 not a claim that an unavailable Claude installation was live-qualified.
 
-CP4's owner-authorized scratch run passed with Copilot. Codex's one attempt
-authenticated but rejected the Copilot alias before the compatibility guard was
-restored; no second attempt was authorized. Claude was unavailable. These are
-recorded qualification limits, not a claim that all three live providers passed.
+CP4's owner-authorized scratch run passed with Copilot. Codex's first attempt
+rejected the Copilot alias; after the compatibility guard was restored, the owner
+explicitly authorized one additional task, which authenticated and committed
+successfully using the CLI's configured model. Claude was unavailable and remains
+unqualified. Reports for both Codex attempts are preserved in the package evidence;
+qualification of all three live providers is not claimed.
 
 ## Outcomes, recovery and evidence
 

@@ -1,7 +1,7 @@
 # Current work
 
 **Next tasks**: Owner CP4 decision on the [remediation handoff](reviews/2026-10-19-cp4-owner-decision-request.md); T015/T029/T016/T017 remain blocked pending CP4 clearance and separate slice D authorization.
-**Blockers**: CP4 pending; Codex final compatibility guard has no second live qualification; Claude unavailable; no slice D authorization.
+**Blockers**: CP4 pending; Claude unavailable; no slice D authorization. Codex and Copilot scratch tasks passed.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
 **Validation**: [CP4 remediation evidence](reviews/2026-10-19-cp4-remediation-validation.md).
@@ -67,10 +67,12 @@
   T029 and T016's final portability validation after CP4, subject to the owner's CP4
   decision; full Linux readiness is not claimed. See CP4 validation.
 
-- CP4 remediation allowed one bounded scratch attempt per provider. Copilot
-  authenticated and completed a committed task; Codex authenticated but rejected
-  the Copilot model alias, after which its legacy compatibility guard was restored
-  without a second live attempt. Claude is unavailable; its probe stays unset
+- CP4 remediation initially allowed one bounded scratch attempt per provider.
+  Copilot completed a committed task; Codex initially rejected the Copilot alias.
+  After the guard was restored, the owner explicitly authorized one additional
+  Codex task: it authenticated, committed and passed exact-byte/scope checks in
+  37.765 seconds. Both attempts are preserved in the linked validation evidence.
+  Claude is unavailable; its probe stays unset
   until qualified. The original tier map/efforts and unattended flags are restored.
   Known npm wrappers now resolve to native Node; unknown wrappers still fail closed.
   See [scheduler reference](../../docs/scheduler.md) and

@@ -1,5 +1,21 @@
 # CP4 scratch qualification evidence
 
+Latest: the owner subsequently replied "Authorize one additional Codex scratch
+task" on 2026-10-19, against committed source `fe50d76`, capped at 90 seconds in
+this existing disposable repo. That one task passed in 37.765 seconds and made
+one commit `e4f279578c50cfc71befc30d1f72117393d8c952`. Its separate
+[confirmation](codex-final/confirmation.json), [report](codex-final/report.md),
+[result](codex-final/result.json), auth/task logs and zero-context commit patch
+preserve the final-source check. Exact marker bytes, only the T001 checkbox/two
+intended paths, clean worktree, unchanged clean primary and no remotes were
+independently asserted. The CLI used its configured `gpt-6.1-sol`, high effort,
+approval never and danger-full-access. Pre-existing plugin/shell-snapshot/MCP
+startup warnings did not block completion; no credential values were captured.
+Two whitespace-only display lines in the copied task log were trimmed to pass
+repository whitespace checks; the original remains at the reported scratch path.
+The confirmation records both SHA-256 hashes. No event text or task bytes changed.
+The original attempt/results below are historical and remain unchanged.
+
 Authority: [owner decision](../../2026-10-19-cp4-owner-decision.md). Only the new
 temporary repository named in `summary.json` was used. Its synthetic CP1 records
 authorize fixture tasks only and never clear this project's CP4.
@@ -18,8 +34,10 @@ Git used a fixture identity and an empty hooks directory, and no remotes existed
 The Codex attempt exposed a missing legacy compatibility guard. The final source
 restores `Test-CodexCompatibleModel` behavior declaratively: Copilot's two GPT-5.4
 aliases omit `--model` for Codex, leaving its configured model and tier effort.
-No second task was run, and no supported-model substitution was attempted.
-Consequently this archive does not claim final-source Codex live qualification.
+At the initial handoff no second task had run and final-source Codex live
+qualification was unconfirmed. The separately authorized passing follow-up above
+resolves that limit without erasing the original failed attempt or selecting a
+replacement model. `summary.json` retains the original phase's outcomes.
 
 Claude was absent from the Windows PATH and checked `.local/bin`, npm and
 `.claude/local` locations, and from WSL PATH. No install, login or platform/tool

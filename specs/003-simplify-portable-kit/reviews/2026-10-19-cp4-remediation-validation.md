@@ -1,6 +1,7 @@
 # CP4 remediation validation
 
-Authority: [owner decision](2026-10-19-cp4-owner-decision.md).
+Authority: [owner decision](2026-10-19-cp4-owner-decision.md), extended by the
+owner's explicit additional Codex-task approval recorded in the live archive.
 Review base: `298b3d3` (saved Opus findings/owner decision).
 Scope: T025–T028, findings 1–2, finding 4 and the gated T029 record only.
 Final source: `fe50d7663893f115cd29cad66d3634defaa5e368`.
@@ -26,13 +27,18 @@ CP4 is pending; the owner decides. No third review or slice D work occurred.
 ## Scratch live qualification
 
 Full archive: [evidence](evidence/2026-10-19-cp4-live/README.md).
-One bounded run per provider was attempted with max tasks 1 and 90-second task
-timeout. Exactly one Codex worker, one Copilot worker and zero unavailable Claude
-workers ran. No retry/substitution occurred. Codex and Copilot auth checks passed.
-Copilot committed the exact marker/task change and kept primary HEAD unchanged.
-Codex rejected a Copilot model alias; its final legacy guard was restored after
-the failed attempt and remains without a second live qualification. Claude was
-unavailable and its probe remains unqualified/unset. These are not three passes.
+The original scope allowed one run per provider with max tasks 1 and a 90-second
+task timeout. Codex rejected a Copilot alias; Copilot committed its exact task;
+Claude was unavailable. After the guard fix and the initial handoff, the owner
+replied "Authorize one additional Codex scratch task". Exactly that task ran on
+unchanged source `fe50d76`, authenticated and completed in 37.765 seconds with
+one commit `e4f279578c50cfc71befc30d1f72117393d8c952`. Exact marker bytes,
+checkbox-only task changes, two-path scope, clean worktree and unchanged/clean
+scratch primary HEAD were independently asserted. There were two Codex worker
+attempts total, one Copilot and zero Claude; no automatic retry or substitution.
+The successful Codex run used its configured `gpt-6.1-sol` model/high effort,
+approval never and danger-full-access. Its original failure is preserved.
+Claude's probe remains unqualified/unset. These are not three provider passes.
 
 The installed help confirmed the native permission flags and Copilot reasoning
 syntax. Codex effort syntax was checked against [official OpenAI documentation](https://developers.openai.com/codex/config-reference);
@@ -52,6 +58,10 @@ but documentation is not substituted for a missing installed CLI qualification.
 | Legacy scheduler dry run | 0 workers; completed remediation, pending CP4 stops T015 |
 | Worktree/index whitespace | pass after normalizing evidence patch display whitespace |
 | Review-range whitespace | `git diff --check 298b3d3..HEAD` passes |
+
+Only evidence and prose changed after the additional scratch task; the earlier
+full suites still cover the unchanged final source. Final record-only quick
+checks were rerun; full suites were not repeated to refresh evidence.
 
 The two previously reproduced Linux slice B errors remain under gated T029;
 this remediation does not claim the whole Linux suite is green.

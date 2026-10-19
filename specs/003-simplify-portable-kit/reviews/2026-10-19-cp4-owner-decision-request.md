@@ -17,11 +17,11 @@ Evidence: [dispositions](2026-10-19-cp4-opus-dispositions.md),
 Python: Windows 221 tests (6 skips), WSL remediation 109 (2 skips), all others pass.
 Full legacy-suite and final lint/range results are recorded in validation.
 
-Copilot authenticated and committed its one task. Codex authenticated but its
-one attempt rejected the Copilot alias; the final guard has fake regressions
-but no second live qualification. Claude is unavailable and its probe stays unset.
-No retry, substitution, install/login or successful three-provider claim was made.
+Copilot authenticated and committed its one task. Codex's first attempt rejected
+the Copilot alias; after the owner explicitly authorized one additional task,
+the final guard passed live in 37.765 seconds with one exact-scope commit.
+Both attempts are saved. Claude is unavailable and its probe stays unset.
 
-Please decide CP4 from this evidence or authorize a targeted final-source Codex
-scratch check; Claude qualification needs an available CLI and separate scope.
-No live task, third review, slice D, push/merge, hooks or real cleanup starts here.
+Please decide CP4 from this evidence. Claude qualification needs an available
+CLI and separate scope; a successful three-provider qualification is not claimed.
+No further live task, third review, slice D, push/merge, hooks or real cleanup starts here.

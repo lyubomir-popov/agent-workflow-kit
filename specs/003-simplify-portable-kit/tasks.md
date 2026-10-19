@@ -1,10 +1,10 @@
 # Current work
 
-**Next tasks**: T028 (CP4 remediation validation/owner handoff), authorized by [owner decision](reviews/2026-10-19-cp4-owner-decision.md).
+**Next tasks**: Owner CP4 decision on the [remediation handoff](reviews/2026-10-19-cp4-owner-decision-request.md); T015/T029/T016/T017 remain blocked pending CP4 clearance and separate slice D authorization.
 **Blockers**: CP4 pending; Codex final compatibility guard has no second live qualification; Claude unavailable; no slice D authorization.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
-**Validation**: [CP4 evidence](reviews/2026-10-19-cp4-validation.md).
+**Validation**: [CP4 remediation evidence](reviews/2026-10-19-cp4-remediation-validation.md).
 
 ## Planning
 
@@ -50,7 +50,7 @@
 - [x] T025 [H] Restore unattended flags, tier models/efforts, legacy Codex alias compatibility and verified available-provider auth probes (Opus finding 1) (gate: CP3).
 - [x] T026 [S] Resolve Windows npm shims to native Node/validated entrypoints with injection fixtures; print the primary-checkout recovery command (findings 2 and 4) (gate: CP3).
 - [x] T027 [X] Attempt the authorized single bounded scratch run per provider and preserve reports, logs and unavailable/model-rejection results without retries (gate: CP3).
-- [ ] T028 [X] Record dispositions and final validation; commit locally and stop for the owner's CP4 decision, with no third review or slice D (gate: CP3).
+- [x] T028 [X] Record dispositions and final validation; commit locally and stop for the owner's CP4 decision, with no third review or slice D (gate: CP3).
 
 ## Slice D: retirement and docs
 

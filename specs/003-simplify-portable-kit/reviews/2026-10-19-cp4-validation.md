@@ -1,5 +1,10 @@
 # CP4 validation
 
+Latest: [Opus remediation and scratch qualification](2026-10-19-cp4-remediation-validation.md).
+The initial slice C handoff below is retained as historical evidence.
+
+## Initial slice C handoff
+
 Review base: `9a3e38aca7f28855ebf02cf0d0699811faedf9ef` (CP3 owner clearance).
 Scope: T011–T014, fake workers only; local commits only. CP4 is pending.
 Final source: `3a1943a7d6a76928c3f9192be9871a18f777b443`.

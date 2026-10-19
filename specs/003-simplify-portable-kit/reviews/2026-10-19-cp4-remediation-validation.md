@@ -3,13 +3,14 @@
 Authority: [owner decision](2026-10-19-cp4-owner-decision.md).
 Review base: `298b3d3` (saved Opus findings/owner decision).
 Scope: T025–T028, findings 1–2, finding 4 and the gated T029 record only.
-Final source commit will be pinned after the running fixture checks.
+Final source: `fe50d7663893f115cd29cad66d3634defaa5e368`.
+Subsequent changes contain handoff records only.
 CP4 is pending; the owner decides. No third review or slice D work occurred.
 
 ## Test-first
 
-- Runtime defaults/tiers: 7 tests initially failed with one missing shared-tier
-  error and two flag/effort assertions; the remainder passed. The new Codex
+- Initial runtime defaults/tiers run: 7 tests, one missing shared-tier error and
+  two failed flag/effort assertions; the remainder passed. The new Codex
   compatibility regressions later produced two failures before restoring its
   existing Copilot-alias guard.
 - Native launcher fixture first failed importing the absent module. Final
@@ -44,12 +45,13 @@ but documentation is not substituted for a missing installed CLI qualification.
 |---|---|
 | Windows full Python suite | 221 tests in 385.652 s, OK; 6 platform/capability skips |
 | WSL slice C/remediation suites | 109 tests in 32.199 s, OK; 2 platform skips |
-| Full legacy PowerShell suite | running on the final production tree; result pending |
+| Full legacy PowerShell suite | 284 passed, 0 failed/skipped/pending, in 1622.47 s |
 | Python compilation | pass |
 | Python lint | 0 errors, 18 existing compatibility/diagnostic warnings |
 | Legacy strict lint | 0 errors, 0 warnings |
-| Legacy scheduler dry run | 0 workers; T028 only, then pending CP4 stops T015 |
+| Legacy scheduler dry run | 0 workers; completed remediation, pending CP4 stops T015 |
 | Worktree/index whitespace | pass after normalizing evidence patch display whitespace |
+| Review-range whitespace | `git diff --check 298b3d3..HEAD` passes |
 
 The two previously reproduced Linux slice B errors remain under gated T029;
 this remediation does not claim the whole Linux suite is green.

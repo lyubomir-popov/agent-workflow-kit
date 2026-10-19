@@ -50,3 +50,16 @@ and integration review are recorded here as their authorized steps complete.
   findings paths changed, clean worker/primary, unchanged primary HEAD, no
   remotes and fixture CP2 still pending. The logging-only command override,
   actual reports, findings, commit patch and scanned logs are preserved.
+
+## Consumer check before retirement
+
+[Read-only inventory](evidence/2026-10-19-cp5-consumers.md): 88 checkouts,
+52 unique Git common directories, 36 linked duplicates, no unavailable roots.
+Ten active consumers have operational references: eight shared-kit paths and two
+local mirrors. An archived source snapshot is separate. All 38 sampled
+operational dependency-file hashes matched before/after the scan. No consumer
+file, index, ref, configuration or hook was changed.
+
+The fallback tag alone cannot preserve execution at shared paths. Those eight
+consumers need a separate `v1-powershell` checkout plus repointed paths, or v2
+migration, under separate owner scope. Retirement here does not perform either.

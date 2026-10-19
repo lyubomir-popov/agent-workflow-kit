@@ -1,7 +1,7 @@
 # Current work
 
-**Next tasks**: owner/Opus CP5 review per the [request](reviews/2026-10-19-cp5-review-request.md); T029 needs macOS/CI execution evidence (manual).
-**Blockers**: CP5 is not cleared; required macOS/CI execution evidence needs owner-authorized runner/publication scope.
+**Next tasks**: CP5 remediation per the [owner decision](reviews/2026-10-20-cp5-owner-decision.md); T029 completes with three-OS CI evidence.
+**Blockers**: none; branch push authorized for CI only; stop for CP5 clearance.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
 **Validation**: [slice D evidence](reviews/2026-10-19-cp5-validation.md).

@@ -41,5 +41,12 @@ and integration review are recorded here as their authorized steps complete.
   version-specific assertion failed against 4.7, then all nine runtime tests
   passed against 4.8. Focused runtime/review checks: Windows 31 tests OK, one
   symlink skip; WSL 31 tests OK, no skips (before that version-only adjustment).
-- Scratch review qualification is next, with a fake prerequisite task and only
-  one real review invocation. No live implementing task is authorized here.
+- [Scratch qualification](evidence/2026-10-19-cp5-opus-review/README.md): one
+  real review invocation, verdict `accept`, 64.797 seconds, one saved findings
+  commit after a deterministic fake prerequisite task. JSON model events prove
+  `claude-opus-4.8` actually served the review. Copilot reported 1.0.88; no update
+  or installation was invoked by this task. Standalone Claude stays unqualified.
+- Independently asserted exact answer bytes, only the fake task checkbox/new
+  findings paths changed, clean worker/primary, unchanged primary HEAD, no
+  remotes and fixture CP2 still pending. The logging-only command override,
+  actual reports, findings, commit patch and scanned logs are preserved.

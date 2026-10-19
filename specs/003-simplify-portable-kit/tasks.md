@@ -1,6 +1,6 @@
 # Current work
 
-**Next tasks**: T030, consumer inventory, T015, T016, T017 per the [slice D handover](reviews/2026-10-19-slice-d-handover.md); T029's code and local full suites pass.
+**Next tasks**: Consumer inventory, T015, T016, T017 per the [slice D handover](reviews/2026-10-19-slice-d-handover.md); T029 needs macOS evidence only.
 **Blockers**: macOS execution evidence remains pending for T029/final acceptance; stop at CP5.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
@@ -55,7 +55,7 @@
 ## Slice D: retirement and docs
 
 - [ ] T029 [S] Fix both Linux parent-file collisions in init and prompt installation; pass their regression tests and the full three-OS Python suite before CP5 (Opus finding 3) (gate: CP4).
-- [ ] T030 [S] Make the default reviewer Copilot running a Claude Opus model; qualify one review phase in a scratch repo; document the claude adapter as unqualified (gate: CP4).
+- [x] T030 [S] Make the default reviewer Copilot running a Claude Opus model; qualify one review phase in a scratch repo; document the claude adapter as unqualified (gate: CP4).
 - [ ] T015 [S] After the read-only consumer inventory, tag the last PowerShell revision locally, remove legacy tooling/tests/checker and migrate config (FR-040-041) (gate: CP4).
 - [ ] T016 [S] Finish three-OS Python CI/lint and rewrite human README/reference docs (FR-042-043) (gate: CP4).
 - [ ] T017 [H] Validate the full replacement and save CP5 review request; stop (gate: CP4).

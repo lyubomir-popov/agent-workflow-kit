@@ -1,0 +1,66 @@
+{
+  "repo": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp5-review-kwin4eh0\\repo",
+  "items": [
+    {
+      "package": "specs/001-review",
+      "task": "T001",
+      "worktree": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp5-review-kwin4eh0\\worktrees\\feat-001-review",
+      "attempts": [
+        {
+          "agent": "fixture",
+          "phase": "task",
+          "base": "51c72bdb05f59314c28527b3ff9d9afba13b2389",
+          "tip": "5276a0f07e0c7d481e0d5b195cea228a9b8001cc",
+          "duration": 0.21899999998277053,
+          "log": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp5-review-kwin4eh0\\repo\\.git\\wfk\\runs\\20261019T201949266988Z-b8aa83a4\\1-fixture-task.log",
+          "commits": [
+            "5276a0f07e0c7d481e0d5b195cea228a9b8001cc"
+          ],
+          "reason": "",
+          "outcome": "done"
+        }
+      ],
+      "outcome": "done",
+      "reason": ""
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "stops": [
+    "Task limit reached"
+  ],
+  "reviews": [
+    {
+      "package": "specs/001-review",
+      "outcome": "accept",
+      "rounds": [
+        {
+          "agent": "copilot-opus",
+          "phase": "review",
+          "base": "5276a0f07e0c7d481e0d5b195cea228a9b8001cc",
+          "tip": "5276a0f07e0c7d481e0d5b195cea228a9b8001cc",
+          "duration": 64.79700000002049,
+          "log": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp5-review-kwin4eh0\\repo\\.git\\wfk\\runs\\20261019T201949266988Z-b8aa83a4\\1-1-copilot-opus-review.log",
+          "commits": [],
+          "reason": "",
+          "outcome": "done",
+          "path": "specs/001-review/reviews/2026-10-19-CP2-copilot-opus-48ed483c5294-20261019T201949266988Z-b8aa83a4-461b9e0c4257-r1-findings.md",
+          "round": 1
+        }
+      ],
+      "review_rounds": 1,
+      "reason": "Saved review accepts; checkpoint still requires owner clearance"
+    }
+  ],
+  "cleanup": [
+    {
+      "path": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp5-review-kwin4eh0\\worktrees\\feat-001-review",
+      "action": "kept",
+      "reason": "protected branch"
+    }
+  ],
+  "dry_run": false,
+  "status": "completed",
+  "run": "20261019T201949266988Z-b8aa83a4",
+  "report": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp5-review-kwin4eh0\\repo\\.git\\wfk\\runs\\20261019T201949266988Z-b8aa83a4\\report.md"
+}

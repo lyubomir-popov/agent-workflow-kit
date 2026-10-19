@@ -1,0 +1,71 @@
+commit 5276a0f07e0c7d481e0d5b195cea228a9b8001cc
+Author:     WFK qualification <qualification@example.invalid>
+AuthorDate: Mon Oct 19 21:19:53 2026 +0100
+Commit:     WFK qualification <qualification@example.invalid>
+CommitDate: Mon Oct 19 21:19:53 2026 +0100
+
+    fixture: validate two
+
+diff --git a/specs/001-review/tasks.md b/specs/001-review/tasks.md
+index fd1c9cb..36f4717 100644
+--- a/specs/001-review/tasks.md
++++ b/specs/001-review/tasks.md
+@@ -5 +5 @@
+-- [ ] T001 [S] Validate answer.txt contains exactly bytes 2 followed by one LF; mark only T001 complete in one fixture commit (gate: CP1).
++- [x] T001 [S] Validate answer.txt contains exactly bytes 2 followed by one LF; mark only T001 complete in one fixture commit (gate: CP1).
+
+commit ca256166937f075bda8438262a013f8fa3371b94
+Author:     WFK qualification <qualification@example.invalid>
+AuthorDate: Mon Oct 19 21:21:02 2026 +0100
+Commit:     WFK qualification <qualification@example.invalid>
+CommitDate: Mon Oct 19 21:21:02 2026 +0100
+
+    review: save scheduler evidence
+
+diff --git a/specs/001-review/reviews/2026-10-19-CP2-copilot-opus-48ed483c5294-20261019T201949266988Z-b8aa83a4-461b9e0c4257-r1-findings.md b/specs/001-review/reviews/2026-10-19-CP2-copilot-opus-48ed483c5294-20261019T201949266988Z-b8aa83a4-461b9e0c4257-r1-findings.md
+new file mode 100644
+index 0000000..63bc48a
+--- /dev/null
++++ b/specs/001-review/reviews/2026-10-19-CP2-copilot-opus-48ed483c5294-20261019T201949266988Z-b8aa83a4-461b9e0c4257-r1-findings.md
+@@ -0,0 +1,41 @@
++# Checkpoint review
++
++Reviewer: copilot-opus
++Reviewed revision: 5276a0f07e0c7d481e0d5b195cea228a9b8001cc
++Verdict: accept
++
++## Scope
++
++Independent scratch review of package `specs/001-review` at checkpoint CP2,
++covering completed task T001. Reviewed branch `feat/001-review` at commit
++`5276a0f07e0c7d481e0d5b195cea228a9b8001cc` ("fixture: validate two"). Working
++tree is clean; no uncommitted changes were reviewed. This is review round 1
++(no prior CP2 findings exist; CP1 was owner-cleared in `reviews/scope.md`).
++
++## Requirement under review
++
++`spec.md`: `answer.txt` must contain exactly the UTF-8 bytes `2` followed by one
++LF, because 1+1=2.
++
++## Validation performed
++
++- Read the raw bytes of `answer.txt`: length 2, bytes `32 0A` (hex) = `"2"`
++  followed by a single `0x0A` line feed. No trailing bytes, no CR, no BOM.
++- Python check per `plan.md`: `open('answer.txt','rb').read() == b'2\n'` →
++  `True` (`b'2\n'`).
++- `tasks.md`: T001 is the only task marked complete (`[x]`); T002 remains
++  unchecked and authorizes no later work. Commit history shows a single fixture
++  commit advancing to this state, consistent with the T001 instruction.
++- Confirmed dispatched reviewed revision equals `git rev-parse HEAD`.
++
++## Findings
++
++No findings. The implemented `answer.txt` matches the exact-byte requirement,
++validation reproduces cleanly, task completion is correctly scoped to T001, and
++there is no scope or checkpoint violation.
++
++## Evidence limitations
++
++Review limited to this checkout at the stated commit. No network, external
++tooling, or other repositories were consulted, consistent with the review
++constraints.

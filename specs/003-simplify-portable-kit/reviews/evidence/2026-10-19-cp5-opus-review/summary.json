@@ -1,0 +1,44 @@
+{
+  "authority": "2026-10-19-cp4-owner-clearance.md / T030",
+  "source": "51ba13c44f01a280945c150729c88e80a66dfa13",
+  "scratch": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp5-review-kwin4eh0",
+  "reviewer": "copilot-opus",
+  "actualModel": "claude-opus-4.8",
+  "actualModelSource": "model.call_start/model.call_finished events",
+  "realReviewInvocations": 1,
+  "realImplementerInvocations": 0,
+  "fakeTaskInvocations": 1,
+  "reviewRounds": 1,
+  "outcome": "accept",
+  "durationSeconds": 64.79700000002049,
+  "reviewedRevision": "5276a0f07e0c7d481e0d5b195cea228a9b8001cc",
+  "evidenceCommit": "ca256166937f075bda8438262a013f8fa3371b94",
+  "primaryHeadBeforeAndAfter": "51c72bdb05f59314c28527b3ff9d9afba13b2389",
+  "primaryClean": true,
+  "worktreeClean": true,
+  "remotes": [],
+  "changedPaths": [
+    "specs/001-review/reviews/2026-10-19-CP2-copilot-opus-48ed483c5294-20261019T201949266988Z-b8aa83a4-461b9e0c4257-r1-findings.md",
+    "specs/001-review/tasks.md"
+  ],
+  "checkpointStillPending": true,
+  "timeoutSeconds": 120,
+  "maxTasks": 1,
+  "loggingOnlyCommandOverride": [
+    "--output-format",
+    "json",
+    "--log-level",
+    "debug",
+    "--log-dir",
+    "<scratch>/cli-logs"
+  ],
+  "standaloneClaude": "Unqualified; not invoked or installed",
+  "redactions": 0,
+  "originalLogHashes": {
+    "1-1-copilot-opus-review.log": "2eb5de106ddf4d7d699975e82e4e51ebcafa609eddc638ec4eeb6deee08c7a99",
+    "1-copilot-opus-review-auth.log": "4dc55997af3b10dd7c05a5069e7baf89ffee6c7d7faf0c8e32a9fed28b5f47fb",
+    "1-fixture-auth.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "1-fixture-task.log": "e8924ade7703c40e377c3a5a1a92bb18b6a8157f16cf6d0a78cf578fb1a12853",
+    "copilot-diagnostics.log": "e7c8d1881f41457f4cbecb5fa5925d331503791f9e42462f037bf33620922dff"
+  }
+}

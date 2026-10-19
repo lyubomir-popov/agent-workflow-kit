@@ -1,0 +1,49 @@
+2026-10-19T20:19:58.190Z [DEBUG] [nativeRuntime] in-process mode: loading the native runtime .node addon
+2026-10-19T20:19:58.192Z [INFO] Shell completions: no supported shell detected, skipping
+2026-10-19T20:19:59.619Z [INFO] Session indexing debug: SESSION_INDEXING=true, repository=undefined
+2026-10-19T20:20:00.470Z [WARNING] [rust:copilot_runtime::session::pending_request_flow] event was not delivered to its registered session host {"error":"GenericFailure, no session host is registered for session 535b941e-4daf-4151-958b-6bd0829045e1"}
+2026-10-19T20:20:00.474Z [DEBUG] No model backend (auth, legacy provider, or BYOK registry) available, skipping custom agents load
+2026-10-19T20:20:00.481Z [INFO] Workspace initialized: 535b941e-4daf-4151-958b-6bd0829045e1 (checkpoints: 0)
+2026-10-19T20:20:00.493Z [DEBUG] dynamic context: flag=false, repo=undefined, branch=feat/001-review
+2026-10-19T20:20:00.500Z [DEBUG] Cloud session storage disabled by org policy (cloud_session_storage_enabled=false)
+2026-10-19T20:20:00.500Z [INFO] Starting Copilot CLI: 1.0.88
+2026-10-19T20:20:00.500Z [INFO] Node.js version: v24.20.0
+2026-10-19T20:20:00.502Z [DEBUG] Remote exporter setup: enableRemote=false, effectiveEnableRemote=false, shouldStart=false, attributionOnly=false, connectMode=false
+2026-10-19T20:20:00.874Z [DEBUG] Plugin activation [agents]: fingerprint=19f302f23ff6, plugins=0, loaded=0
+2026-10-19T20:20:00.878Z [DEBUG] Plugins loaded: []
+2026-10-19T20:20:01.898Z [DEBUG] Registry : permits all servers (registry_access="allow_all"), no verification needed
+2026-10-19T20:20:01.898Z [DEBUG] All 1 configured MCP registry/registries permit all servers (allow_all), no verification needed
+2026-10-19T20:20:01.915Z [WARNING] [rust:copilot_runtime::mcp::native_connector] MCP server connection failed {"server_name":"pragma","raw_error":"failed to spawn MCP server process: program not found","stderr_detail":""}
+2026-10-19T20:21:01.078Z [DEBUG] executePromptDirectly completing: hasError=false, taskBlocked=false, blockedExit=false, exportFailed=false, saveFailed=false, usageOutputFailed=false, will return true
+2026-10-19T20:21:01.078Z [DEBUG] runPromptMode: executePromptDirectly returned succeeded=true
+2026-10-19T20:21:01.078Z [DEBUG] runPromptMode: exiting with code 0
+2026-10-19T20:21:01.078Z [DEBUG] [shutdown] Starting shutdown with 7 disposables
+2026-10-19T20:21:01.078Z [DEBUG] [shutdown] Starting dispose: telemetryFlushProcess
+2026-10-19T20:21:01.079Z [DEBUG] [shutdown] Completed dispose: telemetryFlushProcess (0ms)
+2026-10-19T20:21:01.079Z [DEBUG] [shutdown] Starting dispose: extensionsBeginProcessShutdown
+2026-10-19T20:21:01.079Z [DEBUG] [shutdown] Completed dispose: extensionsBeginProcessShutdown (0ms)
+2026-10-19T20:21:01.079Z [DEBUG] [shutdown] Starting dispose: Session.abort+shutdown
+2026-10-19T20:21:01.092Z [DEBUG] [shutdown] Completed dispose: Session.abort+shutdown (13ms)
+2026-10-19T20:21:01.092Z [DEBUG] [shutdown] Starting dispose: PromptMode.stdout
+2026-10-19T20:21:01.092Z [DEBUG] [shutdown] Completed dispose: PromptMode.stdout (1ms)
+2026-10-19T20:21:01.093Z [DEBUG] [shutdown] Starting dispose: seaInUseLockCleanup
+2026-10-19T20:21:01.093Z [DEBUG] [shutdown] Starting dispose: lspSessionShutdown
+2026-10-19T20:21:01.093Z [DEBUG] [shutdown] Starting dispose: failbotAuthSubscription
+2026-10-19T20:21:01.093Z [DEBUG] [shutdown] Starting dispose: autoUpdate
+2026-10-19T20:21:01.093Z [DEBUG] [shutdown] Starting dispose: shellCompletions
+2026-10-19T20:21:01.093Z [DEBUG] [shutdown] Starting dispose: LocalSessionManager
+2026-10-19T20:21:01.093Z [DEBUG] [shutdown] Starting dispose: m2
+2026-10-19T20:21:01.093Z [DEBUG] [shutdown] Completed dispose: autoUpdate (0ms)
+2026-10-19T20:21:01.093Z [DEBUG] [shutdown] Completed dispose: m2 (0ms)
+2026-10-19T20:21:01.093Z [DEBUG] [shutdown] Completed dispose: shellCompletions (0ms)
+2026-10-19T20:21:01.093Z [DEBUG] [shutdown] Completed dispose: lspSessionShutdown (0ms)
+2026-10-19T20:21:01.093Z [DEBUG] [shutdown] Completed dispose: failbotAuthSubscription (0ms)
+2026-10-19T20:21:01.094Z [DEBUG] [shutdown] Completed dispose: seaInUseLockCleanup (1ms)
+2026-10-19T20:21:01.103Z [DEBUG] [shutdown] Completed dispose: LocalSessionManager (11ms)
+2026-10-19T20:21:01.104Z [DEBUG] [shutdown] Starting dispose: telemetryDisposeProcess
+2026-10-19T20:21:02.204Z [DEBUG] [shutdown] Completed dispose: telemetryDisposeProcess (1100ms)
+2026-10-19T20:21:02.204Z [DEBUG] [shutdown] Starting dispose: closeSessionStore
+2026-10-19T20:21:02.205Z [DEBUG] [shutdown] Completed dispose: closeSessionStore (0ms)
+2026-10-19T20:21:02.205Z [DEBUG] [shutdown] Starting dispose: logger
+2026-10-19T20:21:02.233Z [DEBUG] [shutdown] Completed dispose: logger (28ms)
+2026-10-19T20:21:02.233Z [DEBUG] [shutdown] Shutdown complete

@@ -1,0 +1,15 @@
+{
+  "base": "51c72bdb05f59314c28527b3ff9d9afba13b2389",
+  "repo": "C:\\Users\\lyubo\\AppData\\Local\\Temp\\wfk-cp5-review-kwin4eh0\\repo",
+  "remotes": "",
+  "reviewer": "copilot-opus",
+  "model": "claude-opus-4.8",
+  "commandLoggingOnlyOverride": [
+    "--output-format",
+    "json",
+    "--log-level",
+    "debug",
+    "--log-dir",
+    "<scratch>/cli-logs"
+  ]
+}

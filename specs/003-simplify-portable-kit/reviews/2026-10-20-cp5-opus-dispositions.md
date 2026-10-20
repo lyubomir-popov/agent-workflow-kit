@@ -8,9 +8,11 @@ Two rounds are exhausted; this is remediation, not a third review.
 1. **Major — fixed.** Restored all five vendor scripts from `059405a` exactly;
    the two unchanged scripts already matched. Red/green dependency and functional
    prerequisite regressions pass. Vendor PowerShell 7 requirements are documented.
-2. **Major — pending CI.** Only the package branch is authorized for a normal
-   push. Actual Windows/macOS/Linux matrix results must be saved before this
-   finding or T029 can be recorded as resolved.
+2. **Major — fixed with actual CI evidence.** Only the package branch was pushed,
+   with no force or tags. All six Windows/macOS/Ubuntu jobs pass at `7bdb029`,
+   each running 233 tests, CLI help and offline lint. The initial failures,
+   test-first repairs, per-job links and exact results are saved in validation.
+   T029's required execution evidence is complete; CP5 is still owner-controlled.
 3. **Minor — fixed under explicit owner decision.** Spec 001 is superseded by
    003 and archived. Unfinished tasks and accepted evidence remain preserved;
    an explicit terminal-archive review format prevents retroactive v2 rewriting.

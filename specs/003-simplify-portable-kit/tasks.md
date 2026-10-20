@@ -1,7 +1,7 @@
 # Current work
 
-**Next tasks**: CP5 remediation per the [owner decision](reviews/2026-10-20-cp5-owner-decision.md); T029 completes with three-OS CI evidence.
-**Blockers**: none; branch push authorized for CI only; stop for CP5 clearance.
+**Next tasks**: owner CP5 decision from the [updated request](reviews/2026-10-20-cp5-review-request.md); no third review starts automatically.
+**Blockers**: CP5 owner clearance is pending. Required three-OS CI passes; consumer pinning/migration remains a pre-merge owner action.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
 **Validation**: [CP5 remediation](reviews/2026-10-20-cp5-remediation-validation.md); [slice D history](reviews/2026-10-19-cp5-validation.md).
@@ -54,7 +54,7 @@
 
 ## Slice D: retirement and docs
 
-- [ ] T029 [S] Fix both Linux parent-file collisions in init and prompt installation; pass their regression tests and the full three-OS Python suite before CP5 (Opus finding 3) (gate: CP4). Code and local suites pass; remaining macOS execution evidence is (manual).
+- [x] T029 [S] Fix both Linux parent-file collisions in init and prompt installation; pass their regression tests and the full three-OS Python suite before CP5 (Opus finding 3) (gate: CP4).
 - [x] T030 [S] Make the default reviewer Copilot running a Claude Opus model; qualify one review phase in a scratch repo; document the claude adapter as unqualified (gate: CP4).
 - [x] T015 [S] After the read-only consumer inventory, tag the last PowerShell revision locally, remove legacy tooling/tests/checker and migrate config (FR-040-041) (gate: CP4).
 - [x] T016 [S] Finish three-OS Python CI/lint and rewrite human README/reference docs (FR-042-043) (gate: CP4).
@@ -64,14 +64,14 @@
 
 - [x] T031 [S] Restore the five vendor scripts from `059405a` test-first, repair the feature cursor and document the vendor PowerShell prerequisite (findings 1, 4) (gate: CP4).
 - [x] T032 [S] Supersede/archive Spec 001 while preserving accepted evidence; test explicit terminal-archive review-format compatibility (finding 3) (gate: CP4).
-- [ ] T033 [X] Push only the package branch without force/tags, retain all three-OS CI outcomes, update dispositions/request and stop for the CP5 owner decision (finding 2) (gate: CP4).
+- [x] T033 [X] Push only the package branch without force/tags, retain all three-OS CI outcomes, update dispositions/request and stop for the CP5 owner decision (finding 2) (gate: CP4).
 
 ## Known limits
 
-- T029's two parent-file collisions are fixed with byte-preservation regressions.
-  Final Windows and WSL suites pass (227 tests each). T029 remains open only for
-  its macOS execution requirement: no macOS runner is available locally, and
-  an unexecuted CI definition is not a passing three-OS run. See slice D evidence.
+- One initial hosted Windows/current-Python Node fixture exceeded its 10-second
+  startup timeout; the cause is unproven. It passed unchanged locally, on initial
+  Python 3.10, and in both successful follow-up Windows jobs. Preserve diagnostics
+  if it recurs; no speculative runtime workaround was added. See remediation evidence.
 
 - CP4 remediation initially allowed one bounded scratch attempt per provider.
   Copilot completed a committed task; Codex initially rejected the Copilot alias.
@@ -126,5 +126,3 @@
 - Root discovery skips dependency/cache directories and directory symlinks;
   an excluded repository can be passed directly as a root. Ownership/access
   failures limit real-machine coverage; see the final validation evidence.
-- The six-job Windows/macOS/Linux and Python 3.10/current CI matrix is configured
-  but unexecuted. Local Windows/WSL results do not establish its macOS/CI passes.

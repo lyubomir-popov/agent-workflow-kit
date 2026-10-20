@@ -1,7 +1,7 @@
 # Current work
 
-**Next tasks**: owner CP5 decision from the [updated request](reviews/2026-10-20-cp5-review-request.md); no third review starts automatically.
-**Blockers**: CP5 owner clearance is pending. Required three-OS CI passes; consumer pinning/migration remains a pre-merge owner action.
+**Next tasks**: none; all checkpoints cleared. Owner merge steps are in the [CP5 clearance](reviews/2026-10-20-cp5-owner-clearance.md).
+**Blockers**: consumer pinning/migration before the owner merges.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
 **Validation**: [CP5 remediation](reviews/2026-10-20-cp5-remediation-validation.md); [slice D history](reviews/2026-10-19-cp5-validation.md).

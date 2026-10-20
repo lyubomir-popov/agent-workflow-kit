@@ -14,7 +14,6 @@ the available inventory lacks the branch; uncached remote inventory is unknown.
 
 | Spec | Package | Branch |
 |---|---|---|
-| 003 Simplify and port the kit | [003-simplify-portable-kit](../specs/003-simplify-portable-kit/spec.md) | `feat/003-simplify-portable-kit` |
 
 ## Candidates
 
@@ -56,3 +55,4 @@ delivery branch name as metadata even after that branch is deleted.
 | Spec | Package | Branch |
 |---|---|---|
 | 001 Spec-first agent workflow | [001-spec-first-workflow](../specs/001-spec-first-workflow/spec.md) | `feat/001-spec-first-workflow` |
+| 003 Simplify and port the kit | [003-simplify-portable-kit](../specs/003-simplify-portable-kit/spec.md) | `feat/003-simplify-portable-kit` |

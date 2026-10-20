@@ -15,7 +15,7 @@ Clone the kit, then add its `bin` directory to `PATH`. The `wfk` launcher
 works from any repository and selects a suitable Python interpreter.
 
 ```console
-git clone git@github.com:lyubomir-popov/agent-workflow-kit.git
+git clone --branch main git@github.com:lyubomir-popov/agent-workflow-kit.git
 export PATH="/path/to/agent-workflow-kit/bin:$PATH"
 wfk --help
 ```

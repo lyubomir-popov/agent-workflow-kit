@@ -2,7 +2,7 @@
 
 **Feature branch**: `feat/003-simplify-portable-kit`
 **Created**: 2026-10-17
-**Lifecycle**: active
+**Lifecycle**: delivered
 **Scope**: `003/spec-r1`
 **Superseded tasks**: none.
 

@@ -1,7 +1,7 @@
 # Current work
 
-**Next tasks**: none; all checkpoints cleared. Owner merge steps are in the [CP5 clearance](reviews/2026-10-20-cp5-owner-clearance.md).
-**Blockers**: consumer pinning/migration before the owner merges.
+**Next tasks**: none; Spec 003 is delivered with all five checkpoints cleared. See the [delivery record](reviews/2026-10-20-delivery.md).
+**Blockers**: none for this repository's delivery. The owner will migrate consumer repositories manually under the delivery scope below.
 **Checkpoint links**: [gates](spec.md#checkpoints); [CP1 acceptance](reviews/2026-10-17-cp1-owner-acceptance.md).
 **Entry checkpoint**: CP1
 **Validation**: [CP5 remediation](reviews/2026-10-20-cp5-remediation-validation.md); [slice D history](reviews/2026-10-19-cp5-validation.md).

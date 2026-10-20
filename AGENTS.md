@@ -72,7 +72,8 @@ python -m wfk run --repo . --package <selected-catalog-package> --json
 git diff --check; git diff --cached --check
 ```
 
-Replace the package placeholder with the declared catalog package being worked on.
+Use the current catalog package; if none exists, verify that an explicit archived
+package preview refuses to run. An archived refusal is an expected safety check.
 
 Validate in proportion to the change:
 
